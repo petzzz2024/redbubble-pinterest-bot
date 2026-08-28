@@ -50,7 +50,6 @@ def get_redbubble_products():
             print(f"Status Shop HTTP zahteva: {response.status_code}")
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, 'html.parser')
-                # Pronalaženje svih slika i linkova proizvoda
                 img_tags = soup.find_all('img')
                 for img in img_tags:
                     src = img.get('src', '')
@@ -75,7 +74,7 @@ def generate_ai_description(title):
     Nemoj dodavati naslov, vrati samo čist tekst opisa.
     """
     response = client.models.generate_content(
-        model='gemini-2.5-flash',
+        model='gemini-3.7-flash',
         contents=prompt
     )
     return response.text.strip()
