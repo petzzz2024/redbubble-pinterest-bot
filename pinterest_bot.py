@@ -4,7 +4,7 @@ import random
 import requests
 import feedparser
 from bs4 import BeautifulSoup
-import google.generativeai as genai
+from google import genai
 
 RB_USERNAME = os.environ.get('REDBUBBLE_USERNAME')
 PINTEREST_BOARD_ID = os.environ.get('PINTEREST_BOARD_ID')
@@ -15,13 +15,20 @@ RSS_URL = f"https://www.redbubble.com/people/{RB_USERNAME}/shop.rss"
 HISTORY_FILE = "posted_history.json"
 
 def get_redbubble_products():
-    feed = feedparser.parse(RSS_URL)
-    products = []
+    # Zaglavlje kako Redbubble ne bi blokirao automatski upit
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    response = requests.get(RSS_URL, headers=headers)
     
+    feed = feedparser.parse(response.content)
+    print(f"Ukupno pronađeno sirovih artikala u RSS-u: {len(feed.entries)}")
+    
+    products = []
     for entry in feed.entries:
         title = entry.title
         link = entry.link
-        soup = BeautifulSoup(entry.summary, 'html.parser')
+        
+        summary_text = getattr(entry, 'summary', '') or getattr(entry, 'description', '')
+        soup = BeautifulSoup(summary_text, 'html.parser')
         img_tag = soup.find('img')
         img_url = img_tag['src'] if img_tag else None
         
@@ -34,16 +41,16 @@ def get_redbubble_products():
     return products
 
 def generate_ai_description(title):
-    genai.configure(api_key=GEMINI_KEY)
-    # Korišćenje Gemini 3.7 Flash modela
-    model = genai.GenerativeModel('gemini-3.7-flash')
-    
+    client = genai.Client(api_key=GEMINI_KEY)
     prompt = f"""
     Napiši privlačan Pinterest opis na engleskom jeziku za proizvod sa nazivom '{title}'.
     Opis treba da bude optimizovan za pretragu (SEO), dužine 2 do 3 rečenice i sa 5 relevantnih hashtagova na kraju.
     Nemoj dodavati naslov, vrati samo čist tekst opisa.
     """
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=prompt
+    )
     return response.text.strip()
 
 def post_to_pinterest(title, description, link, image_url):
@@ -70,18 +77,23 @@ def main():
     posted = []
     if os.path.exists(HISTORY_FILE):
         with open(HISTORY_FILE, 'r') as f:
-            posted = json.load(f)
+            try:
+                posted = json.load(f)
+            except json.JSONDecodeError:
+                posted = []
 
     products = get_redbubble_products()
+    print(f"Broj uspešno obrađenih proizvoda sa slikom: {len(products)}")
+
     unposted_products = [p for p in products if p['link'] not in posted]
+    print(f"Broj neobjavljenih proizvoda: {len(unposted_products)}")
 
     if not unposted_products:
-        print("Svi preuzeti proizvodi iz feed-a su već objavljeni.")
+        print("Svi preuzeti proizvodi iz feed-a su već objavljeni ili feed nije vratio artikle.")
         return
 
-    # NASUMIČAN (RANDOM) IZBOR PROIZVODA
     target_product = random.choice(unposted_products)
-    print(f"Nasumično izabran proizvod: {target_product['title']}")
+    print(f"Nasumično izabran proizvod za objavu: {target_product['title']}")
 
     description = generate_ai_description(target_product['title'])
     success, response = post_to_pinterest(
@@ -97,7 +109,7 @@ def main():
         with open(HISTORY_FILE, 'w') as f:
             json.dump(posted, f, indent=2)
     else:
-        print(f"Greška pri objavljivanju: {response}")
+        print(f"Greška pri objavljivanju na Pinterest: {response}")
 
 if __name__ == "__main__":
     main()
