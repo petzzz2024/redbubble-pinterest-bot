@@ -6,38 +6,65 @@ import feedparser
 from bs4 import BeautifulSoup
 from google import genai
 
-RB_USERNAME = os.environ.get('REDBUBBLE_USERNAME')
-PINTEREST_BOARD_ID = os.environ.get('PINTEREST_BOARD_ID')
-PINTEREST_TOKEN = os.environ.get('PINTEREST_ACCESS_TOKEN')
-GEMINI_KEY = os.environ.get('GEMINI_API_KEY')
+RB_USERNAME = os.environ.get('REDBUBBLE_USERNAME', '').strip()
+PINTEREST_BOARD_ID = os.environ.get('PINTEREST_BOARD_ID', '').strip()
+PINTEREST_TOKEN = os.environ.get('PINTEREST_ACCESS_TOKEN', '').strip()
+GEMINI_KEY = os.environ.get('GEMINI_API_KEY', '').strip()
 
-RSS_URL = f"https://www.redbubble.com/people/{RB_USERNAME}/shop.rss"
 HISTORY_FILE = "posted_history.json"
 
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+}
+
 def get_redbubble_products():
-    # Zaglavlje kako Redbubble ne bi blokirao automatski upit
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-    response = requests.get(RSS_URL, headers=headers)
-    
-    feed = feedparser.parse(response.content)
-    print(f"Ukupno pronađeno sirovih artikala u RSS-u: {len(feed.entries)}")
-    
     products = []
-    for entry in feed.entries:
-        title = entry.title
-        link = entry.link
-        
-        summary_text = getattr(entry, 'summary', '') or getattr(entry, 'description', '')
-        soup = BeautifulSoup(summary_text, 'html.parser')
-        img_tag = soup.find('img')
-        img_url = img_tag['src'] if img_tag else None
-        
-        if img_url:
-            products.append({
-                'title': title,
-                'link': link,
-                'image_url': img_url
-            })
+    
+    # Metoda 1: RSS Feed
+    rss_url = f"https://www.redbubble.com/people/{RB_USERNAME}/shop.rss"
+    try:
+        response = requests.get(rss_url, headers=HEADERS, timeout=15)
+        print(f"Status RSS HTTP zahteva: {response.status_code}")
+        if response.status_code == 200 and len(response.content) > 500:
+            feed = feedparser.parse(response.content)
+            for entry in feed.entries:
+                title = entry.title
+                link = entry.link
+                summary_text = getattr(entry, 'summary', '') or getattr(entry, 'description', '')
+                soup = BeautifulSoup(summary_text, 'html.parser')
+                img_tag = soup.find('img')
+                img_url = img_tag['src'] if img_tag else None
+                if img_url:
+                    products.append({'title': title, 'link': link, 'image_url': img_url})
+    except Exception as e:
+        print(f"RSS mehanizam nije uspeo: {e}")
+
+    # Metoda 2: Direktno čitanje Shop stranice ako je RSS prazan
+    if not products:
+        print("RSS feed nije vratio artikle. Pokreće se rezervno čitanje Shop stranice...")
+        shop_url = f"https://www.redbubble.com/people/{RB_USERNAME}/shop"
+        try:
+            response = requests.get(shop_url, headers=HEADERS, timeout=15)
+            print(f"Status Shop HTTP zahteva: {response.status_code}")
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.text, 'html.parser')
+                # Pronalaženje svih slika i linkova proizvoda
+                img_tags = soup.find_all('img')
+                for img in img_tags:
+                    src = img.get('src', '')
+                    alt = img.get('alt', '')
+                    parent_a = img.find_parent('a')
+                    if parent_a and parent_a.get('href') and ('ih1.redbubble.net' in src or 'ih0.redbubble.net' in src):
+                        href = parent_a['href']
+                        full_link = href if href.startswith('http') else f"https://www.redbubble.com{href}"
+                        title = alt.strip() if alt else f"Redbubble Design by {RB_USERNAME}"
+                        if not any(p['link'] == full_link for p in products):
+                            products.append({'title': title, 'link': full_link, 'image_url': src})
+        except Exception as e:
+            print(f"Greška pri čitanju Shop stranice: {e}")
+
     return products
 
 def generate_ai_description(title):
@@ -83,17 +110,17 @@ def main():
                 posted = []
 
     products = get_redbubble_products()
-    print(f"Broj uspešno obrađenih proizvoda sa slikom: {len(products)}")
+    print(f"Broj pronađenih proizvoda u prodavnici: {len(products)}")
 
     unposted_products = [p for p in products if p['link'] not in posted]
     print(f"Broj neobjavljenih proizvoda: {len(unposted_products)}")
 
     if not unposted_products:
-        print("Svi preuzeti proizvodi iz feed-a su već objavljeni ili feed nije vratio artikle.")
+        print("Nema novih proizvoda za objavu.")
         return
 
     target_product = random.choice(unposted_products)
-    print(f"Nasumično izabran proizvod za objavu: {target_product['title']}")
+    print(f"Izabran proizvod: {target_product['title']}")
 
     description = generate_ai_description(target_product['title'])
     success, response = post_to_pinterest(
@@ -109,7 +136,7 @@ def main():
         with open(HISTORY_FILE, 'w') as f:
             json.dump(posted, f, indent=2)
     else:
-        print(f"Greška pri objavljivanju na Pinterest: {response}")
+        print(f"Pinterest API odziv: {response}")
 
 if __name__ == "__main__":
     main()
