@@ -73,11 +73,28 @@ def generate_ai_description(title):
     Opis treba da bude optimizovan za pretragu (SEO), dužine 2 do 3 rečenice i sa 5 relevantnih hashtagova na kraju.
     Nemoj dodavati naslov, vrati samo čist tekst opisa.
     """
-    response = client.models.generate_content(
-        model='gemini-3.7-flash',
-        contents=prompt
-    )
-    return response.text.strip()
+    
+    # Lista 3 nova modela koja se pokušavaju redom u slučaju opterećenja
+    models_to_try = [
+        'gemini-3.7-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3.1-pro-preview'
+    ]
+    
+    for model_name in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt
+            )
+            print(f"Uspešno generisan opis pomoću modela: {model_name}")
+            return response.text.strip()
+        except Exception as e:
+            print(f"Model {model_name} je trenutno nedostupan ili preopterećen. Pokušavam sledeći model...")
+
+    # Rezervni tekst ukoliko su sva 3 AI modela preopterećena
+    print("Sva 3 AI modela su trenutno preopterećena. Koristi se rezervni opis.")
+    return f"Discover unique products featuring the '{title}' design on Redbubble. Perfect for gifts, personal style, and unique decor. Shop the full collection now! #redbubble #{RB_USERNAME.lower()} #giftideas #design #shopping"
 
 def post_to_pinterest(title, description, link, image_url):
     url = "https://api.pinterest.com/v5/pins"
