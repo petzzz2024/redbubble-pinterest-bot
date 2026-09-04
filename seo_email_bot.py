@@ -24,7 +24,6 @@ def get_trending_animals(client):
         try:
             res = client.models.generate_content(model=model_name, contents=prompt)
             raw_text = res.text.strip().replace('\n', '')
-            # Čišćenje teksta u listu (brisanje tačaka na kraju i sl.)
             animals = [a.strip().strip('.') for a in raw_text.split(',') if a.strip()]
             if len(animals) >= 5:
                 print(f"🤖 AI trendovi uspešno izvučeni pomoću modela: {model_name}")
@@ -32,7 +31,6 @@ def get_trending_animals(client):
         except Exception as e:
             print(f"Model {model_name} nedostupan za pretragu trendova, pokušavam sledeći...")
             
-    # Ekstra-profitabilna rezervna lista u slučaju da su serveri pali
     print("Svi AI modeli nedostupni. Koristim rezervnu profitabilnu listu.")
     backup_list = ["Capybara", "Opossum", "Raccoon", "Highland Cow", "Red Panda", "Axolotl", "Silly Goose", "Frog", "Corgi", "Black Cat"]
     return random.sample(backup_list, 5)
@@ -52,8 +50,9 @@ def generate_mega_report(client, selected_animals):
     1. 💡 **Sub-topic Name & Design Concept** (e.g., "Retro Sunset Corgi Mom")
     2. 📝 **Redbubble SEO Title**: (Max 60 characters)
     3. 🏷️ **15 Redbubble Tags**: (Comma-separated, copy-paste ready)
-    4. 📌 **Pinterest SEO Description**: (2-3 sentences + 5 relevant hashtags)
-    5. 🎨 **AI Image Prompt**: (Ready-to-use prompt for Midjourney / DALL-E inside <code> tags)
+    4. 🛒 **Redbubble Description**: (Engaging 2-3 sentence product description optimized for Redbubble and Google SEO. Make it ready to copy-paste into the Redbubble description box).
+    5. 📌 **Pinterest SEO Description**: (2-3 sentences + 5 relevant hashtags)
+    6. 🎨 **AI Image Prompt**: (Ready-to-use prompt for Midjourney / DALL-E inside <code> tags)
     
     Format the entire output in clean, structured HTML for an email newsletter.
     Use clear headers (<h2> for Animal, <h3> for Idea), distinct content boxes, code blocks for tags and prompts, and elegant inline CSS styling.
@@ -100,11 +99,9 @@ def main():
     client = genai.Client(api_key=GEMINI_KEY)
     
     print("Započinjem istraživanje tržišta...")
-    # Bot prvo pita AI šta je popularno
     selected_animals = get_trending_animals(client)
     print(f"Pronađeni današnji trendovi: {selected_animals}")
     
-    # Zatim prosleđuje te trendove za kreiranje 25 ideja
     print("Generišem 25 SEO priprema za dobijene trendove...")
     html_report = generate_mega_report(client, selected_animals)
     
