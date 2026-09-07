@@ -1,8 +1,6 @@
 name: Daily SEO Email Report
 
 on:
-  schedule:
-    - cron: '0 9 * * *' # Pokreće se svaki dan u 09:00h po UTC vremenu
   workflow_dispatch: # Omogućava i ručno pokretanje na dugme
 
 jobs:
