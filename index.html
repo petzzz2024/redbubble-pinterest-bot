@@ -27,7 +27,7 @@
         .hero h1 { font-size: 2.5em; margin-bottom: 10px; font-weight: 700; }
         .hero p { font-size: 1.1em; opacity: 0.95; max-width: 600px; margin: 0 auto 25px; line-height: 1.6; }
         
-        /* Tirkizno plavo dugme sa BELIM tekstom */
+        /* Tirkizno plavo dugme sa belim tekstom */
         .hero-btn { 
             display: inline-block; 
             padding: 14px 34px; 
@@ -51,7 +51,6 @@
         .container { max-width: 1200px; margin: 50px auto; padding: 0 20px; }
         .section-title { text-align: center; font-size: 2em; margin-bottom: 35px; color: #1c1328; font-weight: 700; }
         
-        /* Grid sa 4 velika polja */
         .category-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 25px; }
         
         .category-card { 
@@ -87,12 +86,89 @@
         }
         .category-card:hover .card-btn { background: #5a189a; }
 
+        /* Stilovi za Pop-up Modal */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+        .popup-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .popup-content {
+            position: relative;
+            background: white;
+            border-radius: 16px;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+        .popup-overlay.active .popup-content {
+            transform: scale(1);
+        }
+        .popup-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffffff;
+            background: rgba(0, 0, 0, 0.6);
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            border: 2px solid #ffffff;
+            transition: background 0.2s, transform 0.2s;
+        }
+        .popup-close:hover {
+            background: #e74c3c;
+            transform: scale(1.1);
+        }
+        .popup-link {
+            display: block;
+            text-decoration: none;
+        }
+        .popup-img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
         /* Footer */
         footer { background: #1c1328; color: #bbb; text-align: center; padding: 30px 20px; margin-top: 70px; font-size: 0.9em; }
         footer a { color: #fff; text-decoration: underline; }
     </style>
 </head>
 <body>
+
+    <!-- Pop-up Banner Prozor -->
+    <div class="popup-overlay" id="discountPopup">
+        <div class="popup-content">
+            <div class="popup-close" id="closePopup">&times;</div>
+            <a href="https://petzzz.redbubble.com" target="_blank" class="popup-link">
+                <img src="discount.png" alt="Discount 365 Days" class="popup-img" onerror="this.src='https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600&q=80'">
+            </a>
+        </div>
+    </div>
 
     <header>
         <div class="nav-container">
@@ -182,5 +258,27 @@
         <p>&copy; 2026 Petzzz Studio. Official Redbubble Showcase. | <a href="privacy.html">Privacy Policy</a></p>
     </footer>
 
+    <!-- Skripta za upravljanje Pop-up prozorom -->
+    <script>
+        window.addEventListener('load', function() {
+            // Pop-up se pojavljuje 1 sekundu nakon učitavanja
+            setTimeout(function() {
+                document.getElementById('discountPopup').classList.add('active');
+            }, 1000);
+        });
+
+        // Klik na X zatvara pop-up
+        document.getElementById('closePopup').addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('discountPopup').classList.remove('active');
+        });
+
+        // Klik na tamnu pozadinu van prozora takođe zatvara pop-up
+        document.getElementById('discountPopup').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+            }
+        });
+    </script>
 </body>
 </html>
