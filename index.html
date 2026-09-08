@@ -22,17 +22,17 @@
         .nav-links a { margin-left: 20px; text-decoration: none; color: #555; font-weight: 600; font-size: 0.9em; }
         .nav-links a:hover { color: #8e44ad; }
         
-        /* Hero Banner sa Tirkiznim Dugmetom */
+        /* Hero Banner */
         .hero { background: linear-gradient(135deg, #1c1328, #3a1c5c, #7b2cbf); color: white; text-align: center; padding: 65px 20px; }
         .hero h1 { font-size: 2.5em; margin-bottom: 10px; font-weight: 700; }
         .hero p { font-size: 1.1em; opacity: 0.95; max-width: 600px; margin: 0 auto 25px; line-height: 1.6; }
         
-        /* Tirkizno plavo dugme */
+        /* Tirkizno plavo dugme sa BELIM tekstom */
         .hero-btn { 
             display: inline-block; 
             padding: 14px 34px; 
             background: #00d2d3; 
-            color: #1c1328; 
+            color: #ffffff !important; 
             text-decoration: none; 
             font-weight: 700; 
             border-radius: 30px; 
@@ -42,6 +42,7 @@
         }
         .hero-btn:hover { 
             background: #00cec9; 
+            color: #ffffff !important;
             transform: translateY(-2px); 
             box-shadow: 0 6px 20px rgba(0, 210, 211, 0.6);
         }
@@ -85,10 +86,6 @@
             transition: background 0.2s; 
         }
         .category-card:hover .card-btn { background: #5a189a; }
-        
-        /* Poseban stil za 80+ kartu */
-        .more-card .card-img-container { background: linear-gradient(135deg, #3a1c5c, #7b2cbf); display: flex; align-items: center; justify-content: center; }
-        .more-badge { font-size: 3em; font-weight: 700; color: #00d2d3; text-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 
         /* Footer */
         footer { background: #1c1328; color: #bbb; text-align: center; padding: 30px 20px; margin-top: 70px; font-size: 0.9em; }
@@ -125,7 +122,7 @@
             <!-- Kategorija 1: Stikeri -->
             <a href="https://petzzz.redbubble.com" target="_blank" class="category-card">
                 <div class="card-img-container">
-                    <img src="https://images.unsplash.com/photo-1572375992501-4b0892d50c69?w=600&q=80" alt="Pet Vinyl Stickers" class="category-img">
+                    <img src="stickers.png" alt="Pet Vinyl Stickers" class="category-img" onerror="this.src='https://images.unsplash.com/photo-1572375992501-4b0892d50c69?w=600&q=80'">
                 </div>
                 <div class="category-info">
                     <div>
@@ -139,7 +136,7 @@
             <!-- Kategorija 2: Majice -->
             <a href="https://petzzz.redbubble.com" target="_blank" class="category-card">
                 <div class="card-img-container">
-                    <img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=600&q=80" alt="Pet T-Shirts" class="category-img">
+                    <img src="tshirts.png" alt="Pet T-Shirts" class="category-img" onerror="this.src='https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=600&q=80'">
                 </div>
                 <div class="category-info">
                     <div>
@@ -153,7 +150,7 @@
             <!-- Kategorija 3: Duksevi -->
             <a href="https://petzzz.redbubble.com" target="_blank" class="category-card">
                 <div class="card-img-container">
-                    <img src="https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=600&q=80" alt="Pet Hoodies" class="category-img">
+                    <img src="hoodies.png" alt="Pet Hoodies" class="category-img" onerror="this.src='https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=600&q=80'">
                 </div>
                 <div class="category-info">
                     <div>
@@ -165,9 +162,9 @@
             </a>
 
             <!-- Kategorija 4: 80+ More Products -->
-            <a href="https://petzzz.redbubble.com" target="_blank" class="category-card more-card">
+            <a href="https://petzzz.redbubble.com" target="_blank" class="category-card">
                 <div class="card-img-container">
-                    <div class="more-badge">80+</div>
+                    <img src="more.png" alt="80+ More Products" class="category-img" onerror="this.src='https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&q=80'">
                 </div>
                 <div class="category-info">
                     <div>
