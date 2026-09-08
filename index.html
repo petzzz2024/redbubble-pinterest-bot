@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Petzzz Studio - Official Sticker Shop</title>
+    <title>Petzzz Studio - Official Pet Apparel, Bandanas & Accessories</title>
     
-    <!-- Logo kao Favicon (Ikonica u tabu pregledača) -->
+    <!-- Logo kao Favicon -->
     <link rel="icon" type="image/png" href="Logo 2.png">
     
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
@@ -22,10 +22,10 @@
         .nav-links a { margin-left: 20px; text-decoration: none; color: #555; font-weight: 600; font-size: 0.9em; }
         .nav-links a:hover { color: #8e44ad; }
         
-        /* Hero Banner - Elegantna Ljubičasta Boja sa Logo Tonovima */
+        /* Hero Banner - Ljubičasta Tematika */
         .hero { background: linear-gradient(135deg, #1c1328, #3a1c5c, #7b2cbf); color: white; text-align: center; padding: 60px 20px; }
-        .hero h1 { font-size: 2.5em; margin-bottom: 10px; }
-        .hero p { font-size: 1.1em; opacity: 0.95; max-width: 600px; margin: 0 auto 20px; }
+        .hero h1 { font-size: 2.4em; margin-bottom: 10px; }
+        .hero p { font-size: 1.05em; opacity: 0.95; max-width: 650px; margin: 0 auto 20px; }
         .hero-btn { display: inline-block; padding: 12px 30px; background: #ffffff; color: #3a1c5c; text-decoration: none; font-weight: 700; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.25); transition: 0.3s; }
         .hero-btn:hover { background: #f1f1f1; transform: translateY(-2px); }
 
@@ -33,11 +33,11 @@
         .container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
         .section-title { text-align: center; font-size: 1.8em; margin-bottom: 30px; color: #2c3e50; }
         
-        /* Grid sa 20 Stikera */
+        /* Product Grid */
         .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 25px; }
         .product-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: transform 0.3s, box-shadow 0.3s; display: flex; flex-direction: column; justify-content: space-between; }
         .product-card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
-        .product-img { width: 100%; height: 220px; object-fit: cover; background: #f0f0f0; }
+        .product-img { width: 100%; height: 230px; object-fit: cover; background: #f0f0f0; }
         .product-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
         .product-category { font-size: 0.75em; text-transform: uppercase; color: #7b2cbf; font-weight: 700; letter-spacing: 0.5px; }
         .product-title { font-size: 0.95em; font-weight: 600; margin: 5px 0 10px; color: #333; line-height: 1.4; }
@@ -60,7 +60,7 @@
                 <span class="logo-text">Petzzz Studio</span>
             </a>
             <div class="nav-links">
-                <a href="#stickers">Featured Stickers</a>
+                <a href="#collection">Official Collection</a>
                 <a href="https://petzzz.redbubble.com" target="_blank">Redbubble Shop</a>
                 <a href="privacy.html">Privacy Policy</a>
             </div>
@@ -68,22 +68,67 @@
     </header>
 
     <section class="hero">
-        <h1>Funny & Cute Pet Vinyl Stickers</h1>
-        <p>Explore durable, water-resistant pet vinyl stickers designed for laptops, water bottles, and cars.</p>
-        <a href="https://petzzz.redbubble.com" target="_blank" class="hero-btn">Visit Official Redbubble Shop 🛍️</a>
+        <h1>Stickers, Apparel, Mugs & Pet Bandanas</h1>
+        <p>Discover unique pet designs on high-quality t-shirts, mugs, water-resistant stickers, and cute pet bandanas.</p>
+        <a href="https://petzzz.redbubble.com" target="_blank" class="hero-btn">Shop Full Redbubble Store 🛍️</a>
     </section>
 
-    <div class="container" id="stickers">
-        <h2 class="section-title">20 Popular Petzzz Stickers</h2>
+    <div class="container" id="collection">
+        <h2 class="section-title">Featured Petzzz Collection</h2>
         
-        <div class="product-grid">
-            <!-- 1 -->
+        <div class="product-grid" id="grid">
+            <!-- 1. Pet Bandana -->
             <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500&q=80" alt="Lazy Turtle Sticker" class="product-img">
+                <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500&q=80" alt="Pet Bandana" class="product-img">
+                <div class="product-info">
+                    <div>
+                        <span class="product-category">Pet Bandana</span>
+                        <h3 class="product-title">Retro Sunset Corgi Dog Bandana</h3>
+                    </div>
+                    <div class="product-bottom">
+                        <span class="price">$17.50</span>
+                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. T-Shirt -->
+            <div class="product-card">
+                <img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&q=80" alt="Dog Mom T-Shirt" class="product-img">
+                <div class="product-info">
+                    <div>
+                        <span class="product-category">Classic T-Shirt</span>
+                        <h3 class="product-title">My Ducks Are Not In A Row Tee</h3>
+                    </div>
+                    <div class="product-bottom">
+                        <span class="price">$22.90</span>
+                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Coffee Mug -->
+            <div class="product-card">
+                <img src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&q=80" alt="Pet Coffee Mug" class="product-img">
+                <div class="product-info">
+                    <div>
+                        <span class="product-category">Coffee Mug</span>
+                        <h3 class="product-title">Retired Draft Dog Bernese Mug</h3>
+                    </div>
+                    <div class="product-bottom">
+                        <span class="price">$15.90</span>
+                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Vinyl Sticker -->
+            <div class="product-card">
+                <img src="https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=500&q=80" alt="Vinyl Sticker" class="product-img">
                 <div class="product-info">
                     <div>
                         <span class="product-category">Vinyl Sticker</span>
-                        <h3 class="product-title">Lazy Turtle Sticker</h3>
+                        <h3 class="product-title">Much Wow Such Style Doge Sticker</h3>
                     </div>
                     <div class="product-bottom">
                         <span class="price">$3.50</span>
@@ -91,93 +136,55 @@
                     </div>
                 </div>
             </div>
-            <!-- 2 -->
+
+            <!-- 5. Pet Bandana -->
             <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=500&q=80" alt="My Ducks Are Not In A Row" class="product-img">
+                <img src="https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=500&q=80" alt="Pet Bandana" class="product-img">
                 <div class="product-info">
                     <div>
-                        <span class="product-category">Die-Cut Sticker</span>
-                        <h3 class="product-title">My Ducks Are Not In A Row Meme</h3>
+                        <span class="product-category">Pet Bandana</span>
+                        <h3 class="product-title">Branch Manager Golden Bandana</h3>
                     </div>
                     <div class="product-bottom">
-                        <span class="price">$3.80</span>
+                        <span class="price">$17.50</span>
                         <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
                     </div>
                 </div>
             </div>
-            <!-- 3 -->
+
+            <!-- 6. Hoodie -->
             <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=500&q=80" alt="Retired Draft Dog Bernese" class="product-img">
+                <img src="https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=500&q=80" alt="Pet Hoodie" class="product-img">
                 <div class="product-info">
                     <div>
-                        <span class="product-category">Matte Sticker</span>
-                        <h3 class="product-title">Retired Draft Dog Lazy Bernese</h3>
+                        <span class="product-category">Pullover Hoodie</span>
+                        <h3 class="product-title">The Stare Border Collie Hoodie</h3>
                     </div>
                     <div class="product-bottom">
-                        <span class="price">$3.50</span>
+                        <span class="price">$45.00</span>
                         <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
                     </div>
                 </div>
             </div>
-            <!-- 4 -->
+
+            <!-- 7. Coffee Mug -->
             <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=500&q=80" alt="Much Wow Such Style Doge" class="product-img">
+                <img src="https://images.unsplash.com/photo-1577937927133-66ef06acdf18?w=500&q=80" alt="Cat Mug" class="product-img">
                 <div class="product-info">
                     <div>
-                        <span class="product-category">Glossy Sticker</span>
-                        <h3 class="product-title">Much Wow Such Style Doge Meme</h3>
+                        <span class="product-category">Tall Mug</span>
+                        <h3 class="product-title">Current Mood: Grumpy Cat Mug</h3>
                     </div>
                     <div class="product-bottom">
-                        <span class="price">$3.20</span>
+                        <span class="price">$16.50</span>
                         <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
                     </div>
                 </div>
             </div>
-            <!-- 5 -->
+
+            <!-- 8. Vinyl Sticker -->
             <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=500&q=80" alt="Branch Manager Golden Retriever" class="product-img">
-                <div class="product-info">
-                    <div>
-                        <span class="product-category">Vinyl Sticker</span>
-                        <h3 class="product-title">Branch Manager Golden Retriever</h3>
-                    </div>
-                    <div class="product-bottom">
-                        <span class="price">$3.60</span>
-                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
-                    </div>
-                </div>
-            </div>
-            <!-- 6 -->
-            <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1517849845537-4d257902454a?w=500&q=80" alt="The Stare Hypnotic Border Collie" class="product-img">
-                <div class="product-info">
-                    <div>
-                        <span class="product-category">Holographic Sticker</span>
-                        <h3 class="product-title">The Stare Hypnotic Border Collie</h3>
-                    </div>
-                    <div class="product-bottom">
-                        <span class="price">$4.20</span>
-                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
-                    </div>
-                </div>
-            </div>
-            <!-- 7 -->
-            <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=500&q=80" alt="Current Mood No Grumpy Manul" class="product-img">
-                <div class="product-info">
-                    <div>
-                        <span class="product-category">Transparent Sticker</span>
-                        <h3 class="product-title">Current Mood: No - Grumpy Manul</h3>
-                    </div>
-                    <div class="product-bottom">
-                        <span class="price">$3.50</span>
-                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
-                    </div>
-                </div>
-            </div>
-            <!-- 8 -->
-            <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1555685812-4b943f1cb0eb?w=500&q=80" alt="Behold My Favorite Rock Sea Otter" class="product-img">
+                <img src="https://images.unsplash.com/photo-1555685812-4b943f1cb0eb?w=500&q=80" alt="Sea Otter Sticker" class="product-img">
                 <div class="product-info">
                     <div>
                         <span class="product-category">Die-Cut Sticker</span>
@@ -189,83 +196,59 @@
                     </div>
                 </div>
             </div>
-            <!-- 9 -->
+
+            <!-- 9. Pet Bandana -->
             <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=500&q=80" alt="Lazy English Bulldog" class="product-img">
+                <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=500&q=80" alt="Pet Bandana" class="product-img">
+                <div class="product-info">
+                    <div>
+                        <span class="product-category">Pet Bandana</span>
+                        <h3 class="product-title">Lazy English Bulldog Pet Bandana</h3>
+                    </div>
+                    <div class="product-bottom">
+                        <span class="price">$17.50</span>
+                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 10. T-Shirt -->
+            <div class="product-card">
+                <img src="https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=500&q=80" alt="Basset Hound Shirt" class="product-img">
+                <div class="product-info">
+                    <div>
+                        <span class="product-category">Premium T-Shirt</span>
+                        <h3 class="product-title">Majestic Basset Hound Running Tee</h3>
+                    </div>
+                    <div class="product-bottom">
+                        <span class="price">$24.00</span>
+                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 11. Coffee Mug -->
+            <div class="product-card">
+                <img src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&q=80" alt="Chicken Mug" class="product-img">
+                <div class="product-info">
+                    <div>
+                        <span class="product-category">Ceramic Mug</span>
+                        <h3 class="product-title">Boujee Silkie Chicken Coffee Mug</h3>
+                    </div>
+                    <div class="product-bottom">
+                        <span class="price">$15.90</span>
+                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 12. Vinyl Sticker -->
+            <div class="product-card">
+                <img src="https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=500&q=80" alt="Land Shark Sticker" class="product-img">
                 <div class="product-info">
                     <div>
                         <span class="product-category">Glossy Sticker</span>
-                        <h3 class="product-title">Lazy English Bulldog Art</h3>
-                    </div>
-                    <div class="product-bottom">
-                        <span class="price">$3.50</span>
-                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
-                    </div>
-                </div>
-            </div>
-            <!-- 10 -->
-            <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1589941013453-ec89f33b5e95?w=500&q=80" alt="Majestic Running Basset Hound" class="product-img">
-                <div class="product-info">
-                    <div>
-                        <span class="product-category">Matte Sticker</span>
-                        <h3 class="product-title">Majestic Running Basset Hound</h3>
-                    </div>
-                    <div class="product-bottom">
-                        <span class="price">$3.60</span>
-                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
-                    </div>
-                </div>
-            </div>
-            <!-- 11 -->
-            <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=500&q=80" alt="Boujee Farm Girl Silkie Chicken" class="product-img">
-                <div class="product-info">
-                    <div>
-                        <span class="product-category">Vinyl Sticker</span>
-                        <h3 class="product-title">Boujee Farm Girl Silkie Chicken</h3>
-                    </div>
-                    <div class="product-bottom">
-                        <span class="price">$3.40</span>
-                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
-                    </div>
-                </div>
-            </div>
-            <!-- 12 -->
-            <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=500&q=80" alt="Tactical Land Shark Belgian Malinois" class="product-img">
-                <div class="product-info">
-                    <div>
-                        <span class="product-category">Die-Cut Sticker</span>
-                        <h3 class="product-title">Tactical Land Shark Belgian Malinois</h3>
-                    </div>
-                    <div class="product-bottom">
-                        <span class="price">$3.90</span>
-                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
-                    </div>
-                </div>
-            </div>
-            <!-- 13 -->
-            <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1507146426996-ef05306b995a?w=500&q=80" alt="Boop The Snoot Hognose Snake" class="product-img">
-                <div class="product-info">
-                    <div>
-                        <span class="product-category">Vinyl Sticker</span>
-                        <h3 class="product-title">Boop The Snoot Hognose Snake</h3>
-                    </div>
-                    <div class="product-bottom">
-                        <span class="price">$3.50</span>
-                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
-                    </div>
-                </div>
-            </div>
-            <!-- 14 -->
-            <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1574158622682-e40e69881006?w=500&q=80" alt="The Scholar Librarian Cat" class="product-img">
-                <div class="product-info">
-                    <div>
-                        <span class="product-category">Transparent Sticker</span>
-                        <h3 class="product-title">The Scholar Librarian Cat</h3>
+                        <h3 class="product-title">Tactical Land Shark Malinois</h3>
                     </div>
                     <div class="product-bottom">
                         <span class="price">$3.80</span>
@@ -273,86 +256,47 @@
                     </div>
                 </div>
             </div>
-            <!-- 15 -->
+
+            <!-- 13. Pet Bandana -->
             <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500&q=80" alt="Just Say No Stubborn Shiba Inu" class="product-img">
+                <img src="https://images.unsplash.com/photo-1589941013453-ec89f33b5e95?w=500&q=80" alt="German Shepherd Bandana" class="product-img">
                 <div class="product-info">
                     <div>
-                        <span class="product-category">Glossy Sticker</span>
-                        <h3 class="product-title">Just Say No Stubborn Shiba Inu</h3>
+                        <span class="product-category">Pet Bandana</span>
+                        <h3 class="product-title">German Shepherd Guard Bandana</h3>
                     </div>
                     <div class="product-bottom">
-                        <span class="price">$3.50</span>
+                        <span class="price">$17.50</span>
                         <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
                     </div>
                 </div>
             </div>
-            <!-- 16 -->
+
+            <!-- 14. T-Shirt -->
             <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=500&q=80" alt="Absolute Unit Grumpy Pallas Cat" class="product-img">
+                <img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&q=80" alt="Librarian Cat Shirt" class="product-img">
                 <div class="product-info">
                     <div>
-                        <span class="product-category">Matte Sticker</span>
-                        <h3 class="product-title">Absolute Unit Grumpy Pallas Cat</h3>
+                        <span class="product-category">Graphic Tee</span>
+                        <h3 class="product-title">The Scholar Librarian Cat Shirt</h3>
                     </div>
                     <div class="product-bottom">
-                        <span class="price">$3.60</span>
+                        <span class="price">$22.50</span>
                         <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
                     </div>
                 </div>
             </div>
-            <!-- 17 -->
+
+            <!-- 15. Coffee Mug -->
             <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1555685812-4b943f1cb0eb?w=500&q=80" alt="Beware The Tactical Butt Wombat" class="product-img">
+                <img src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&q=80" alt="Shiba Mug" class="product-img">
                 <div class="product-info">
                     <div>
-                        <span class="product-category">Die-Cut Sticker</span>
-                        <h3 class="product-title">Beware The Tactical Butt Wombat</h3>
+                        <span class="product-category">Travel Mug</span>
+                        <h3 class="product-title">Just Say No Stubborn Shiba Mug</h3>
                     </div>
                     <div class="product-bottom">
-                        <span class="price">$3.50</span>
-                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
-                    </div>
-                </div>
-            </div>
-            <!-- 18 -->
-            <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=500&q=80" alt="Red Heeler Chaos Australian Cattle Dog" class="product-img">
-                <div class="product-info">
-                    <div>
-                        <span class="product-category">Vinyl Sticker</span>
-                        <h3 class="product-title">Red Heeler Chaos Cattle Dog</h3>
-                    </div>
-                    <div class="product-bottom">
-                        <span class="price">$3.70</span>
-                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
-                    </div>
-                </div>
-            </div>
-            <!-- 19 -->
-            <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=500&q=80" alt="The Honk Is Coming Cobra Chicken" class="product-img">
-                <div class="product-info">
-                    <div>
-                        <span class="product-category">Glossy Sticker</span>
-                        <h3 class="product-title">The Honk Is Coming Cobra Chicken</h3>
-                    </div>
-                    <div class="product-bottom">
-                        <span class="price">$3.50</span>
-                        <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
-                    </div>
-                </div>
-            </div>
-            <!-- 20 -->
-            <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1555685812-4b943f1cb0eb?w=500&q=80" alt="Chill Capybara Zen Mode" class="product-img">
-                <div class="product-info">
-                    <div>
-                        <span class="product-category">Holographic Sticker</span>
-                        <h3 class="product-title">Chill Capybara Zen Mode Sticker</h3>
-                    </div>
-                    <div class="product-bottom">
-                        <span class="price">$4.20</span>
+                        <span class="price">$21.00</span>
                         <a href="https://petzzz.redbubble.com" target="_blank" class="buy-btn">View Item</a>
                     </div>
                 </div>
@@ -364,5 +308,68 @@
         <p>&copy; 2026 Petzzz Studio. Official Redbubble Store Showcase. | <a href="privacy.html">Privacy Policy</a></p>
     </footer>
 
+    <!-- Automatska skripta za sinhronizaciju sa vašim Redbubble shopom -->
+    <script>
+        async function loadLiveRedbubbleStore() {
+            try {
+                // Preuzimanje podataka sa Redbubble profila preko proxy servisa
+                const response = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://www.redbubble.com/people/Petzzz/shop'));
+                const data = await response.json();
+                if (data.contents) {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(data.contents, 'text/html');
+                    const imgElements = doc.querySelectorAll('img');
+                    
+                    let liveProducts = [];
+                    imgElements.forEach(img => {
+                        const src = img.getAttribute('src') || '';
+                        const alt = img.getAttribute('alt') || '';
+                        const parentA = img.closest('a');
+                        if ((src.includes('ih1.redbubble.net') || src.includes('ih0.redbubble.net')) && parentA) {
+                            const href = parentA.getAttribute('href') || '';
+                            const fullLink = href.startsWith('http') ? href : 'https://www.redbubble.com' + href;
+                            if (alt && !liveProducts.some(p => p.link === fullLink)) {
+                                liveProducts.push({
+                                    title: alt,
+                                    img: src,
+                                    link: fullLink
+                                });
+                            }
+                        }
+                    });
+
+                    if (liveProducts.length >= 10) {
+                        const grid = document.getElementById('grid');
+                        const categories = ['Pet Bandana', 'Classic T-Shirt', 'Coffee Mug', 'Vinyl Sticker'];
+                        const prices = ['$17.50', '$22.90', '$15.90', '$3.50'];
+                        
+                        let html = '';
+                        liveProducts.slice(0, 15).forEach((p, i) => {
+                            const cat = categories[i % categories.length];
+                            const price = prices[i % prices.length];
+                            html += `
+                            <div class="product-card">
+                                <img src="${p.img}" alt="${p.title}" class="product-img">
+                                <div class="product-info">
+                                    <div>
+                                        <span class="product-category">${cat}</span>
+                                        <h3 class="product-title">${p.title}</h3>
+                                    </div>
+                                    <div class="product-bottom">
+                                        <span class="price">${price}</span>
+                                        <a href="${p.link}" target="_blank" class="buy-btn">View Item</a>
+                                    </div>
+                                </div>
+                            </div>`;
+                        });
+                        grid.innerHTML = html;
+                    }
+                }
+            } catch (e) {
+                console.log("Prikazuju se fabričke spremljene kartice.");
+            }
+        }
+        window.addEventListener('DOMContentLoaded', loadLiveRedbubbleStore);
+    </script>
 </body>
 </html>
