@@ -1,0 +1,30 @@
+name: Auto Post to Bluesky 3x Daily
+
+on:
+  schedule:
+    # Pokreće se 3 puta dnevno (svakih 8 sati: u 08:00, 14:00 i 20:00 UTC)
+    - cron: '0 8,14,20 * * *'
+  workflow_dispatch:
+
+jobs:
+  post-to-bluesky:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade google-generativeai requests beautifulsoup4 atproto
+
+      - name: Post Random Redbubble Design to Bluesky
+        env:
+          BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
+          BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python post_to_bluesky.py
