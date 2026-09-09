@@ -21,39 +21,30 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 }
 
-def extract_animal_hashtags(title):
-    """Izvlači reči vezane za životinju iz naslova i pretvara ih u prilagođene heštegove."""
-    ignore_words = {
-        'designed', 'sold', 'by', 'petzzz', 'item', 'preview', 'sticker', 'stickers', 
-        't-shirt', 'shirt', 'hoodie', 'apparel', 'gift', 'gifts', 'art', 'cute', 'funny', 
-        'vector', 'vintage', 'retro', 'lovers', 'lover', 'and', 'the', 'for', 'with', 'studio'
-    }
+def get_animal_hashtags_via_gemini(title):
+    """Koristi Gemini veštačku inteligenciju da precizno pronađe životinju iz naslova i napravi heštegove."""
+    prompt = f"""
+    Analyze this product title: "{title}".
+    Identify the main animal/creature and return 2-3 clean, single-word hashtags related to that animal or breed.
+    Do NOT include spaces, punctuation, or special characters in the tags.
+    Output ONLY the words separated by commas, nothing else.
+    Example input: Modern Day Dinosaur Cassowary Prehistoric Art
+    Example output: Cassowary, Dinosaur, Bird
+    """
     
-    # Pronalazak svih reči iz naslova
-    words = re.findall(r'[a-zA-Z0-9]+', title)
-    relevant_words = [w.capitalize() for w in words if w.lower() not in ignore_words and len(w) > 2]
-    
-    unique_tags = []
-    for w in relevant_words:
-        if w not in unique_tags:
-            unique_tags.append(w)
-        if len(unique_tags) >= 2:
-            break
+    for model_name in GEMINI_MODELS:
+        try:
+            model = genai.GenerativeModel(model_name)
+            resp = model.generate_content(prompt, request_options={"timeout": 10})
+            if resp.text:
+                tags = [re.sub(r'[^a-zA-Z0-9]', '', t.strip()).capitalize() for t in resp.text.split(',') if t.strip()]
+                clean_tags = [t for t in tags if t]
+                if clean_tags:
+                    return clean_tags[:3]
+        except Exception:
+            continue
             
-    title_lower = title.lower()
-    
-    # Dodavanje opštijeg taga za pse ili mačke u zavisnosti od izabrane životinje
-    if any(cat in title_lower for cat in ['cat', 'kitten', 'kitty', 'meow']):
-        if "CatLovers" not in unique_tags:
-            unique_tags.append("CatLovers")
-    elif any(dog in title_lower for dog in ['dog', 'puppy', 'corgi', 'pug', 'husky', 'dachshund', 'bulldog', 'retriever', 'doxie', 'frenchie']):
-        if "DogLovers" not in unique_tags:
-            unique_tags.append("DogLovers")
-    else:
-        if "PetLovers" not in unique_tags:
-            unique_tags.append("PetLovers")
-            
-    return unique_tags
+    return ["PetLovers"]
 
 def fetch_random_redbubble_design():
     """Očitava ukupan broj stranica šopa, bira nasumičnu stranicu i sa nje uzima nasumičan dizajn."""
@@ -124,24 +115,26 @@ def post_to_bluesky():
 
     print(f"Izabran dizajn: {design['title']}")
     
-    # Dinamičko generisanje heštegova na osnovu izabrane životinje
-    animal_tags = extract_animal_hashtags(design['title'])
-    print(f"Generisani heštegovi za životinju: {animal_tags}")
+    # Gemini AI pronalazi tačne heštegove životinje
+    animal_tags = get_animal_hashtags_via_gemini(design['title'])
+    if "PetLovers" not in animal_tags:
+        animal_tags.append("PetLovers")
+    print(f"Generisani heštegovi: {animal_tags}")
 
-    # Građenje teksta sa klikabilnim linkom i prilagođenim heštegovima
+    # Građenje teksta sa simvolom '#' i klikabilnim linkom
     tb = client_utils.TextBuilder()
     tb.text(f"Discover unique {design['title']} at Petzzz Studio! 🐾\n\nShop collection: ")
     tb.link(design['product_link'], design['product_link'])
     tb.text("\n\n")
     
-    # Dodavanje tagova vezanih za konkretnu životinju
+    # Dodavanje heštegova sa pravim '#' znakom
     for tag in animal_tags:
-        tb.tag(tag, tag)
+        tb.tag(f"#{tag}", tag)
         tb.text(" ")
         
-    tb.tag("Redbubble", "Redbubble")
+    tb.tag("#Redbubble", "Redbubble")
     tb.text(" ")
-    tb.tag("PetzzzStudio", "PetzzzStudio")
+    tb.tag("#PetzzzStudio", "PetzzzStudio")
 
     print("Preuzimam sliku dizajna...")
     img_data = None
@@ -152,7 +145,6 @@ def post_to_bluesky():
     except Exception as e:
         print(f"Greška pri preuzimanju slike: {e}")
 
-    # Fallback na lokalni logo ako preuzimanje slike sa sajta ne uspe
     if not img_data:
         print("Korišćenje rezervne slike (Logo 2.png)...")
         if os.path.exists("Logo 2.png"):
