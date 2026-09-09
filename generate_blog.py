@@ -8,7 +8,7 @@ import google.generativeai as genai
 # Konfiguracija Gemini API-ja
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 
-# Lista SEO tema o ljubimcima sa pripadajućim ključnim rečima
+# Lista SEO tema
 TOPICS = [
     {"topic": "Top 10 Cute Gift Ideas for Corgi Lovers", "animal": "corgi"},
     {"topic": "Best Vinyl Stickers for Dog Moms in 2026", "animal": "dog"},
@@ -18,16 +18,10 @@ TOPICS = [
     {"topic": "Best Pet Bandanas and T-Shirts for Golden Retrievers", "animal": "golden retriever"}
 ]
 
-# Lista Gemini modela za automatski fallback ako jedan otkaže
 GEMINI_MODELS = [
-    'gemini-3.8-flash',
-    'gemini-3.7-flash',
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
-    'gemini-3.5-flash-lite',
-    'gemini-3.1-flash-lite',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash'
+    'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash',
+    'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite',
+    'gemini-2.0-flash', 'gemini-1.5-flash'
 ]
 
 def slugify(text):
@@ -36,10 +30,10 @@ def slugify(text):
     return re.sub(r'[\s-]+', '-', text).strip('-')
 
 def fetch_redbubble_product(animal_keyword):
-    """Pretražuje Petzzz Redbubble prodavnicu za zadatu životinju i vraća sliku i link."""
+    """Pretražuje prodavnicu, uz strogu proveru imena životinje u naslovu dizajna."""
     search_url = f"https://www.redbubble.com/people/Petzzz/shop?query={animal_keyword}"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
     
     try:
@@ -49,26 +43,41 @@ def fetch_redbubble_product(animal_keyword):
             img_tags = soup.find_all('img', src=re.compile(r'ih\d\.redbubble\.net'))
             
             for img in img_tags:
-                src = img.get('src')
-                alt = img.get('alt', f'Petzzz {animal_keyword.capitalize()} Design')
-                parent_a = img.find_parent('a')
+                alt_text = img.get('alt', '').lower()
                 
-                if parent_a and parent_a.get('href'):
-                    href = parent_a.get('href')
-                    full_link = href if href.startswith('http') else f"https://www.redbubble.com{href}"
-                    return {
-                        "title": alt,
-                        "img_url": src,
-                        "product_link": full_link
-                    }
+                # STROGA PROVERA: Slika mora sadržati ime životinje u opisu
+                if animal_keyword.lower() in alt_text:
+                    src = img.get('src')
+                    parent_a = img.find_parent('a')
+                    
+                    if parent_a and parent_a.get('href'):
+                        href = parent_a.get('href')
+                        full_link = href if href.startswith('http') else f"https://www.redbubble.com{href}"
+                        return {
+                            "title": img.get('alt', f'Petzzz {animal_keyword.capitalize()} Design').title(),
+                            "img_url": src,
+                            "product_link": full_link
+                        }
     except Exception as e:
-        print(f"Greška pri pretrazi Redbubble prodavnice: {e}")
+        print(f"Greška pri pretrazi: {e}")
 
-    # Fallback opcija u slučaju blokade
+    # REZERVNA OPCIJA: Ako Redbubble blokira bota ili dizajn nije nađen
+    # Ubacuje prelepu sliku te životinje, a link vodi na tačnu pretragu u vašem šopu!
+    unsplash_images = {
+        "corgi": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&q=80",
+        "dog": "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=800&q=80",
+        "dachshund": "https://images.unsplash.com/photo-1517849845537-4d257902454a?w=800&q=80",
+        "french bulldog": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&q=80",
+        "cat": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&q=80",
+        "golden retriever": "https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&q=80"
+    }
+    
+    fallback_img = unsplash_images.get(animal_keyword.lower(), "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&q=80")
+
     return {
-        "title": f"Petzzz {animal_keyword.capitalize()} Collection",
-        "img_url": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&q=80",
-        "product_link": "https://petzzz.redbubble.com"
+        "title": f"Explore Our {animal_keyword.capitalize()} Collection",
+        "img_url": fallback_img,
+        "product_link": search_url
     }
 
 def generate_post():
@@ -90,10 +99,9 @@ def generate_post():
     - Naturally mention pet stickers, t-shirts, hoodies, and accessories.
     - Include 1 call-to-action button linking to: {product['product_link']}
       Formatted as:
-      <a href="{product['product_link']}" target="_blank" style="display:inline-block; padding:12px 24px; background:#00d2d3; color:#fff; text-decoration:none; border-radius:30px; font-weight:bold; margin:20px 0;">Check Out Our {animal.capitalize()} Collection 🛍️</a>
+      <a href="{product['product_link']}" target="_blank" style="display:inline-block; padding:12px 24px; background:#00d2d3; color:#1c1328; text-decoration:none; border-radius:30px; font-weight:bold; margin:20px 0;">Check Out Our {animal.capitalize()} Collection 🛍️</a>
     """
     
-    # Prolazak kroz listu modela - ako jedan pukne, ide sledeći
     article_content = None
     for model_name in GEMINI_MODELS:
         try:
@@ -112,10 +120,10 @@ def generate_post():
     product_html_banner = f"""
     <div style="text-align:center; margin: 30px 0; background:#f0f0f0; padding:20px; border-radius:12px;">
         <a href="{product['product_link']}" target="_blank">
-            <img src="{product['img_url']}" alt="{product['title']}" style="max-width:100%; max-height:400px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+            <img src="{product['img_url']}" alt="{product['title']}" style="max-width:100%; max-height:400px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.1); object-fit:cover;">
         </a>
-        <p style="font-size:0.95em; color:#555; margin-top:12px; font-weight:600;">
-            Featured Store Item: <a href="{product['product_link']}" target="_blank" style="color:#7b2cbf;">{product['title']}</a>
+        <p style="font-size:1.05em; color:#333; margin-top:15px; font-weight:700;">
+            <a href="{product['product_link']}" target="_blank" style="color:#7b2cbf; text-decoration:none;">{product['title']} ➔</a>
         </p>
     </div>
     """
@@ -135,9 +143,9 @@ def generate_post():
         .logo-box {{ display: flex; align-items: center; text-decoration: none; gap: 10px; font-weight:700; color:#3a1c5c; }}
         .logo-img {{ width: 40px; height: 40px; border-radius: 50%; }}
         .container {{ max-width: 800px; margin: 40px auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }}
-        h1 {{ color: #1c1328; font-size: 2em; margin-bottom: 10px; }}
-        h2 {{ color: #7b2cbf; margin-top: 30px; }}
-        footer {{ background: #1c1328; color: #bbb; text-align: center; padding: 25px; margin-top: 50px; font-size: 0.9em; }}
+        h1 {{ color: #1c1328; font-size: 2.2em; margin-bottom: 10px; line-height: 1.2; }}
+        h2 {{ color: #7b2cbf; margin-top: 35px; }}
+        footer {{ background: #1c1328; color: #bbb; text-align: center; padding: 30px 20px; margin-top: 50px; font-size: 0.9em; }}
         footer a {{ color: #fff; }}
     </style>
 </head>
@@ -155,8 +163,10 @@ def generate_post():
     <div class="container">
         <h1>{topic}</h1>
         <p><em>Published on {datetime.date.today().strftime('%B %d, %Y')} by Petzzz Studio Team</em></p>
+        
         {product_html_banner}
-        <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+        
+        <hr style="border:0; border-top:1px solid #eaeaea; margin:30px 0;">
         {article_content}
     </div>
 
