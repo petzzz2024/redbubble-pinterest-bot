@@ -1,8 +1,6 @@
 name: Auto Post to Tumblr 3x Daily
 
 on:
-  schedule:
-    - cron: '0 10,18,21 * * *'
   workflow_dispatch:
 
 jobs:
