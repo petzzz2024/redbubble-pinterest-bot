@@ -21,6 +21,40 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 }
 
+def extract_animal_hashtags(title):
+    """Izvlači reči vezane za životinju iz naslova i pretvara ih u prilagođene heštegove."""
+    ignore_words = {
+        'designed', 'sold', 'by', 'petzzz', 'item', 'preview', 'sticker', 'stickers', 
+        't-shirt', 'shirt', 'hoodie', 'apparel', 'gift', 'gifts', 'art', 'cute', 'funny', 
+        'vector', 'vintage', 'retro', 'lovers', 'lover', 'and', 'the', 'for', 'with', 'studio'
+    }
+    
+    # Pronalazak svih reči iz naslova
+    words = re.findall(r'[a-zA-Z0-9]+', title)
+    relevant_words = [w.capitalize() for w in words if w.lower() not in ignore_words and len(w) > 2]
+    
+    unique_tags = []
+    for w in relevant_words:
+        if w not in unique_tags:
+            unique_tags.append(w)
+        if len(unique_tags) >= 2:
+            break
+            
+    title_lower = title.lower()
+    
+    # Dodavanje opštijeg taga za pse ili mačke u zavisnosti od izabrane životinje
+    if any(cat in title_lower for cat in ['cat', 'kitten', 'kitty', 'meow']):
+        if "CatLovers" not in unique_tags:
+            unique_tags.append("CatLovers")
+    elif any(dog in title_lower for dog in ['dog', 'puppy', 'corgi', 'pug', 'husky', 'dachshund', 'bulldog', 'retriever', 'doxie', 'frenchie']):
+        if "DogLovers" not in unique_tags:
+            unique_tags.append("DogLovers")
+    else:
+        if "PetLovers" not in unique_tags:
+            unique_tags.append("PetLovers")
+            
+    return unique_tags
+
 def fetch_random_redbubble_design():
     """Očitava ukupan broj stranica šopa, bira nasumičnu stranicu i sa nje uzima nasumičan dizajn."""
     base_shop_url = "https://www.redbubble.com/people/Petzzz/shop"
@@ -90,13 +124,21 @@ def post_to_bluesky():
 
     print(f"Izabran dizajn: {design['title']}")
     
-    # Građenje teksta sa klikabilnim linkom i heštegovima
+    # Dinamičko generisanje heštegova na osnovu izabrane životinje
+    animal_tags = extract_animal_hashtags(design['title'])
+    print(f"Generisani heštegovi za životinju: {animal_tags}")
+
+    # Građenje teksta sa klikabilnim linkom i prilagođenim heštegovima
     tb = client_utils.TextBuilder()
     tb.text(f"Discover unique {design['title']} at Petzzz Studio! 🐾\n\nShop collection: ")
     tb.link(design['product_link'], design['product_link'])
     tb.text("\n\n")
-    tb.tag("PetLovers", "PetLovers")
-    tb.text(" ")
+    
+    # Dodavanje tagova vezanih za konkretnu životinju
+    for tag in animal_tags:
+        tb.tag(tag, tag)
+        tb.text(" ")
+        
     tb.tag("Redbubble", "Redbubble")
     tb.text(" ")
     tb.tag("PetzzzStudio", "PetzzzStudio")
