@@ -20,10 +20,11 @@ def slugify(text):
 
 def get_store_category(animal_keyword):
     """Pravi Redbubble pretragu za izabranu životinju i daje sliku."""
-    query_encoded = urllib.parse.quote(animal_keyword)
+    clean_animal = animal_keyword.lower().strip()
+    query_encoded = urllib.parse.quote(clean_animal)
     shop_search_url = f"https://www.redbubble.com/shop/?query={query_encoded}&artistUserName=Petzzz"
     
-    # Lista prelepih sigurnih slika, a ako Gemini izmisli nešto treće, koristi se generička slika ljubimca
+    # Lista prelepih sigurnih slika
     unsplash_images = {
         "corgi": "https://images.unsplash.com/photo-1519098901909-b1553a1190af?w=800&q=80",
         "pug": "https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?w=800&q=80",
@@ -34,10 +35,13 @@ def get_store_category(animal_keyword):
         "golden retriever": "https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&q=80"
     }
     
-    cover_img = unsplash_images.get(animal_keyword.lower(), "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800&q=80")
+    # REZERVNA SLIKA JE SADA VAŠ LOGO
+    fallback_img = "../Logo 2.png"
+
+    cover_img = unsplash_images.get(clean_animal, fallback_img)
 
     return {
-        "title": f"Explore Petzzz {animal_keyword.capitalize()} Designs",
+        "title": f"Explore Petzzz {clean_animal.title()} Designs",
         "img_url": cover_img,
         "product_link": shop_search_url
     }
@@ -47,7 +51,6 @@ def update_blog_index():
     html_files = glob.glob("blog/*.html")
     posts_list_html = ""
     
-    # Sortira fajlove od najnovijeg ka najstarijem (po vremenu modifikacije)
     html_files.sort(key=os.path.getmtime, reverse=True)
     
     for file in html_files:
@@ -119,9 +122,9 @@ def update_blog_index():
     print("Blog Hub (blog.html) uspesno azuriran!")
 
 def generate_post():
-    # 1. Tražimo od Gemini-ja da SAM IZNENADI temom
     topic_prompt = """
-    You are an SEO expert. Pick ONE random popular pet animal (e.g., Pug, Beagle, Parrot, Hamster, Siamese Cat, Husky, etc.). 
+    You are an SEO expert. Pick ONE random pet EXACTLY from this list: Corgi, Pug, Husky, Dachshund, French Bulldog, Cat, Golden Retriever.
+    Do NOT use any other words, abbreviations, or nicknames for the animal name.
     Then, write a catchy blog post title about gift ideas or apparel for owners of this pet.
     OUTPUT STRICTLY IN THIS FORMAT AND NOTHING ELSE:
     AnimalName|Catchy Blog Title
@@ -144,7 +147,6 @@ def generate_post():
         except:
             continue
 
-    # Zastita ako Gemini vrati grešku
     if not animal or not topic:
         animal = "Pug"
         topic = "Top 10 Amazing Gifts for Pug Lovers"
@@ -152,7 +154,7 @@ def generate_post():
     slug = slugify(topic)
     category = get_store_category(animal)
     
-    # 2. Generisanje SEO Teksta za tu životinju
+    # OVDE JE BOJA DUGMETA PROMENJENA U #ffffff (BELA)
     article_prompt = f"""
     Write an engaging, SEO-optimized blog article about: "{topic}".
     Target audience: Owners of {animal} looking for gifts, t-shirts, stickers.
@@ -163,7 +165,7 @@ def generate_post():
     - Naturally mention pet stickers, t-shirts, hoodies.
     - Include 1 call-to-action button linking to: {category['product_link']}
       Formatted as:
-      <a href="{category['product_link']}" target="_blank" style="display:inline-block; padding:12px 24px; background:#00d2d3; color:#1c1328; text-decoration:none; border-radius:30px; font-weight:bold; margin:20px 0;">See All Our {animal.capitalize()} Products 🛍️</a>
+      <a href="{category['product_link']}" target="_blank" style="display:inline-block; padding:12px 24px; background:#00d2d3; color:#ffffff; text-decoration:none; border-radius:30px; font-weight:bold; margin:20px 0;">See All Our {animal.capitalize()} Products 🛍️</a>
     """
     
     article_content = None
@@ -179,7 +181,6 @@ def generate_post():
     if not article_content:
         raise Exception("Nijedan model nije uspeo da generise sadrzaj.")
 
-    # 3. HTML struktura samog članka
     product_html_banner = f"""
     <div style="text-align:center; margin: 30px 0; background:#f0f0f0; padding:20px; border-radius:12px;">
         <a href="{category['product_link']}" target="_blank">
@@ -249,7 +250,6 @@ def generate_post():
         
     print(f"Blog post uspesno kreiran: {file_path}")
     
-    # 4. Automatski ažuriraj glavnu blog listu
     update_blog_index()
 
 if __name__ == "__main__":
