@@ -17,19 +17,18 @@ GEMINI_MODELS = [
     'gemini-3.7-flash'
 ]
 
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+}
+
 def fetch_random_redbubble_design():
     """Očitava ukupan broj stranica šopa, bira nasumičnu stranicu i sa nje uzima nasumičan dizajn."""
     base_shop_url = "https://www.redbubble.com/people/Petzzz/shop"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
     
     try:
-        # 1. Otvaramo prvu stranicu da vidimo proizvode i otkrijemo ukupan broj stranica
-        response = requests.get(base_shop_url, headers=headers, timeout=10)
+        response = requests.get(base_shop_url, headers=HEADERS, timeout=10)
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # Tražimo sve linkove za paginaciju (?page=2, ?page=3...)
         page_numbers = [1]
         page_links = soup.find_all('a', href=re.compile(r'page=\d+'))
         for link in page_links:
@@ -38,15 +37,12 @@ def fetch_random_redbubble_design():
                 page_numbers.append(int(match.group(1)))
         
         max_page = max(page_numbers) if page_numbers else 1
-        
-        # Biramo nasumičnu stranicu iz celog asortimana (npr. od 1 do max_page)
         chosen_page = random.randint(1, max_page)
         print(f"Pronađeno ukupno stranica: {max_page}. Nasumično izabrana stranica: {chosen_page}")
         
-        # Ako izabrana stranica nije prva, preuzimamo sadržaj te konkretne stranice
         if chosen_page > 1:
             page_url = f"{base_shop_url}?page={chosen_page}"
-            response = requests.get(page_url, headers=headers, timeout=10)
+            response = requests.get(page_url, headers=HEADERS, timeout=10)
             soup = BeautifulSoup(response.text, 'html.parser')
             
         products = []
@@ -106,14 +102,23 @@ def post_to_bluesky():
     tb.tag("PetzzzStudio", "PetzzzStudio")
 
     print("Preuzimam sliku dizajna...")
-    img_resp = requests.get(design['img_url'])
-    img_data = img_resp.content
-    
-    mime_type = img_resp.headers.get("Content-Type", "image/jpeg").split(";")[0].strip()
-    if not mime_type.startswith("image/"):
-        mime_type = "image/jpeg"
+    img_data = None
+    try:
+        img_resp = requests.get(design['img_url'], headers=HEADERS, timeout=10)
+        if img_resp.status_code == 200 and len(img_resp.content) > 1000:
+            img_data = img_resp.content
+    except Exception as e:
+        print(f"Greška pri preuzimanju slike: {e}")
 
-    print(f"Prepoznat tip slike: {mime_type}")
+    # Fallback na lokalni logo ako preuzimanje slike sa sajta ne uspe
+    if not img_data:
+        print("Korišćenje rezervne slike (Logo 2.png)...")
+        if os.path.exists("Logo 2.png"):
+            with open("Logo 2.png", "rb") as f:
+                img_data = f.read()
+        else:
+            img_data = requests.get("https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?w=800&q=80").content
+
     print("Povezujem se na Bluesky...")
     client = Client()
     client.login(BSKY_HANDLE, BSKY_PASSWORD)
@@ -122,8 +127,7 @@ def post_to_bluesky():
     client.send_image(
         text=tb,
         image=img_data,
-        image_alt=design['title'],
-        image_mimetype=mime_type
+        image_alt=design['title']
     )
     print("Uspešno objavljeno!")
 
