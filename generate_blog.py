@@ -31,15 +31,15 @@ def slugify(text):
 def get_store_category(animal_keyword):
     """
     Generiše tačan link za pretragu VAŠEG Redbubble šopa i
-    dodeljuje prelepu, 100% tačnu sliku životinje.
+    dodeljuje proverenu, 100% besplatnu sliku životinje.
     """
-    # Pravi tačan URL koji pretražuje samo Petzzz prodavnicu
+    # NOVI, ISPRAVNI REDBUBBLE LINK: Pretražuje celu bazu ali filtrira SAMO vaš username (Petzzz)
     query_encoded = urllib.parse.quote(animal_keyword)
-    shop_search_url = f"https://www.redbubble.com/people/Petzzz/shop?query={query_encoded}"
+    shop_search_url = f"https://www.redbubble.com/shop/?query={query_encoded}&artistUserName=Petzzz"
     
-    # Proverene i tačne slike životinja za blog
+    # Proverene slike bez Premium zaštite (100% rade)
     unsplash_images = {
-        "corgi": "https://images.unsplash.com/photo-1597626133663-cb34ae923184?w=800&q=80",
+        "corgi": "https://images.unsplash.com/photo-1519098901909-b1553a1190af?w=800&q=80",
         "dog": "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=800&q=80",
         "dachshund": "https://images.unsplash.com/photo-1612222869049-d8ec83637a3c?w=800&q=80",
         "french bulldog": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&q=80",
@@ -94,11 +94,11 @@ def generate_post():
     if not article_content:
         raise Exception("Nijedan Gemini model s liste nije uspeo da generiše sadržaj.")
 
-    # 3. HTML za naslovnu sliku koja vodi pravo u pretragu
+    # 3. HTML za naslovnu sliku koja vodi pravo u pretragu (Dodat poseban parametar da slika uvek bude na sredini)
     product_html_banner = f"""
     <div style="text-align:center; margin: 30px 0; background:#f0f0f0; padding:20px; border-radius:12px;">
         <a href="{category['product_link']}" target="_blank">
-            <img src="{category['img_url']}" alt="{animal} lovers gift ideas" style="max-width:100%; max-height:450px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.1); object-fit:cover;">
+            <img src="{category['img_url']}" alt="{animal} lovers gift ideas" style="max-width:100%; height:auto; max-height:450px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.1); object-fit:cover; display:inline-block;">
         </a>
         <p style="font-size:1.1em; margin-top:15px; font-weight:700;">
             <a href="{category['product_link']}" target="_blank" style="display:inline-block; padding:10px 25px; background:#7b2cbf; color:white; text-decoration:none; border-radius:8px; transition:0.3s;">
