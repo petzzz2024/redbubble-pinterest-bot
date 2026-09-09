@@ -1,8 +1,10 @@
 import os
 import re
-import datetime
-import urllib.parse
 import glob
+import datetime
+import requests
+import urllib.parse
+import xml.etree.ElementTree as ET
 import google.generativeai as genai
 
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
@@ -13,7 +15,9 @@ GEMINI_MODELS = [
     'gemini-2.0-flash', 'gemini-1.5-flash'
 ]
 
-# Stroga lista životinja i proverenih besplatnih slika
+SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "petzzz2024.github.io/redbubble-pinterest-bot")
+INDEXNOW_KEY = "c8f1e2d3a4b5c6d7e8f9a0b1c2d3e4f5"
+
 ANIMALS_DATA = {
     "corgi": "https://images.unsplash.com/photo-1519098901909-b1553a1190af?w=800&q=80",
     "pug": "https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?w=800&q=80",
@@ -30,13 +34,12 @@ def slugify(text):
     return re.sub(r'[\s-]+', '-', text).strip('-')
 
 def get_next_animal():
-    """Proverava postojeće blogove u blog/ i bira životinju koja do sada nije upotrebljena."""
     used_animals = []
     html_files = glob.glob("blog/*.html")
     
     for file in html_files:
         with open(file, 'r', encoding='utf-8') as f:
-            content = f.read().lower()  # Ispratno pročitano pre pretvaranja u mala slova
+            content = f.read().lower()
             for animal in ANIMALS_DATA.keys():
                 if animal in content:
                     used_animals.append(animal)
@@ -61,6 +64,84 @@ def get_store_category(animal_keyword):
         "img_url": cover_img,
         "product_link": shop_search_url
     }
+
+def update_sitemap(post_url):
+    """Automatski dodaje novi link u sitemap.xml."""
+    sitemap_file = "sitemap.xml"
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    
+    if not os.path.exists(sitemap_file):
+        root = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
+    else:
+        try:
+            ET.register_namespace('', "http://www.sitemaps.org/schemas/sitemap/0.9")
+            tree = ET.parse(sitemap_file)
+            root = tree.getroot()
+        except Exception:
+            root = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
+
+    url_elem = ET.SubElement(root, "url")
+    loc_elem = ET.SubElement(url_elem, "loc")
+    loc_elem.text = post_url
+    lastmod_elem = ET.SubElement(url_elem, "lastmod")
+    lastmod_elem.text = today
+
+    tree = ET.ElementTree(root)
+    ET.indent(tree, space="  ", level=0)
+    tree.write(sitemap_file, encoding="utf-8", xml_declaration=True)
+    print("Sitemap.xml uspešno ažuriran!")
+
+def update_rss(title, post_url, content_summary):
+    """Automatski dodaje novu objavu u rss.xml feed."""
+    rss_file = "rss.xml"
+    pub_date = datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S +0000")
+    clean_description = re.sub(r'<[^>]+>', '', content_summary)[:200] + "..."
+    
+    if not os.path.exists(rss_file):
+        rss = ET.Element("rss", version="2.0")
+        channel = ET.SubElement(rss, "channel")
+        ET.SubElement(channel, "title").text = "Petzzz Studio Blog"
+        ET.SubElement(channel, "link").text = f"https://{SITE_DOMAIN}"
+        ET.SubElement(channel, "description").text = "Latest posts and gift guides from Petzzz Studio"
+    else:
+        try:
+            tree = ET.parse(rss_file)
+            rss = tree.getroot()
+            channel = rss.find("channel")
+        except Exception:
+            rss = ET.Element("rss", version="2.0")
+            channel = ET.SubElement(rss, "channel")
+
+    item = ET.SubElement(channel, "item")
+    ET.SubElement(item, "title").text = title
+    ET.SubElement(item, "link").text = post_url
+    ET.SubElement(item, "description").text = clean_description
+    ET.SubElement(item, "pubDate").text = pub_date
+
+    tree = ET.ElementTree(rss)
+    ET.indent(tree, space="  ", level=0)
+    tree.write(rss_file, encoding="utf-8", xml_declaration=True)
+    print("Rss.xml uspešno ažuriran!")
+
+def notify_indexnow(post_url):
+    """Šalje obaveštenje IndexNow API-ju za instant indeksiranje stranice."""
+    endpoint = "https://api.indexnow.org/indexnow"
+    payload = {
+        "host": SITE_DOMAIN,
+        "key": INDEXNOW_KEY,
+        "keyLocation": f"https://{SITE_DOMAIN}/{INDEXNOW_KEY}.txt",
+        "urlList": [post_url]
+    }
+    headers = {"Content-Type": "application/json; charset=utf-8"}
+    
+    try:
+        response = requests.post(endpoint, json=payload, headers=headers, timeout=10)
+        if response.status_code in [200, 202]:
+            print("IndexNow API: Uspešno poslato obaveštenje pretraživačima!")
+        else:
+            print(f"IndexNow API status ({response.status_code}): {response.text}")
+    except Exception as e:
+        print(f"IndexNow API zahtev nije uspeo: {e}")
 
 def update_blog_index():
     """Prolazi kroz sve blogove i pravi glavnu blog.html stranicu (Blog Hub)"""
@@ -153,7 +234,7 @@ def generate_post():
             if resp.text:
                 topic = resp.text.strip().replace('"', '')
                 break
-        except:
+        except Exception:
             continue
 
     if not topic:
@@ -182,7 +263,7 @@ def generate_post():
             response = model.generate_content(article_prompt)
             article_content = response.text
             break
-        except:
+        except Exception:
             continue
 
     if not article_content:
@@ -256,7 +337,13 @@ def generate_post():
         f.write(full_html)
         
     print(f"Blog post uspešno kreiran: {file_path}")
+    
     update_blog_index()
+
+    full_post_url = f"https://{SITE_DOMAIN}/{file_path}"
+    update_sitemap(full_post_url)
+    update_rss(topic, full_post_url, article_content)
+    notify_indexnow(full_post_url)
 
 if __name__ == "__main__":
     generate_post()
