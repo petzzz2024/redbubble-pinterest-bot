@@ -13,7 +13,7 @@ GEMINI_MODELS = [
     'gemini-2.0-flash', 'gemini-1.5-flash'
 ]
 
-# Stroga lista životinja i garantovano tačnih slika
+# Stroga lista životinja i proverenih besplatnih slika
 ANIMALS_DATA = {
     "corgi": "https://images.unsplash.com/photo-1519098901909-b1553a1190af?w=800&q=80",
     "pug": "https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?w=800&q=80",
@@ -36,18 +36,16 @@ def get_next_animal():
     
     for file in html_files:
         with open(file, 'r', encoding='utf-8') as f:
-            content = f.lower()
+            content = f.read().lower()  # Ispratno pročitano pre pretvaranja u mala slova
             for animal in ANIMALS_DATA.keys():
                 if animal in content:
                     used_animals.append(animal)
                     
-    # Pronalazak životinja koje još nisu iskorišćene
     unused_animals = [a for a in ANIMALS_DATA.keys() if a not in used_animals]
     
     if unused_animals:
         return unused_animals[0]
     
-    # Ako su sve iskorišćene, uzima onu koja je najmanje puta spomenuta
     return min(ANIMALS_DATA.keys(), key=lambda a: used_animals.count(a))
 
 def get_store_category(animal_keyword):
@@ -55,7 +53,6 @@ def get_store_category(animal_keyword):
     query_encoded = urllib.parse.quote(clean_animal)
     shop_search_url = f"https://www.redbubble.com/shop/?query={query_encoded}&artistUserName=Petzzz"
     
-    # Rezervna slika je isključivo Vaš logo
     fallback_img = "../Logo 2.png"
     cover_img = ANIMALS_DATA.get(clean_animal, fallback_img)
 
@@ -140,7 +137,6 @@ def update_blog_index():
         f.write(index_page)
 
 def generate_post():
-    # 1. Pametno biranje sledeće životinje koja nije skorašnje obrađivana
     animal = get_next_animal()
     
     topic_prompt = f"""
