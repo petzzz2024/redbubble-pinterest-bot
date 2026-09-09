@@ -3,48 +3,38 @@ import random
 import re
 import requests
 from bs4 import BeautifulSoup
-import google.generativeai as genai
 from atproto import Client, client_utils
 
 BSKY_HANDLE = os.environ.get("BSKY_HANDLE")
 BSKY_PASSWORD = os.environ.get("BSKY_APP_PASSWORD")
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-
-GEMINI_MODELS = [
-    'gemini-1.5-flash',
-    'gemini-2.0-flash',
-    'gemini-3.8-flash',
-    'gemini-3.7-flash'
-]
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 }
 
-def get_animal_hashtags_via_gemini(title):
-    """Koristi Gemini veštačku inteligenciju da precizno pronađe životinju iz naslova i napravi heštegove."""
-    prompt = f"""
-    Analyze this product title: "{title}".
-    Identify the main animal/creature and return 2-3 clean, single-word hashtags related to that animal or breed.
-    Do NOT include spaces, punctuation, or special characters in the tags.
-    Output ONLY the words separated by commas, nothing else.
-    Example input: Modern Day Dinosaur Cassowary Prehistoric Art
-    Example output: Cassowary, Dinosaur, Bird
-    """
+# Reči koje ne treba pretvarati u heštegove
+STOP_WORDS = {
+    'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+    'from', 'up', 'about', 'into', 'over', 'after', 'designed', 'sold', 'item', 'preview',
+    'petzzz', 'studio', 'art', 'gift', 'gifts', 'v1', 'v2', 'v3'
+}
+
+def extract_all_keywords(title):
+    """Izvlači sve ključne reči iz naslova proizvoda i pravi heštegove od njih."""
+    words = re.findall(r'[a-zA-Z0-9]+', title)
+    keywords = []
     
-    for model_name in GEMINI_MODELS:
-        try:
-            model = genai.GenerativeModel(model_name)
-            resp = model.generate_content(prompt, request_options={"timeout": 10})
-            if resp.text:
-                tags = [re.sub(r'[^a-zA-Z0-9]', '', t.strip()).capitalize() for t in resp.text.split(',') if t.strip()]
-                clean_tags = [t for t in tags if t]
-                if clean_tags:
-                    return clean_tags[:3]
-        except Exception:
-            continue
-            
-    return ["PetLovers"]
+    for w in words:
+        clean_w = w.strip()
+        if clean_w.lower() not in STOP_WORDS and len(clean_w) > 1:
+            cap_w = clean_w.capitalize()
+            if cap_w not in keywords:
+                keywords.append(cap_w)
+                
+    if "PetLovers" not in keywords:
+        keywords.append("PetLovers")
+        
+    return keywords
 
 def fetch_random_redbubble_design():
     """Očitava ukupan broj stranica šopa, bira nasumičnu stranicu i sa nje uzima nasumičan dizajn."""
@@ -115,21 +105,19 @@ def post_to_bluesky():
 
     print(f"Izabran dizajn: {design['title']}")
     
-    # Gemini AI pronalazi tačne heštegove životinje
-    animal_tags = get_animal_hashtags_via_gemini(design['title'])
-    if "PetLovers" not in animal_tags:
-        animal_tags.append("PetLovers")
-    print(f"Generisani heštegovi: {animal_tags}")
+    # Automatsko izvlačenje svih ključnih reči iz naslova
+    keywords = extract_all_keywords(design['title'])
+    print(f"Izvučene ključne reči za heštegove: {keywords}")
 
-    # Građenje teksta sa simvolom '#' i klikabilnim linkom
+    # Građenje teksta objave sa klikabilnim linkom i heštegovima
     tb = client_utils.TextBuilder()
     tb.text(f"Discover unique {design['title']} at Petzzz Studio! 🐾\n\nShop collection: ")
     tb.link(design['product_link'], design['product_link'])
     tb.text("\n\n")
     
-    # Dodavanje heštegova sa pravim '#' znakom
-    for tag in animal_tags:
-        tb.tag(f"#{tag}", tag)
+    # Dodavanje svih ključnih reči kao klikabilnih heštegova
+    for word in keywords:
+        tb.tag(f"#{word}", word)
         tb.text(" ")
         
     tb.tag("#Redbubble", "Redbubble")
