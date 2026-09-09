@@ -18,6 +18,18 @@ TOPICS = [
     {"topic": "Best Pet Bandanas and T-Shirts for Golden Retrievers", "animal": "golden retriever"}
 ]
 
+# Lista Gemini modela za automatski fallback ako jedan otkaže
+GEMINI_MODELS = [
+    'gemini-3.8-flash',
+    'gemini-3.7-flash',
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash'
+]
+
 def slugify(text):
     text = text.lower()
     text = re.sub(r'[^a-z0-9\s-]', '', text)
@@ -68,7 +80,6 @@ def generate_post():
     
     product = fetch_redbubble_product(animal)
     
-    model = genai.GenerativeModel('gemini-1.5-flash')
     prompt = f"""
     Write an engaging, SEO-optimized blog article about: "{topic}".
     Target audience: Pet lovers, dog/cat owners looking for gifts.
@@ -82,8 +93,21 @@ def generate_post():
       <a href="{product['product_link']}" target="_blank" style="display:inline-block; padding:12px 24px; background:#00d2d3; color:#fff; text-decoration:none; border-radius:30px; font-weight:bold; margin:20px 0;">Check Out Our {animal.capitalize()} Collection 🛍️</a>
     """
     
-    response = model.generate_content(prompt)
-    article_content = response.text
+    # Prolazak kroz listu modela - ako jedan pukne, ide sledeći
+    article_content = None
+    for model_name in GEMINI_MODELS:
+        try:
+            print(f"Pokušavam generisanje preko modela: {model_name}...")
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(prompt)
+            article_content = response.text
+            print(f"Uspešno generisano preko modela: {model_name}")
+            break
+        except Exception as e:
+            print(f"Model {model_name} nije uspeo: {e}. Prelazim na sledeći...")
+
+    if not article_content:
+        raise Exception("Nijedan Gemini model s liste nije uspeo da generiše sadržaj.")
 
     product_html_banner = f"""
     <div style="text-align:center; margin: 30px 0; background:#f0f0f0; padding:20px; border-radius:12px;">
