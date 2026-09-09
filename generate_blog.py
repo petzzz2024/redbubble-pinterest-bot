@@ -13,32 +13,51 @@ GEMINI_MODELS = [
     'gemini-2.0-flash', 'gemini-1.5-flash'
 ]
 
+# Stroga lista životinja i garantovano tačnih slika
+ANIMALS_DATA = {
+    "corgi": "https://images.unsplash.com/photo-1519098901909-b1553a1190af?w=800&q=80",
+    "pug": "https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?w=800&q=80",
+    "husky": "https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=800&q=80",
+    "dachshund": "https://images.unsplash.com/photo-1612222869049-d8ec83637a3c?w=800&q=80",
+    "french bulldog": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&q=80",
+    "cat": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&q=80",
+    "golden retriever": "https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&q=80"
+}
+
 def slugify(text):
     text = text.lower()
     text = re.sub(r'[^a-z0-9\s-]', '', text)
     return re.sub(r'[\s-]+', '-', text).strip('-')
 
+def get_next_animal():
+    """Proverava postojeće blogove u blog/ i bira životinju koja do sada nije upotrebljena."""
+    used_animals = []
+    html_files = glob.glob("blog/*.html")
+    
+    for file in html_files:
+        with open(file, 'r', encoding='utf-8') as f:
+            content = f.lower()
+            for animal in ANIMALS_DATA.keys():
+                if animal in content:
+                    used_animals.append(animal)
+                    
+    # Pronalazak životinja koje još nisu iskorišćene
+    unused_animals = [a for a in ANIMALS_DATA.keys() if a not in used_animals]
+    
+    if unused_animals:
+        return unused_animals[0]
+    
+    # Ako su sve iskorišćene, uzima onu koja je najmanje puta spomenuta
+    return min(ANIMALS_DATA.keys(), key=lambda a: used_animals.count(a))
+
 def get_store_category(animal_keyword):
-    """Pravi Redbubble pretragu za izabranu životinju i daje sliku."""
     clean_animal = animal_keyword.lower().strip()
     query_encoded = urllib.parse.quote(clean_animal)
     shop_search_url = f"https://www.redbubble.com/shop/?query={query_encoded}&artistUserName=Petzzz"
     
-    # Lista prelepih sigurnih slika
-    unsplash_images = {
-        "corgi": "https://images.unsplash.com/photo-1519098901909-b1553a1190af?w=800&q=80",
-        "pug": "https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?w=800&q=80",
-        "husky": "https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=800&q=80",
-        "dachshund": "https://images.unsplash.com/photo-1612222869049-d8ec83637a3c?w=800&q=80",
-        "french bulldog": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&q=80",
-        "cat": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&q=80",
-        "golden retriever": "https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&q=80"
-    }
-    
-    # REZERVNA SLIKA JE SADA VAŠ LOGO
+    # Rezervna slika je isključivo Vaš logo
     fallback_img = "../Logo 2.png"
-
-    cover_img = unsplash_images.get(clean_animal, fallback_img)
+    cover_img = ANIMALS_DATA.get(clean_animal, fallback_img)
 
     return {
         "title": f"Explore Petzzz {clean_animal.title()} Designs",
@@ -63,7 +82,7 @@ def update_blog_index():
             date_str = date_match.group(1) if date_match else ""
             
         posts_list_html += f"""
-        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05); transition:transform 0.2s;">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="{file}" style="text-decoration:none; color:#1c1328;">{title}</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on {date_str}</p>
             <a href="{file}" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
@@ -119,42 +138,34 @@ def update_blog_index():
 
     with open("blog.html", "w", encoding="utf-8") as f:
         f.write(index_page)
-    print("Blog Hub (blog.html) uspesno azuriran!")
 
 def generate_post():
-    topic_prompt = """
-    You are an SEO expert. Pick ONE random pet EXACTLY from this list: Corgi, Pug, Husky, Dachshund, French Bulldog, Cat, Golden Retriever.
-    Do NOT use any other words, abbreviations, or nicknames for the animal name.
-    Then, write a catchy blog post title about gift ideas or apparel for owners of this pet.
-    OUTPUT STRICTLY IN THIS FORMAT AND NOTHING ELSE:
-    AnimalName|Catchy Blog Title
-    Example: Husky|Top 10 Cozy Hoodies for Husky Lovers
+    # 1. Pametno biranje sledeće životinje koja nije skorašnje obrađivana
+    animal = get_next_animal()
+    
+    topic_prompt = f"""
+    You are an SEO expert. Write a catchy, viral blog post title about gift ideas or apparel for owners of a {animal.upper()}.
+    OUTPUT STRICTLY THE TITLE AND NOTHING ELSE.
+    Example: Top 10 Cozy Hoodies for {animal.capitalize()} Lovers
     """
     
-    generated_topic = None
-    animal = None
     topic = None
-
     for model_name in GEMINI_MODELS:
         try:
             model = genai.GenerativeModel(model_name)
             resp = model.generate_content(topic_prompt)
-            if "|" in resp.text:
-                animal, topic = resp.text.strip().split('|', 1)
-                animal = animal.strip()
-                topic = topic.strip()
+            if resp.text:
+                topic = resp.text.strip().replace('"', '')
                 break
         except:
             continue
 
-    if not animal or not topic:
-        animal = "Pug"
-        topic = "Top 10 Amazing Gifts for Pug Lovers"
+    if not topic:
+        topic = f"Top 10 Gift Ideas for {animal.capitalize()} Lovers"
 
     slug = slugify(topic)
     category = get_store_category(animal)
     
-    # OVDE JE BOJA DUGMETA PROMENJENA U #ffffff (BELA)
     article_prompt = f"""
     Write an engaging, SEO-optimized blog article about: "{topic}".
     Target audience: Owners of {animal} looking for gifts, t-shirts, stickers.
@@ -164,8 +175,8 @@ def generate_post():
     - Output ONLY the HTML body content (h2, p, ul, li, strong). Do NOT include <html> or <body> tags.
     - Naturally mention pet stickers, t-shirts, hoodies.
     - Include 1 call-to-action button linking to: {category['product_link']}
-      Formatted as:
-      <a href="{category['product_link']}" target="_blank" style="display:inline-block; padding:12px 24px; background:#00d2d3; color:#ffffff; text-decoration:none; border-radius:30px; font-weight:bold; margin:20px 0;">See All Our {animal.capitalize()} Products 🛍️</a>
+      Formatted exactly as:
+      <a href="{category['product_link']}" target="_blank" style="display:inline-block; padding:12px 24px; background:#00d2d3; color:#ffffff !important; text-decoration:none; border-radius:30px; font-weight:bold; margin:20px 0;">See All Our {animal.capitalize()} Products 🛍️</a>
     """
     
     article_content = None
@@ -179,7 +190,7 @@ def generate_post():
             continue
 
     if not article_content:
-        raise Exception("Nijedan model nije uspeo da generise sadrzaj.")
+        raise Exception("Nijedan model nije uspeo da generiše sadržaj.")
 
     product_html_banner = f"""
     <div style="text-align:center; margin: 30px 0; background:#f0f0f0; padding:20px; border-radius:12px;">
@@ -187,7 +198,7 @@ def generate_post():
             <img src="{category['img_url']}" alt="{animal} lovers gift ideas" style="max-width:100%; height:auto; max-height:450px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.1); object-fit:cover; display:inline-block;">
         </a>
         <p style="font-size:1.1em; margin-top:15px; font-weight:700;">
-            <a href="{category['product_link']}" target="_blank" style="display:inline-block; padding:10px 25px; background:#7b2cbf; color:white; text-decoration:none; border-radius:8px; transition:0.3s;">
+            <a href="{category['product_link']}" target="_blank" style="display:inline-block; padding:10px 25px; background:#7b2cbf; color:#ffffff !important; text-decoration:none; border-radius:8px; transition:0.3s;">
                 View Petzzz {animal.capitalize()} Collection ➔
             </a>
         </p>
@@ -248,8 +259,7 @@ def generate_post():
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(full_html)
         
-    print(f"Blog post uspesno kreiran: {file_path}")
-    
+    print(f"Blog post uspešno kreiran: {file_path}")
     update_blog_index()
 
 if __name__ == "__main__":
