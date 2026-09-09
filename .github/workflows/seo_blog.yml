@@ -1,4 +1,4 @@
-name: Generate Daily SEO Blog and Bluesky Post
+name: Generate Daily SEO Blog
 
 on:
  workflow_dispatch:
@@ -17,23 +17,17 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install --upgrade google-generativeai requests beautifulsoup4 atproto
+          pip install --upgrade google-generativeai requests beautifulsoup4
 
       - name: Run Blog Generator Script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python generate_blog.py
 
-      - name: Post Daily Design to Bluesky
-        env:
-          BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
-          BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
-        run: python post_to_bluesky.py
-
       - name: Commit and Push New Blog Page
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add blog/ blog.html
-          git commit -m "Auto-generated daily SEO blog & Bluesky post [skip ci]" || exit 0
+          git commit -m "Auto-generated daily SEO blog [skip ci]" || exit 0
           git push
