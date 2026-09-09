@@ -178,6 +178,7 @@
             </a>
             <div class="nav-links">
                 <a href="#categories">Shop Categories</a>
+                <a href="blog/top-10-cute-gift-ideas-for-corgi-lovers.html">Blog Articles</a>
                 <a href="https://petzzz.redbubble.com" target="_blank">Redbubble Shop</a>
                 <a href="privacy.html">Privacy Policy</a>
             </div>
@@ -261,19 +262,16 @@
     <!-- Skripta za upravljanje Pop-up prozorom -->
     <script>
         window.addEventListener('load', function() {
-            // Pop-up se pojavljuje 1 sekundu nakon učitavanja
             setTimeout(function() {
                 document.getElementById('discountPopup').classList.add('active');
             }, 1000);
         });
 
-        // Klik na X zatvara pop-up
         document.getElementById('closePopup').addEventListener('click', function(e) {
             e.stopPropagation();
             document.getElementById('discountPopup').classList.remove('active');
         });
 
-        // Klik na tamnu pozadinu van prozora takođe zatvara pop-up
         document.getElementById('discountPopup').addEventListener('click', function(e) {
             if (e.target === this) {
                 this.classList.remove('active');
