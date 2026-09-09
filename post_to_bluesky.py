@@ -18,17 +18,38 @@ GEMINI_MODELS = [
 ]
 
 def fetch_random_redbubble_design():
-    """Skida popis proizvoda sa prve strane Vašeg šopa i bira jedan nasumičan."""
-    shop_url = "https://www.redbubble.com/people/Petzzz/shop"
+    """Očitava ukupan broj stranica šopa, bira nasumičnu stranicu i sa nje uzima nasumičan dizajn."""
+    base_shop_url = "https://www.redbubble.com/people/Petzzz/shop"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
     
-    products = []
     try:
-        response = requests.get(shop_url, headers=headers, timeout=10)
+        # 1. Otvaramo prvu stranicu da vidimo proizvode i otkrijemo ukupan broj stranica
+        response = requests.get(base_shop_url, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, 'html.parser')
         
+        # Tražimo sve linkove za paginaciju (?page=2, ?page=3...)
+        page_numbers = [1]
+        page_links = soup.find_all('a', href=re.compile(r'page=\d+'))
+        for link in page_links:
+            match = re.search(r'page=(\d+)', link.get('href', ''))
+            if match:
+                page_numbers.append(int(match.group(1)))
+        
+        max_page = max(page_numbers) if page_numbers else 1
+        
+        # Biramo nasumičnu stranicu iz celog asortimana (npr. od 1 do max_page)
+        chosen_page = random.randint(1, max_page)
+        print(f"Pronađeno ukupno stranica: {max_page}. Nasumično izabrana stranica: {chosen_page}")
+        
+        # Ako izabrana stranica nije prva, preuzimamo sadržaj te konkretne stranice
+        if chosen_page > 1:
+            page_url = f"{base_shop_url}?page={chosen_page}"
+            response = requests.get(page_url, headers=headers, timeout=10)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+        products = []
         img_tags = soup.find_all('img', src=re.compile(r'ih\d\.redbubble\.net'))
         
         for img in img_tags:
@@ -47,12 +68,13 @@ def fetch_random_redbubble_design():
                         "img_url": src,
                         "product_link": full_link
                     })
+                    
+        if products:
+            return random.choice(products)
+            
     except Exception as e:
         print(f"Greška pri pretrazi Redbubble prodavnice: {e}")
 
-    if products:
-        return random.choice(products) 
-    
     return None
 
 def post_to_bluesky():
@@ -60,10 +82,9 @@ def post_to_bluesky():
         print("Greška: Bluesky kredencijali nisu podešeni!")
         return
 
-    print("Tražim nasumičan dizajn sa Redbubble...")
+    print("Tražim nasumičan dizajn sa celog Redbubble šopa...")
     design = fetch_random_redbubble_design()
     
-    # Ako se dizajn ne pronađe, koristi se rezervni generalni link prodavnice
     if not design:
         design = {
             "title": "Petzzz Studio Apparel & Stickers",
@@ -73,29 +94,36 @@ def post_to_bluesky():
 
     print(f"Izabran dizajn: {design['title']}")
     
-    # GRAĐENJE OBRAZA SA KLIKABILNIM LINKOVIMA (TextBuilder)
+    # Građenje teksta sa klikabilnim linkom i heštegovima
     tb = client_utils.TextBuilder()
     tb.text(f"Discover unique {design['title']} at Petzzz Studio! 🐾\n\nShop collection: ")
-    tb.link(design['product_link'], design['product_link'])  # Pravi klikabilan plavi link
+    tb.link(design['product_link'], design['product_link'])
     tb.text("\n\n")
-    tb.tag("PetLovers", "PetLovers")       # Pravi klikabilan tag
+    tb.tag("PetLovers", "PetLovers")
     tb.text(" ")
     tb.tag("Redbubble", "Redbubble")
     tb.text(" ")
     tb.tag("PetzzzStudio", "PetzzzStudio")
 
     print("Preuzimam sliku dizajna...")
-    img_data = requests.get(design['img_url']).content
+    img_resp = requests.get(design['img_url'])
+    img_data = img_resp.content
     
+    mime_type = img_resp.headers.get("Content-Type", "image/jpeg").split(";")[0].strip()
+    if not mime_type.startswith("image/"):
+        mime_type = "image/jpeg"
+
+    print(f"Prepoznat tip slike: {mime_type}")
     print("Povezujem se na Bluesky...")
     client = Client()
     client.login(BSKY_HANDLE, BSKY_PASSWORD)
     
-    print("Objavljujem post sa klikabilnim linkom...")
+    print("Objavljujem post...")
     client.send_image(
         text=tb,
         image=img_data,
-        image_alt=design['title']
+        image_alt=design['title'],
+        image_mimetype=mime_type
     )
     print("Uspešno objavljeno!")
 
