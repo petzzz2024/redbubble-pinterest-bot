@@ -7,12 +7,17 @@ import urllib.parse
 import xml.etree.ElementTree as ET
 import google.generativeai as genai
 
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+genai.configure(api_key=GEMINI_API_KEY)
 
+# Zvanični Gemini 3 modeli iz dokumentacije
 GEMINI_MODELS = [
-    'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash',
-    'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite',
-    'gemini-2.0-flash', 'gemini-1.5-flash'
+    'gemini-3.8-flash',
+    'gemini-3.7-flash',
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite'
 ]
 
 SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "petzzz2024.github.io/redbubble-pinterest-bot")
@@ -66,7 +71,6 @@ def get_store_category(animal_keyword):
     }
 
 def update_sitemap(post_url):
-    """Automatski dodaje novi link u sitemap.xml."""
     sitemap_file = "sitemap.xml"
     today = datetime.date.today().strftime("%Y-%m-%d")
     
@@ -92,7 +96,6 @@ def update_sitemap(post_url):
     print("Sitemap.xml uspešno ažuriran!")
 
 def update_rss(title, post_url, content_summary):
-    """Automatski dodaje novu objavu u rss.xml feed."""
     rss_file = "rss.xml"
     pub_date = datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S +0000")
     clean_description = re.sub(r'<[^>]+>', '', content_summary)[:200] + "..."
@@ -124,7 +127,6 @@ def update_rss(title, post_url, content_summary):
     print("Rss.xml uspešno ažuriran!")
 
 def notify_indexnow(post_url):
-    """Šalje obaveštenje IndexNow API-ju za instant indeksiranje stranice."""
     endpoint = "https://api.indexnow.org/indexnow"
     payload = {
         "host": SITE_DOMAIN,
@@ -144,7 +146,6 @@ def notify_indexnow(post_url):
         print(f"IndexNow API zahtev nije uspeo: {e}")
 
 def update_blog_index():
-    """Prolazi kroz sve blogove i pravi glavnu blog.html stranicu (Blog Hub)"""
     html_files = glob.glob("blog/*.html")
     posts_list_html = ""
     
@@ -218,6 +219,9 @@ def update_blog_index():
         f.write(index_page)
 
 def generate_post():
+    if not GEMINI_API_KEY:
+        raise Exception("GEMINI_API_KEY nije pronađen u environment varijablama!")
+
     animal = get_next_animal()
     
     topic_prompt = f"""
@@ -229,13 +233,15 @@ def generate_post():
     topic = None
     for model_name in GEMINI_MODELS:
         try:
+            print(f"Pokušavam generisanje naslova pomoću modela: {model_name}...")
             model = genai.GenerativeModel(model_name)
             resp = model.generate_content(topic_prompt)
-            if resp.text:
+            if resp and resp.text:
                 topic = resp.text.strip().replace('"', '')
+                print(f"Naslov uspešno generisan sa {model_name}: {topic}")
                 break
-        except Exception:
-            continue
+        except Exception as e:
+            print(f"Greška na {model_name} (naslov): {e}")
 
     if not topic:
         topic = f"Top 10 Gift Ideas for {animal.capitalize()} Lovers"
@@ -259,15 +265,18 @@ def generate_post():
     article_content = None
     for model_name in GEMINI_MODELS:
         try:
+            print(f"Pokušavam generisanje članka pomoću modela: {model_name}...")
             model = genai.GenerativeModel(model_name)
             response = model.generate_content(article_prompt)
-            article_content = response.text
-            break
-        except Exception:
-            continue
+            if response and response.text:
+                article_content = response.text
+                print(f"Članak uspešno generisan sa {model_name}!")
+                break
+        except Exception as e:
+            print(f"Greška na {model_name} (članak): {e}")
 
     if not article_content:
-        raise Exception("Nijedan model nije uspeo da generiše sadržaj.")
+        raise Exception("Nijedan Gemini 3 model nije uspeo da vrati tekst. Proverite greške u logu iznad.")
 
     product_html_banner = f"""
     <div style="text-align:center; margin: 30px 0; background:#f0f0f0; padding:20px; border-radius:12px;">
