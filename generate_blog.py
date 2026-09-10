@@ -5,12 +5,11 @@ import datetime
 import requests
 import urllib.parse
 import xml.etree.ElementTree as ET
-import google.generativeai as genai
+from google import genai
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_API_KEY)
 
-# Zvanični Gemini 3 modeli iz dokumentacije
+# Zvanični Gemini 3 modeli iz vaše dokumentacije
 GEMINI_MODELS = [
     'gemini-3.8-flash',
     'gemini-3.7-flash',
@@ -222,6 +221,7 @@ def generate_post():
     if not GEMINI_API_KEY:
         raise Exception("GEMINI_API_KEY nije pronađen u environment varijablama!")
 
+    client = genai.Client(api_key=GEMINI_API_KEY)
     animal = get_next_animal()
     
     topic_prompt = f"""
@@ -234,8 +234,10 @@ def generate_post():
     for model_name in GEMINI_MODELS:
         try:
             print(f"Pokušavam generisanje naslova pomoću modela: {model_name}...")
-            model = genai.GenerativeModel(model_name)
-            resp = model.generate_content(topic_prompt)
+            resp = client.models.generate_content(
+                model=model_name,
+                contents=topic_prompt
+            )
             if resp and resp.text:
                 topic = resp.text.strip().replace('"', '')
                 print(f"Naslov uspešno generisan sa {model_name}: {topic}")
@@ -266,8 +268,10 @@ def generate_post():
     for model_name in GEMINI_MODELS:
         try:
             print(f"Pokušavam generisanje članka pomoću modela: {model_name}...")
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(article_prompt)
+            response = client.models.generate_content(
+                model=model_name,
+                contents=article_prompt
+            )
             if response and response.text:
                 article_content = response.text
                 print(f"Članak uspešno generisan sa {model_name}!")
