@@ -16,10 +16,11 @@
         /* Header */
         header { background: #ffffff; border-bottom: 1px solid #eaeaea; position: sticky; top: 0; z-index: 100; }
         .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; }
-        .logo-box { display: flex; align-items: center; text-decoration: none; gap: 12px; }
+        .logo-box { display: flex; align-items: center; text-decoration: none; gap: 12px; white-space: nowrap; }
         .logo-img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
         .logo-text { font-size: 1.4em; font-weight: 700; color: #3a1c5c; }
-        .nav-links a { margin-left: 20px; text-decoration: none; color: #555; font-weight: 600; font-size: 0.9em; }
+        .nav-links { display: flex; align-items: center; }
+        .nav-links a { margin-left: 20px; text-decoration: none; color: #555; font-weight: 600; font-size: 0.9em; transition: color 0.2s ease; }
         .nav-links a:hover { color: #8e44ad; }
         
         /* Hero Banner */
@@ -175,6 +176,41 @@
             color: #00d2d3;
             transform: translateY(-4px);
         }
+
+        /* Responzivni dizajn za mobilne telefone */
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                gap: 12px;
+                padding: 14px 15px;
+            }
+            .logo-text {
+                font-size: 1.25em;
+            }
+            .nav-links {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px 12px;
+            }
+            .nav-links a {
+                margin-left: 0;
+                font-size: 0.82em;
+                background: #f0ecf4;
+                padding: 6px 12px;
+                border-radius: 20px;
+                color: #3a1c5c;
+            }
+            .hero {
+                padding: 45px 15px;
+            }
+            .hero h1 {
+                font-size: 1.8em;
+            }
+            .hero p {
+                font-size: 0.98em;
+            }
+        }
     </style>
 </head>
 <body>
@@ -279,7 +315,7 @@
         
         <div class="social-links">
             <!-- Bluesky -->
-            <a href="https://bsky.app/profile/petzzzshop.bsky.social"_blank" title="Bluesky">
+            <a href="https://bsky.app/profile/petzzzshop.bsky.social" target="_blank" title="Bluesky">
                 <svg viewBox="0 0 320 286" fill="currentColor">
                     <path d="M69.364 19.146C105.733 46.541 143.085 96.02 160 119.782c16.915-23.762 54.267-73.24 90.636-100.636C275.986 0 320 0 320 40.54c0 30.644-12.784 100.82-15.688 108.621-8.528 22.906-31.782 28.534-54.896 25.109-29.248-4.336-57.733-14.072-57.733-14.072 0 0 36.19 86.815 39.814 107.458 4.671 26.6-13.064 30.76-29.176 13.911-30.887-32.28-72.37-97.77-72.37-97.77s-41.484 65.49-72.37 97.77c-16.112 16.85-33.847 12.69-29.176-13.91 3.624-20.64 39.814-107.46 39.814-107.46 0 0-28.485 9.736-57.733 14.072-23.114 3.425-46.368-2.203-54.896-25.11C12.784 141.36 0 71.18 0 40.54 0 0 44.014 0 69.364 19.146Z"/>
                 </svg>
@@ -291,7 +327,7 @@
                 </svg>
             </a>
             <!-- Pinterest -->
-            <a href="https://www.pinterest.com/petzzz2024/" title="Pinterest">
+            <a href="https://www.pinterest.com/petzzz2024/" target="_blank" title="Pinterest">
                 <svg viewBox="0 0 496 512" fill="currentColor">
                     <path d="M248 8C111.1 8 0 119.1 0 256c0 105.7 65.7 196.4 159.2 235.9-2.2-19.6-4.2-49.8 1-71.1 4.5-18.4 29.5-125 29.5-125s-7.5-15-7.5-37.2c0-34.9 20.3-60.9 45.6-60.9 21.6 0 32 16.2 32 35.6 0 21.7-13.8 54.2-21 84.3-6 25.1 12.6 45.6 37.3 45.6 44.8 0 79.3-47.3 79.3-115.6 0-60.4-43.4-102.6-105.4-102.6-70.9 0-112.5 53.2-112.5 108 0 21.3 8.2 44.1 18.5 56.5 2 2.4 2.3 4.6 1.7 7-2 8.3-6.4 26.2-7.3 29.7-.9 3.8-3.1 4.6-7.1 2.8-26.6-12.4-43.2-51.4-43.2-82.9 0-67.4 49-129.4 141.2-129.4 74 0 131.6 52.8 131.6 123.1 0 73.6-46.3 132.8-110.7 132.8-21.6 0-41.9-11.2-48.8-24.5 0 0-10.7 40.7-13.3 50.8-4.8 18.5-17.7 41.7-26.4 55.8 21.7 6.4 44.8 9.9 68.9 9.9 136.9 0 248-111.1 248-248S384.9 8 248 8z"/>
                 </svg>
