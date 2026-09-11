@@ -23,7 +23,7 @@ GEMINI_MODELS = [
 SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "petzzz2024.github.io/redbubble-pinterest-bot")
 INDEXNOW_KEY = "c8f1e2d3a4b5c6d7e8f9a0b1c2d3e4f5"
 
-# Proširena lista životinja sa slikama (1:1 format)
+# Proširena lista životinja sa proverenim slikama (1:1 format)
 ANIMALS_DATA = {
     # Psi
     "corgi": "https://images.unsplash.com/photo-1519098901909-b1553a1190af?fit=crop&w=800&h=800&q=80",
@@ -48,7 +48,7 @@ ANIMALS_DATA = {
     "black cat": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?fit=crop&w=800&h=800&q=80",
     "maine coon": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?fit=crop&w=800&h=800&q=80",
     "sphynx cat": "https://images.unsplash.com/photo-1513245543132-31f507417b26?fit=crop&w=800&h=800&q=80",
-    "pallas cat": "https://images.unsplash.com/photo-1589656966895-2f33e7653819?fit=crop&w=800&h=800&q=80",
+    "pallas cat": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?fit=crop&w=800&h=800&q=80",
     "snow leopard": "https://images.unsplash.com/photo-1542858178-3011345dcb93?fit=crop&w=800&h=800&q=80",
     "jaguarundi": "https://images.unsplash.com/photo-1534188753412-3e26d0d618d6?fit=crop&w=800&h=800&q=80",
 
@@ -90,7 +90,7 @@ ANIMALS_DATA = {
     "maned wolf": "https://images.unsplash.com/photo-1534188753412-3e26d0d618d6?fit=crop&w=800&h=800&q=80",
     "stoat": "https://images.unsplash.com/photo-1589656966895-2f33e7653819?fit=crop&w=800&h=800&q=80",
     "tibetan fox": "https://images.unsplash.com/photo-1590423789438-e62e105e4cce?fit=crop&w=800&h=800&q=80",
-    "binturong": "https://images.unsplash.com/photo-1550974955-f76ea10c4316?fit=crop&w=800&h=800&q=80",
+    "binturong": "https://images.unsplash.com/photo-1561731216-c3a4d99437d5?fit=crop&w=800&h=800&q=80",
     "jumping spider": "https://images.unsplash.com/photo-1502161254066-6c74afbf07aa?fit=crop&w=800&h=800&q=80"
 }
 
@@ -129,7 +129,7 @@ def get_store_category(animal_keyword):
     query_encoded = urllib.parse.quote(clean_animal)
     shop_search_url = f"https://www.redbubble.com/shop/?query={query_encoded}&artistUserName=Petzzz"
     
-    fallback_img = "../Logo 2.png"
+    fallback_img = "https://images.unsplash.com/photo-1543466835-00a7907e9de1?fit=crop&w=800&h=800&q=80"
     cover_img = ANIMALS_DATA.get(clean_animal, fallback_img)
 
     return {
@@ -139,7 +139,6 @@ def get_store_category(animal_keyword):
     }
 
 def update_sitemap(post_url):
-    """Automatski osigurava da su glavne stranice (index.html, blog.html) i novi postovi u sitemap.xml."""
     sitemap_file = "sitemap.xml"
     today = datetime.date.today().strftime("%Y-%m-%d")
     
@@ -160,14 +159,12 @@ def update_sitemap(post_url):
 
     existing_locs = [loc.text for loc in root.findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc")]
 
-    # Osiguraj prisustvo glavnih stranica
     for url in main_urls:
         if url not in existing_locs:
             url_elem = ET.SubElement(root, "url")
             ET.SubElement(url_elem, "loc").text = url
             ET.SubElement(url_elem, "lastmod").text = today
 
-    # Dodaj novi blog post ako već ne postoji
     if post_url not in existing_locs:
         url_elem = ET.SubElement(root, "url")
         ET.SubElement(url_elem, "loc").text = post_url
@@ -369,7 +366,7 @@ def generate_post():
     product_html_banner = f"""
     <div style="text-align:center; margin: 30px 0; background:#f0f0f0; padding:20px; border-radius:12px;">
         <a href="{category['product_link']}" target="_blank">
-            <img src="{category['img_url']}" alt="{animal} lovers gift ideas" style="max-width:100%; height:auto; max-height:450px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.1); object-fit:cover; display:inline-block;">
+            <img src="{category['img_url']}" alt="{animal} lovers gift ideas" style="max-width:100%; height:auto; max-height:450px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.1); object-fit:cover; display:inline-block;" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?fit=crop&w=800&h=800&q=80'">
         </a>
         <p style="font-size:1.1em; margin-top:15px; font-weight:700;">
             <a href="{category['product_link']}" target="_blank" style="display:inline-block; padding:10px 25px; background:#7b2cbf; color:#ffffff !important; text-decoration:none; border-radius:8px; transition:0.3s;">
