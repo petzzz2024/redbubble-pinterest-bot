@@ -23,7 +23,7 @@ GEMINI_MODELS = [
 SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "petzzz2024.github.io/redbubble-pinterest-bot")
 INDEXNOW_KEY = "c8f1e2d3a4b5c6d7e8f9a0b1c2d3e4f5"
 
-# Proširena lista životinja sa slikama
+# Proširena lista životinja sa slikama (1:1 format)
 ANIMALS_DATA = {
     # Psi
     "corgi": "https://images.unsplash.com/photo-1519098901909-b1553a1190af?fit=crop&w=800&h=800&q=80",
@@ -113,13 +113,11 @@ def get_next_animal():
                     
     unused_animals = [a for a in ANIMALS_DATA.keys() if a not in used_animals]
     
-    # Ako ima nekorišćenih životinja, izaberi nasumičnu od njih
     if unused_animals:
         chosen = random.choice(unused_animals)
         print(f"Izabrana nekorišćena životinja: {chosen}")
         return chosen
     
-    # Ako su sve već iskorišćene bar jednom, izaberi nasumičnu među onima koje su najmanje puta ponovljene
     min_count = min(used_animals.count(a) for a in ANIMALS_DATA.keys())
     least_used = [a for a in ANIMALS_DATA.keys() if used_animals.count(a) == min_count]
     chosen = random.choice(least_used)
@@ -141,8 +139,14 @@ def get_store_category(animal_keyword):
     }
 
 def update_sitemap(post_url):
+    """Automatski osigurava da su glavne stranice (index.html, blog.html) i novi postovi u sitemap.xml."""
     sitemap_file = "sitemap.xml"
     today = datetime.date.today().strftime("%Y-%m-%d")
+    
+    main_urls = [
+        f"https://{SITE_DOMAIN}/index.html",
+        f"https://{SITE_DOMAIN}/blog.html"
+    ]
     
     if not os.path.exists(sitemap_file):
         root = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
@@ -154,16 +158,25 @@ def update_sitemap(post_url):
         except Exception:
             root = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
 
-    url_elem = ET.SubElement(root, "url")
-    loc_elem = ET.SubElement(url_elem, "loc")
-    loc_elem.text = post_url
-    lastmod_elem = ET.SubElement(url_elem, "lastmod")
-    lastmod_elem.text = today
+    existing_locs = [loc.text for loc in root.findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc")]
+
+    # Osiguraj prisustvo glavnih stranica
+    for url in main_urls:
+        if url not in existing_locs:
+            url_elem = ET.SubElement(root, "url")
+            ET.SubElement(url_elem, "loc").text = url
+            ET.SubElement(url_elem, "lastmod").text = today
+
+    # Dodaj novi blog post ako već ne postoji
+    if post_url not in existing_locs:
+        url_elem = ET.SubElement(root, "url")
+        ET.SubElement(url_elem, "loc").text = post_url
+        ET.SubElement(url_elem, "lastmod").text = today
 
     tree = ET.ElementTree(root)
     ET.indent(tree, space="  ", level=0)
     tree.write(sitemap_file, encoding="utf-8", xml_declaration=True)
-    print("Sitemap.xml uspešno ažuriran!")
+    print("Sitemap.xml uspešno ažuriran sa glavnim stranicama i novim člankom!")
 
 def update_rss(title, post_url, content_summary):
     rss_file = "rss.xml"
