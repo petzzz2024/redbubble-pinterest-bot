@@ -105,24 +105,54 @@ def post_to_bluesky():
 
     print(f"Izabran dizajn: {design['title']}")
     
-    # Automatsko izvlačenje svih ključnih reči iz naslova
-    keywords = extract_all_keywords(design['title'])
-    print(f"Izvučene ključne reči za heštegove: {keywords}")
+    raw_title = design['title']
+    full_url = design['product_link']
+    keywords = extract_all_keywords(raw_title)
+    
+    # Fiksni delovi u tekstu
+    intro_prefix = "Discover unique "
+    intro_suffix = " at Petzzz Studio! 🐾\n\nShop collection: "
+    mandatory_tags = ["Redbubble", "PetzzzStudio"]
+    mandatory_str = " ".join([f"#{t}" for t in mandatory_tags]) + " "
+    
+    # Maksimalni limit karaktera za Bluesky sa sigurnosnom marginom
+    MAX_LIMIT = 285
+    
+    # Izračunavanje preostalog prostora za naslov i sporedne heštegove
+    fixed_len = len(intro_prefix) + len(intro_suffix) + len(full_url) + len("\n\n") + len(mandatory_str)
+    budget = MAX_LIMIT - fixed_len
+    
+    # Skraćivanje naslova ako je budget mali
+    max_title_len = min(50, max(15, budget - 20))
+    if len(raw_title) > max_title_len:
+        display_title = raw_title[:max_title_len - 3] + "..."
+    else:
+        display_title = raw_title
+        
+    # Ponovni proračun prostora za sporedne heštegove
+    used_len = len(intro_prefix) + len(display_title) + len(intro_suffix) + len(full_url) + len("\n\n") + len(mandatory_str)
+    remaining_for_tags = MAX_LIMIT - used_len
+    
+    valid_keywords = []
+    for kw in keywords:
+        tag_str = f"#{kw} "
+        if remaining_for_tags >= len(tag_str):
+            valid_keywords.append(kw)
+            remaining_for_tags -= len(tag_str)
+            
+    all_tags = valid_keywords + mandatory_tags
 
-    # Građenje teksta objave sa klikabilnim linkom i heštegovima
+    # Izgradnja Bluesky obaveštenja sa dugim URL-om
     tb = client_utils.TextBuilder()
-    tb.text(f"Discover unique {design['title']} at Petzzz Studio! 🐾\n\nShop collection: ")
-    tb.link(design['product_link'], design['product_link'])
+    tb.text(intro_prefix)
+    tb.text(display_title)
+    tb.text(intro_suffix)
+    tb.link(full_url, full_url)  # Dugački URL ostaje prikazan u celosti
     tb.text("\n\n")
     
-    # Dodavanje svih ključnih reči kao klikabilnih heštegova
-    for word in keywords:
-        tb.tag(f"#{word}", word)
+    for tag in all_tags:
+        tb.tag(f"#{tag}", tag)
         tb.text(" ")
-        
-    tb.tag("#Redbubble", "Redbubble")
-    tb.text(" ")
-    tb.tag("#PetzzzStudio", "PetzzzStudio")
 
     print("Preuzimam sliku dizajna...")
     img_data = None
