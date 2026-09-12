@@ -187,24 +187,43 @@ def notify_indexnow(post_url):
 
 def update_blog_index():
     html_files = glob.glob("blog/*.html")
-    posts_list_html = ""
-    
-    html_files.sort(key=os.path.getmtime, reverse=True)
+    articles_data = []
     
     for file in html_files:
         with open(file, 'r', encoding='utf-8') as f:
             content = f.read()
+            
             title_match = re.search(r'<h1>(.*?)</h1>', content)
             title = title_match.group(1) if title_match else "Petzzz Article"
             
             date_match = re.search(r'Published on (.*?) by', content)
-            date_str = date_match.group(1) if date_match else ""
+            if date_match:
+                date_str = date_match.group(1).strip()
+                try:
+                    dt_obj = datetime.datetime.strptime(date_str, '%B %d, %Y')
+                except ValueError:
+                    dt_obj = datetime.datetime(2020, 1, 1)
+            else:
+                date_str = "Unknown Date"
+                dt_obj = datetime.datetime(2020, 1, 1)
+                
+            articles_data.append({
+                'file': file,
+                'title': title,
+                'date_str': date_str,
+                'dt_obj': dt_obj
+            })
             
+    # Hronološko sortiranje svih sačuvanih članaka od najnovijeg ka najstarijem
+    articles_data.sort(key=lambda x: x['dt_obj'], reverse=True)
+    
+    posts_list_html = ""
+    for article in articles_data:
         posts_list_html += f"""
         <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
-            <h3 style="margin-top:0; font-size:1.4em;"><a href="{file}" style="text-decoration:none; color:#1c1328;">{title}</a></h3>
-            <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on {date_str}</p>
-            <a href="{file}" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
+            <h3 style="margin-top:0; font-size:1.4em;"><a href="{article['file']}" style="text-decoration:none; color:#1c1328;">{article['title']}</a></h3>
+            <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on {article['date_str']}</p>
+            <a href="{article['file']}" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         """
 
