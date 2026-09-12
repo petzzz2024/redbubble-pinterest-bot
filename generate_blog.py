@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 from google import genai
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GA_MEASUREMENT_ID = "G-JHTGX1J5HX"
 
 # Zvanični Gemini 3 modeli
 GEMINI_MODELS = [
@@ -100,7 +101,6 @@ def slugify(text):
     return re.sub(r'[\s-]+', '-', text).strip('-')
 
 def get_next_animal():
-    """Bira nasumičnu životinju koja još nije korišćena u blogu."""
     used_animals = []
     html_files = glob.glob("blog/*.html")
     
@@ -254,6 +254,14 @@ def update_blog_index():
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Petzzz Studio - Official Blog</title>
+    <!-- Google Tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_MEASUREMENT_ID}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){{dataLayer.push(arguments);}}
+      gtag('js', new Date());
+      gtag('config', '{GA_MEASUREMENT_ID}');
+    </script>
     <link rel="icon" type="image/png" href="Logo 2.png">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -382,6 +390,14 @@ def generate_post():
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{topic} - Petzzz Studio Blog</title>
+    <!-- Google Tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_MEASUREMENT_ID}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){{dataLayer.push(arguments);}}
+      gtag('js', new Date());
+      gtag('config', '{GA_MEASUREMENT_ID}');
+    </script>
     <link rel="icon" type="image/png" href="../Logo 2.png">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
