@@ -19,14 +19,50 @@ HEADERS = {
     'Accept-Language': 'en-US,en;q=0.9',
 }
 
+def get_or_create_board_id():
+    """Automatski nalazi postojeću tablu ili kreira novu ako ID nije unet."""
+    if PINTEREST_BOARD_ID:
+        return PINTEREST_BOARD_ID
+
+    url = "https://api.pinterest.com/v5/boards"
+    headers = {
+        "Authorization": f"Bearer {PINTEREST_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    try:
+        res = requests.get(url, headers=headers)
+        if res.status_code == 200:
+            items = res.json().get('items', [])
+            if items:
+                board_id = items[0]['id']
+                print(f"Automatski pronađena Pinterest tabla: '{items[0]['name']}' (ID: {board_id})")
+                return board_id
+
+        # Ako nema nijedne table, automatski pravimo novu
+        print("Nije pronađena nijedna tabla. Pravim novu 'Petzzz Studio Products' tablu...")
+        payload = {
+            "name": "Petzzz Studio Products",
+            "description": "Official Petzzz Studio apparel, stickers, and pet gift ideas."
+        }
+        create_res = requests.post(url, json=payload, headers=headers)
+        if create_res.status_code in [200, 201]:
+            board_id = create_res.json().get('id')
+            print(f"Uspešno kreirana nova tabla! (ID: {board_id})")
+            return board_id
+        else:
+            print(f"Greška pri kreiranju table: {create_res.json()}")
+    except Exception as e:
+        print(f"Greška pri automatskom dobijanju Board ID-a: {e}")
+
+    return None
+
 def get_redbubble_products():
     products = []
     
-    # Metoda 1: RSS Feed
     rss_url = f"https://www.redbubble.com/people/{RB_USERNAME}/shop.rss"
     try:
         response = requests.get(rss_url, headers=HEADERS, timeout=15)
-        print(f"Status RSS HTTP zahteva: {response.status_code}")
         if response.status_code == 200 and len(response.content) > 500:
             feed = feedparser.parse(response.content)
             for entry in feed.entries:
@@ -41,13 +77,10 @@ def get_redbubble_products():
     except Exception as e:
         print(f"RSS mehanizam nije uspeo: {e}")
 
-    # Metoda 2: Direktno čitanje Shop stranice ako je RSS prazan
     if not products:
-        print("RSS feed nije vratio artikle. Pokreće se rezervno čitanje Shop stranice...")
         shop_url = f"https://www.redbubble.com/people/{RB_USERNAME}/shop"
         try:
             response = requests.get(shop_url, headers=HEADERS, timeout=15)
-            print(f"Status Shop HTTP zahteva: {response.status_code}")
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, 'html.parser')
                 img_tags = soup.find_all('img')
@@ -69,12 +102,11 @@ def get_redbubble_products():
 def generate_ai_description(title):
     client = genai.Client(api_key=GEMINI_KEY)
     prompt = f"""
-    Napiši privlačan Pinterest opis na engleskom jeziku za proizvod sa nazivom '{title}'.
-    Opis treba da bude optimizovan za pretragu (SEO), dužine 2 do 3 rečenice i sa 5 relevantnih hashtagova na kraju.
-    Nemoj dodavati naslov, vrati samo čist tekst opisa.
+    Write an engaging Pinterest description in English for the product titled '{title}'.
+    It must be SEO optimized, 2-3 sentences long, ending with 5 relevant hashtags.
+    Do NOT include a title, return strictly the description text.
     """
     
-    # Lista 3 nova modela koja se pokušavaju redom u slučaju opterećenja
     models_to_try = [
         'gemini-3.7-flash',
         'gemini-3.5-flash-lite',
@@ -87,23 +119,20 @@ def generate_ai_description(title):
                 model=model_name,
                 contents=prompt
             )
-            print(f"Uspešno generisan opis pomoću modela: {model_name}")
             return response.text.strip()
-        except Exception as e:
-            print(f"Model {model_name} je trenutno nedostupan ili preopterećen. Pokušavam sledeći model...")
+        except Exception:
+            continue
 
-    # Rezervni tekst ukoliko su sva 3 AI modela preopterećena
-    print("Sva 3 AI modela su trenutno preopterećena. Koristi se rezervni opis.")
     return f"Discover unique products featuring the '{title}' design on Redbubble. Perfect for gifts, personal style, and unique decor. Shop the full collection now! #redbubble #{RB_USERNAME.lower()} #giftideas #design #shopping"
 
-def post_to_pinterest(title, description, link, image_url):
+def post_to_pinterest(board_id, title, description, link, image_url):
     url = "https://api.pinterest.com/v5/pins"
     headers = {
         "Authorization": f"Bearer {PINTEREST_TOKEN}",
         "Content-Type": "application/json"
     }
     payload = {
-        "board_id": PINTEREST_BOARD_ID,
+        "board_id": board_id,
         "title": title[:100],
         "description": description[:500],
         "link": link,
@@ -125,6 +154,11 @@ def main():
             except json.JSONDecodeError:
                 posted = []
 
+    board_id = get_or_create_board_id()
+    if not board_id:
+        print("Prekid bota: Nije moguće pribaviti Pinterest Board ID.")
+        return
+
     products = get_redbubble_products()
     print(f"Broj pronađenih proizvoda u prodavnici: {len(products)}")
 
@@ -136,10 +170,11 @@ def main():
         return
 
     target_product = random.choice(unposted_products)
-    print(f"Izabran proizvod: {target_product['title']}")
+    print(f"Izabran proizvod za objavu: {target_product['title']}")
 
     description = generate_ai_description(target_product['title'])
     success, response = post_to_pinterest(
+        board_id,
         target_product['title'], 
         description, 
         target_product['link'], 
