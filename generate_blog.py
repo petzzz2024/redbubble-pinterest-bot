@@ -98,42 +98,44 @@ def get_store_category(animal_keyword):
         "product_link": shop_search_url
     }
 
-def update_sitemap(post_url):
+def update_sitemap(post_url=None):
     sitemap_file = "sitemap.xml"
     today = datetime.date.today().strftime("%Y-%m-%d")
     
-    main_urls = [
+    urls = [
         f"https://{SITE_DOMAIN}/index.html",
         f"https://{SITE_DOMAIN}/blog.html"
     ]
     
-    if not os.path.exists(sitemap_file):
-        root = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
-    else:
-        try:
-            ET.register_namespace('', "http://www.sitemaps.org/schemas/sitemap/0.9")
-            tree = ET.parse(sitemap_file)
-            root = tree.getroot()
-        except Exception:
-            root = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
-
-    existing_locs = [loc.text for loc in root.findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc")]
-
-    for url in main_urls:
-        if url not in existing_locs:
-            url_elem = ET.SubElement(root, "url")
-            ET.SubElement(url_elem, "loc").text = url
-            ET.SubElement(url_elem, "lastmod").text = today
-
-    if post_url not in existing_locs:
-        url_elem = ET.SubElement(root, "url")
-        ET.SubElement(url_elem, "loc").text = post_url
-        ET.SubElement(url_elem, "lastmod").text = today
-
-    tree = ET.ElementTree(root)
-    ET.indent(tree, space="  ", level=0)
-    tree.write(sitemap_file, encoding="utf-8", xml_declaration=True)
-    print("Sitemap.xml uspešno ažuriran sa glavnim stranicama i novim člankom!")
+    # Automatski skeniramo sve generisane blog članke
+    blog_files = glob.glob("blog/*.html")
+    for file_path in blog_files:
+        clean_path = file_path.replace("\\", "/")
+        urls.append(f"https://{SITE_DOMAIN}/{clean_path}")
+        
+    if post_url and post_url not in urls:
+        urls.append(post_url)
+        
+    # Uklanjanje duplikata uz očuvanje redosleda
+    urls = list(dict.fromkeys(urls))
+    
+    xml_lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+    ]
+    
+    for url in urls:
+        xml_lines.append("  <url>")
+        xml_lines.append(f"    <loc>{url}</loc>")
+        xml_lines.append(f"    <lastmod>{today}</lastmod>")
+        xml_lines.append("  </url>")
+        
+    xml_lines.append("</urlset>")
+    
+    with open(sitemap_file, "w", encoding="utf-8") as f:
+        f.write("\n".join(xml_lines) + "\n")
+        
+    print("Sitemap.xml uspešno generisan sa čistim XML zaglavljem i svim linkovima!")
 
 def update_rss(title, post_url, content_summary):
     rss_file = "rss.xml"
