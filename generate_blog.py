@@ -294,10 +294,22 @@ def generate_post():
     client = genai.Client(api_key=GEMINI_API_KEY)
     animal = get_next_animal()
     
-    topic_prompt = f"""
-    You are an SEO expert. Write a catchy, viral blog post title about gift ideas or apparel for owners of a {animal.upper()}.
-    OUTPUT STRICTLY THE TITLE AND NOTHING ELSE.
-    Example: Top 10 Cozy Hoodies for {animal.capitalize()} Lovers
+   topic_prompt = f"""
+    You are a Senior E-Commerce SEO Specialist and High-CTR Copywriter.
+    
+    TASK: Generate one viral, ultra-engaging, SEO-optimized blog post title targeting {animal.upper()} owners, pet parents, and gift shoppers.
+    
+    SEO & COPYWRITING CRITERIA:
+    - Search Intent: Target commercial and transactional intent around gifts, apparel (t-shirts, hoodies), stickers, or home decor.
+    - CTR Triggers: Incorporate high-converting power words (e.g., Must-Have, Ultimate, Obsessed, Irresistible, Unique, Cutest, Essential).
+    - Format Variety: Dynamically choose between listicles ("15 Best..."), buyers guides ("The Ultimate Guide to..."), or targeted niche lists ("10 Cute Hoodies Every {animal.capitalize()} Parent Needs").
+    - Character Length: Optimal SERP snippet length (50-65 characters).
+    - Target Audience: {animal.capitalize()} owners, dog/cat/pet moms & dads, gift buyers.
+
+    STRICT OUTPUT RULES:
+    - Return ONLY the raw title string.
+    - Do NOT wrap in quotes.
+    - Do NOT include labels, prefixes, or conversational intro text.
     """
     
     topic = None
