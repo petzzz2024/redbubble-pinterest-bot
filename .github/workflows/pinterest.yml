@@ -1,29 +1,36 @@
-name: Pinterest Auto-Pin Automation
+name: Petzzz Automated Publishing Workflow
 
 on:
   schedule:
-    # Pokreće se automatski dva puta dnevno (u 11:00 i 19:00 UTC)
-    - cron: '0 11,19 * * *'
-  workflow_dispatch: # Omogućava ručno pokretanje na dugme u GitHub-u
+    # Pokreće se u 08:00, 14:00 i 20:00 po lokalnom (SRB) vremenu (UTC 6, 12, 18)
+    - cron: '0 6,12,18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
-  run-pinterest-bot:
+  run-automation:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # Dozvola za čuvanje osveženog posted_history.json fajla
-
     steps:
       - name: Preuzmi kod skladišta
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Podesi Python okruženje
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Instaliraj biblioteke iz requirements.txt
+      - name: Instaliraj biblioteke
         run: |
-          pip install -r requirements.txt
+          pip install --upgrade requests feedparser beautifulsoup4 google-genai atproto
+
+      - name: Pokreni Generisanje Bloga
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python generate_blog.py || true
 
       - name: Pokreni Pinterest Bota
         env:
@@ -31,11 +38,13 @@ jobs:
           PINTEREST_BOARD_ID: ${{ secrets.PINTEREST_BOARD_ID }}
           PINTEREST_ACCESS_TOKEN: ${{ secrets.PINTEREST_ACCESS_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python pinterest_bot.py
+        run: python pinterest_bot.py || true
 
-      - name: Sačuvaj osveženu istoriju u repozitorijum
+      - name: Sačuvaj izmene i istoriju objava u repozitorijum
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add posted_history.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update posted products history" && git push)
+          git add posted_history.json blog/ blog.html sitemap.xml rss.xml
+          git commit -m "Auto-update blog index, sitemap & posted history [skip ci]" || echo "Nema novih izmena za commit."
+          git pull --rebase origin main || true
+          git push origin main
