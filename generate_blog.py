@@ -87,7 +87,6 @@ def get_store_category(animal_keyword):
     query_encoded = urllib.parse.quote(clean_animal)
     shop_search_url = f"https://www.redbubble.com/shop/?query={query_encoded}&artistUserName=Petzzz"
     
-    # Pollinations.ai besplatan API za generisanje slike životinje
     prompt = urllib.parse.quote(f"cute high quality studio photo portrait of a {clean_animal}, detailed, vibrant colors, 8k")
     seed = random.randint(1000, 99999)
     ai_cover_img = f"https://image.pollinations.ai/prompt/{prompt}?width=800&height=800&nologo=true&seed={seed}"
@@ -98,6 +97,56 @@ def get_store_category(animal_keyword):
         "product_link": shop_search_url
     }
 
+def auto_link_keywords(content, animal, store_url):
+    """Pretvara pominjanja fraza u prirodne prodajne linkove u tekstu bez spama."""
+    keywords = [
+        f"{animal} t-shirts", f"{animal} t-shirt",
+        f"{animal} hoodies", f"{animal} hoodie",
+        f"{animal} stickers", f"{animal} gift ideas",
+        f"{animal} gifts", f"{animal} apparel"
+    ]
+    linked_content = content
+    for kw in keywords:
+        pattern = re.compile(rf'\b({re.escape(kw)})\b', re.IGNORECASE)
+        linked_content = pattern.sub(
+            rf'<a href="{store_url}" target="_blank" style="color:#7b2cbf; font-weight:600; text-decoration:underline;">\1</a>', 
+            linked_content, 
+            count=1
+        )
+    return linked_content
+
+def get_related_posts_html(current_slug, max_posts=3):
+    """Generiše blok sa preporučenim srodnim tekstovima za unutrašnje SEO povezivanje."""
+    html_files = glob.glob("blog/*.html")
+    other_files = [f for f in html_files if current_slug not in f]
+    if not other_files:
+        return ""
+    
+    selected_files = random.sample(other_files, min(len(other_files), max_posts))
+    cards_html = ""
+    
+    for file in selected_files:
+        with open(file, 'r', encoding='utf-8') as f:
+            content = f.read()
+            title_match = re.search(r'<h1>(.*?)</h1>', content)
+            title = title_match.group(1) if title_match else "Petzzz Article"
+            clean_file_path = file.replace("\\", "/")
+            cards_html += f"""
+            <div style="flex:1; min-width:220px; background:#fdfbfb; padding:15px; border-radius:8px; border:1px solid #eee; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+                <h4 style="margin:0 0 10px 0; font-size:1.0em; line-height:1.3;"><a href="../{clean_file_path}" style="color:#1c1328; text-decoration:none;">{title}</a></h4>
+                <a href="../{clean_file_path}" style="color:#7b2cbf; font-size:0.85em; font-weight:600; text-decoration:none;">Read Article ➔</a>
+            </div>
+            """
+    
+    return f"""
+    <div style="margin-top:40px; padding-top:25px; border-top:1px solid #eaeaea;">
+        <h3 style="color:#1c1328; margin-bottom:15px;">You Might Also Like 🐾</h3>
+        <div style="display:flex; gap:15px; flex-wrap:wrap;">
+            {cards_html}
+        </div>
+    </div>
+    """
+
 def update_sitemap(post_url=None):
     sitemap_file = "sitemap.xml"
     today = datetime.date.today().strftime("%Y-%m-%d")
@@ -107,7 +156,6 @@ def update_sitemap(post_url=None):
         f"https://{SITE_DOMAIN}/blog.html"
     ]
     
-    # Automatski skeniramo sve generisane blog članke
     blog_files = glob.glob("blog/*.html")
     for file_path in blog_files:
         clean_path = file_path.replace("\\", "/")
@@ -116,7 +164,6 @@ def update_sitemap(post_url=None):
     if post_url and post_url not in urls:
         urls.append(post_url)
         
-    # Uklanjanje duplikata uz očuvanje redosleda
     urls = list(dict.fromkeys(urls))
     
     xml_lines = [
@@ -209,14 +256,14 @@ def update_blog_index():
                 date_str = "Unknown Date"
                 dt_obj = datetime.datetime(2020, 1, 1)
                 
+            clean_path = file.replace("\\", "/")
             articles_data.append({
-                'file': file,
+                'file': clean_path,
                 'title': title,
                 'date_str': date_str,
                 'dt_obj': dt_obj
             })
             
-    # Hronološko sortiranje svih sačuvanih članaka od najnovijeg ka najstarijem
     articles_data.sort(key=lambda x: x['dt_obj'], reverse=True)
     
     posts_list_html = ""
@@ -294,7 +341,7 @@ def generate_post():
     client = genai.Client(api_key=GEMINI_API_KEY)
     animal = get_next_animal()
     
-   topic_prompt = f"""
+    topic_prompt = f"""
     You are a Senior E-Commerce SEO Specialist and High-CTR Copywriter.
     
     TASK: Generate one viral, ultra-engaging, SEO-optimized blog post title targeting {animal.upper()} owners, pet parents, and gift shoppers.
@@ -346,7 +393,7 @@ def generate_post():
       <a href="{category['product_link']}" target="_blank" style="display:inline-block; padding:12px 24px; background:#00d2d3; color:#ffffff !important; text-decoration:none; border-radius:30px; font-weight:bold; margin:20px 0;">See All Our {animal.capitalize()} Products 🛍️</a>
     """
     
-    article_content = None
+    raw_article_content = None
     for model_name in GEMINI_MODELS:
         try:
             print(f"Pokušavam generisanje članka pomoću modela: {model_name}...")
@@ -355,14 +402,18 @@ def generate_post():
                 contents=article_prompt
             )
             if response and response.text:
-                article_content = response.text
+                raw_article_content = response.text
                 print(f"Članak uspešno generisan sa {model_name}!")
                 break
         except Exception as e:
             print(f"Greška na {model_name} (članak): {e}")
 
-    if not article_content:
+    if not raw_article_content:
         raise Exception("Nijedan Gemini 3 model nije uspeo da vrati tekst. Proverite greške u logu iznad.")
+
+    # Automatsko dodavanje prodajnih hiperlinkova na ključne fraze u tekstu
+    article_content = auto_link_keywords(raw_article_content, animal, category['product_link'])
+    related_posts_html = get_related_posts_html(slug)
 
     product_html_banner = f"""
     <div style="text-align:center; margin: 30px 0; background:#f0f0f0; padding:20px; border-radius:12px;">
@@ -374,6 +425,14 @@ def generate_post():
                 View Petzzz {animal.capitalize()} Collection ➔
             </a>
         </p>
+    </div>
+    """
+
+    tag_badges = f"""
+    <div style="margin: 15px 0 25px 0; display:flex; gap:8px; flex-wrap:wrap;">
+        <a href="{category['product_link']}" target="_blank" style="background:#e7d9fc; color:#7b2cbf; text-decoration:none; padding:4px 12px; border-radius:15px; font-size:0.85em; font-weight:600;">#{animal.capitalize()}</a>
+        <a href="{category['product_link']}" target="_blank" style="background:#e7d9fc; color:#7b2cbf; text-decoration:none; padding:4px 12px; border-radius:15px; font-size:0.85em; font-weight:600;">#PetGifts</a>
+        <a href="{category['product_link']}" target="_blank" style="background:#e7d9fc; color:#7b2cbf; text-decoration:none; padding:4px 12px; border-radius:15px; font-size:0.85em; font-weight:600;">#RedbubbleShop</a>
     </div>
     """
 
@@ -422,9 +481,11 @@ def generate_post():
         <a href="../blog.html" class="back-btn">← Back to All Articles</a>
         <h1>{topic}</h1>
         <p><em>Published on {datetime.date.today().strftime('%B %d, %Y')} by Petzzz Studio Team</em></p>
+        {tag_badges}
         {product_html_banner}
         <hr style="border:0; border-top:1px solid #eaeaea; margin:30px 0;">
         {article_content}
+        {related_posts_html}
     </div>
 
     <footer>
@@ -439,7 +500,7 @@ def generate_post():
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(full_html)
         
-    print(f"Blog post uspešno kreiran: {file_path}")
+    print(f"Blog post uspešno kreiran sa internal linkovima: {file_path}")
     
     update_blog_index()
 
