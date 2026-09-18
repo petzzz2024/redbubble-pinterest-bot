@@ -26,61 +26,6 @@
         h1 { color: #1c1328; font-size: 2.5em; margin-bottom: 30px; text-align:center; }
         footer { background: #1c1328; color: #bbb; text-align: center; padding: 30px 20px; margin-top: 50px; font-size: 0.9em; }
         footer a { color: #fff; }
-        
-        /* Stil za Pretragu */
-        .search-wrapper {
-            max-width: 600px;
-            margin: 0 auto 35px auto;
-            position: relative;
-            padding: 0 20px;
-        }
-        .search-box {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-        .search-icon {
-            position: absolute;
-            left: 18px;
-            width: 20px;
-            height: 20px;
-            color: #7b2cbf;
-            pointer-events: none;
-        }
-        .search-input {
-            width: 100%;
-            padding: 14px 20px 14px 50px;
-            font-size: 1em;
-            font-family: 'Poppins', sans-serif;
-            border: 2px solid #eaeaea;
-            border-radius: 30px;
-            outline: none;
-            background: #ffffff;
-            color: #333;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-            transition: all 0.3s ease;
-        }
-        .search-input:focus {
-            border-color: #7b2cbf;
-            box-shadow: 0 4px 18px rgba(123, 44, 191, 0.18);
-        }
-        .no-results {
-            display: none;
-            text-align: center;
-            padding: 40px 20px;
-            color: #666;
-            font-size: 1.1em;
-            font-weight: 600;
-        }
-        
-        /* Klasa dodata radi lakseg filtriranja */
-        .article-card {
-            background:#fff; 
-            padding:25px; 
-            border-radius:12px; 
-            margin-bottom:20px; 
-            box-shadow:0 4px 15px rgba(0,0,0,0.05);
-        }
     </style>
 </head>
 <body>
@@ -100,179 +45,169 @@
     <div class="container">
         <h1>Latest Pet Articles & Gift Guides</h1>
         
-        <!-- Polje za pretragu životinja -->
-        <div class="search-wrapper">
-            <div class="search-box">
-                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <input type="text" id="petSearchInput" class="search-input" placeholder="Search by animal (e.g. Pitbull, Chicken, Lizard)...">
-            </div>
-        </div>
-
-        <!-- Poruka ako nema rezultata -->
-        <div id="noResultsMessage" class="no-results">
-            No articles found for that search. Try another animal! 🐾
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
+            <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/15-must-have-black-cat-gifts-every-pet-mom-will-obsess-over.html" style="text-decoration:none; color:#1c1328;">15 Must-Have Black Cat Gifts Every Pet Mom Will Obsess Over</a></h3>
+            <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 18, 2026</p>
+            <a href="blog/15-must-have-black-cat-gifts-every-pet-mom-will-obsess-over.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/10-cutest-silkie-chicken-gifts-every-fluffy-hen-mom-needs.html" style="text-decoration:none; color:#1c1328;">10 Cutest Silkie Chicken Gifts Every Fluffy Hen Mom Needs</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 17, 2026</p>
             <a href="blog/10-cutest-silkie-chicken-gifts-every-fluffy-hen-mom-needs.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/17-must-have-pitbull-gifts-every-dog-mom-is-obsessed-with.html" style="text-decoration:none; color:#1c1328;">17 Must-Have Pitbull Gifts Every Dog Mom Is Obsessed With</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 16, 2026</p>
             <a href="blog/17-must-have-pitbull-gifts-every-dog-mom-is-obsessed-with.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/15-unique-uromastyx-gifts-and-apparel-every-lizard-lover-is-obsessed-with.html" style="text-decoration:none; color:#1c1328;">15 Unique Uromastyx Gifts and Apparel Every Lizard Lover Is Obsessed With</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 15, 2026</p>
             <a href="blog/15-unique-uromastyx-gifts-and-apparel-every-lizard-lover-is-obsessed-with.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/10-cute-crow-hoodies-every-obsessed-pet-parent-needs.html" style="text-decoration:none; color:#1c1328;">10 Cute Crow Hoodies Every Obsessed Pet Parent Needs</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 15, 2026</p>
             <a href="blog/10-cute-crow-hoodies-every-obsessed-pet-parent-needs.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/17-coo-l-gifts-and-apparel-every-pigeon-owner-is-obsessed-with.html" style="text-decoration:none; color:#1c1328;">17 Coo-l Gifts and Apparel Every Pigeon Owner Is Obsessed With</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 14, 2026</p>
             <a href="blog/17-coo-l-gifts-and-apparel-every-pigeon-owner-is-obsessed-with.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/15-must-have-bernese-mountain-dog-gifts-every-berner-lover-is-obsessed-with.html" style="text-decoration:none; color:#1c1328;">15 Must-Have Bernese Mountain Dog Gifts Every Berner Lover Is Obsessed With</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 12, 2026</p>
             <a href="blog/15-must-have-bernese-mountain-dog-gifts-every-berner-lover-is-obsessed-with.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/15-must-have-leachianus-gecko-gifts-apparel-every-leachie-parent-needs.html" style="text-decoration:none; color:#1c1328;">15 Must-Have Leachianus Gecko Gifts & Apparel Every Leachie Parent Needs</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 12, 2026</p>
             <a href="blog/15-must-have-leachianus-gecko-gifts-apparel-every-leachie-parent-needs.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/15-jawsome-gift-ideas-and-apparel-every-shark-owner-needs.html" style="text-decoration:none; color:#1c1328;">15 Jawsome Gift Ideas and Apparel Every Shark Owner Needs</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 12, 2026</p>
             <a href="blog/15-jawsome-gift-ideas-and-apparel-every-shark-owner-needs.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/17-turtley-awesome-gifts-and-apparel-every-turtle-lover-will-obsess-over.html" style="text-decoration:none; color:#1c1328;">17 Turtley Awesome Gifts and Apparel Every Turtle Lover Will Obsess Over</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 12, 2026</p>
             <a href="blog/17-turtley-awesome-gifts-and-apparel-every-turtle-lover-will-obsess-over.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/15-unique-norwegian-lundehund-gifts-and-apparel-every-puffin-dog-lover-will-obsess-over.html" style="text-decoration:none; color:#1c1328;">15 Unique Norwegian Lundehund Gifts and Apparel Every Puffin Dog Lover Will Obsess Over</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 11, 2026</p>
             <a href="blog/15-unique-norwegian-lundehund-gifts-and-apparel-every-puffin-dog-lover-will-obsess-over.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/17-insanely-cool-gifts-and-apparel-every-belgian-malinois-owner-obsesses-over.html" style="text-decoration:none; color:#1c1328;">17 Insanely Cool Gifts and Apparel Every Belgian Malinois Owner Obsesses Over</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 11, 2026</p>
             <a href="blog/17-insanely-cool-gifts-and-apparel-every-belgian-malinois-owner-obsesses-over.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/10-corgi-mom-dad-apparel-pieces-you-need-before-everyone-else-does.html" style="text-decoration:none; color:#1c1328;">10 Corgi Mom & Dad Apparel Pieces You Need Before Everyone Else Does</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 11, 2026</p>
             <a href="blog/10-corgi-mom-dad-apparel-pieces-you-need-before-everyone-else-does.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/17-insanely-cool-binturong-gifts-and-apparel-every-bearcat-lover-needs-right-now.html" style="text-decoration:none; color:#1c1328;">17 Insanely Cool Binturong Gifts and Apparel Every Bearcat Lover Needs Right Now</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 11, 2026</p>
             <a href="blog/17-insanely-cool-binturong-gifts-and-apparel-every-bearcat-lover-needs-right-now.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/17-ridiculously-cute-gifts-and-apparel-ideas-every-wombat-owner-will-obsess-over.html" style="text-decoration:none; color:#1c1328;">17 Ridiculously Cute Gifts and Apparel Ideas Every Wombat Owner Will Obsess Over</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 11, 2026</p>
             <a href="blog/17-ridiculously-cute-gifts-and-apparel-ideas-every-wombat-owner-will-obsess-over.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/19-must-have-french-bulldog-gifts-and-apparel-every-frenchie-parent-is-obsessed-with.html" style="text-decoration:none; color:#1c1328;">19 Must-Have French Bulldog Gifts and Apparel Every Frenchie Parent Is Obsessed With</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 11, 2026</p>
             <a href="blog/19-must-have-french-bulldog-gifts-and-apparel-every-frenchie-parent-is-obsessed-with.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/17-must-have-golden-retriever-gifts-and-apparel-every-dog-lover-is-obsessed-with.html" style="text-decoration:none; color:#1c1328;">17 Must-Have Golden Retriever Gifts and Apparel Every Dog Lover Is Obsessed With</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 11, 2026</p>
             <a href="blog/17-must-have-golden-retriever-gifts-and-apparel-every-dog-lover-is-obsessed-with.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/17-ridiculously-cute-gifts-and-apparel-every-pug-lover-needs-right-now.html" style="text-decoration:none; color:#1c1328;">17 Ridiculously Cute Gifts and Apparel Every Pug Lover Needs Right Now</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 11, 2026</p>
             <a href="blog/17-ridiculously-cute-gifts-and-apparel-every-pug-lover-needs-right-now.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/15-must-have-gifts-for-husky-owners-who-live-for-the-drama-and-the-fur.html" style="text-decoration:none; color:#1c1328;">15 Must-Have Gifts for Husky Owners Who Live for the Drama (and the Fur!)</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 10, 2026</p>
             <a href="blog/15-must-have-gifts-for-husky-owners-who-live-for-the-drama-and-the-fur.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/17-ridiculously-cute-pug-gifts-and-apparel-every-pug-parent-needs-right-now.html" style="text-decoration:none; color:#1c1328;">17 Ridiculously Cute Pug Gifts and Apparel Every Pug Parent Needs Right Now</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 10, 2026</p>
             <a href="blog/17-ridiculously-cute-pug-gifts-and-apparel-every-pug-parent-needs-right-now.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/top-10-cute-gift-ideas-for-corgi-lovers.html" style="text-decoration:none; color:#1c1328;">Top 10 Cute Gift Ideas for Corgi Lovers</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 09, 2026</p>
             <a href="blog/top-10-cute-gift-ideas-for-corgi-lovers.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/15-genius-gifts-for-husky-owners-that-arent-just-extra-strength-lint-rollers.html" style="text-decoration:none; color:#1c1328;">15 Genius Gifts for Husky Owners (That Aren’t Just Extra-Strength Lint Rollers)</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 09, 2026</p>
             <a href="blog/15-genius-gifts-for-husky-owners-that-arent-just-extra-strength-lint-rollers.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/15-pawsome-dachshund-gifts-apparel-every-doxie-lover-needs.html" style="text-decoration:none; color:#1c1328;">15 Pawsome Dachshund Gifts & Apparel Every Doxie Lover Needs</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 09, 2026</p>
             <a href="blog/15-pawsome-dachshund-gifts-apparel-every-doxie-lover-needs.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/19-irresistible-golden-retriever-gifts-and-apparel-every-dog-lover-needs-right-now.html" style="text-decoration:none; color:#1c1328;">19 Irresistible Golden Retriever Gifts and Apparel Every Dog Lover Needs Right Now</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 09, 2026</p>
             <a href="blog/19-irresistible-golden-retriever-gifts-and-apparel-every-dog-lover-needs-right-now.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/10-stylish-dachshund-apparel-ideas-every-owner-needs-this-year.html" style="text-decoration:none; color:#1c1328;">10 Stylish Dachshund Apparel Ideas Every Owner Needs This Year</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 09, 2026</p>
             <a href="blog/10-stylish-dachshund-apparel-ideas-every-owner-needs-this-year.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/15-must-have-corgi-gifts-and-apparel-every-obsessed-owner-needs.html" style="text-decoration:none; color:#1c1328;">15 Must-Have Corgi Gifts and Apparel Every Obsessed Owner Needs</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 09, 2026</p>
             <a href="blog/15-must-have-corgi-gifts-and-apparel-every-obsessed-owner-needs.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/17-ridiculously-cute-pug-outfits-gifts-every-owner-is-secretly-obsessed-with.html" style="text-decoration:none; color:#1c1328;">17 Ridiculously Cute Pug Outfits & Gifts Every Owner Is Secretly Obsessed With</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 09, 2026</p>
             <a href="blog/17-ridiculously-cute-pug-outfits-gifts-every-owner-is-secretly-obsessed-with.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         
-        <div class="article-card">
+        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="blog/15-ridiculously-cute-french-bulldog-gifts-every-frenchie-owner-is-obsessed-with.html" style="text-decoration:none; color:#1c1328;">15 Ridiculously Cute French Bulldog Gifts Every Frenchie Owner Is Obsessed With</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on September 09, 2026</p>
             <a href="blog/15-ridiculously-cute-french-bulldog-gifts-every-frenchie-owner-is-obsessed-with.html" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
@@ -283,32 +218,5 @@
     <footer>
         <p>&copy; 2026 Petzzz Studio. | <a href="privacy.html">Privacy Policy</a></p>
     </footer>
-
-    <!-- Skripta za pretragu -->
-    <script>
-        document.getElementById('petSearchInput').addEventListener('keyup', function() {
-            let filter = this.value.toLowerCase().trim();
-            let cards = document.querySelectorAll('.article-card'); 
-            let visibleCount = 0;
-
-            cards.forEach(function(card) {
-                let title = card.innerText.toLowerCase();
-                
-                if (title.includes(filter)) {
-                    card.style.display = "";
-                    visibleCount++;
-                } else {
-                    card.style.display = "none";
-                }
-            });
-
-            let noResults = document.getElementById('noResultsMessage');
-            if (visibleCount === 0) {
-                noResults.style.display = "block";
-            } else {
-                noResults.style.display = "none";
-            }
-        });
-    </script>
 </body>
 </html>
