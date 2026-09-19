@@ -507,7 +507,7 @@ def generate_post():
     product_html_banner = f"""
     <div style="text-align:center; margin: 30px 0; background:#f0f0f0; padding:20px; border-radius:12px;">
         <a href="{category['product_link']}" target="_blank">
-            <img src="{category['img_url']}" alt="{animal} lovers gift ideas" style="max-width:100%; height:auto; max-height:450px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.1); object-fit:cover; display:inline-block;" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?fit=crop&w=800&h=800&q=80'">
+            <img src="{category['img_url']}" alt="{animal} lovers gift ideas" style="max-width:100%; height:auto; max-height:450px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.1); object-fit:cover; display:inline-block;" onerror="this.src='../Logo 2.png'">
         </a>
         <p style="font-size:1.1em; margin-top:15px; font-weight:700;">
             <a href="{category['product_link']}" target="_blank" style="display:inline-block; padding:10px 25px; background:#7b2cbf; color:#ffffff !important; text-decoration:none; border-radius:8px; transition:0.3s;">
