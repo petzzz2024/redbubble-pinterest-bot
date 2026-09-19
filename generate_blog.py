@@ -13,11 +13,11 @@ GA_MEASUREMENT_ID = "G-JHTGX1J5HX"
 
 # Zvanični Gemini 3 modeli
 GEMINI_MODELS = [
+    'gemini-3.5-flash-lite',
     'gemini-3.8-flash',
     'gemini-3.7-flash',
     'gemini-3.6-flash',
     'gemini-3.5-flash',
-    'gemini-3.5-flash-lite',
     'gemini-3.1-flash-lite'
 ]
 
@@ -269,7 +269,7 @@ def update_blog_index():
     posts_list_html = ""
     for article in articles_data:
         posts_list_html += f"""
-        <div style="background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
+        <div class="article-card">
             <h3 style="margin-top:0; font-size:1.4em;"><a href="{article['file']}" style="text-decoration:none; color:#1c1328;">{article['title']}</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on {article['date_str']}</p>
             <a href="{article['file']}" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
@@ -293,17 +293,47 @@ def update_blog_index():
     <link rel="icon" type="image/png" href="Logo 2.png">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body {{ font-family: 'Poppins', sans-serif; background: #f8f9fa; color: #333; margin:0; line-height:1.7; }}
-        header {{ background: #fff; border-bottom: 1px solid #eaeaea; padding: 15px 20px; }}
+        body {{ font-family: 'Poppins', sans-serif; background: #f8f9fa; color: #333; margin:0; line-height:1.7; scroll-behavior: smooth; }}
+        header {{ background: #fff; border-bottom: 1px solid #eaeaea; padding: 15px 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }}
         .nav-container {{ max-width: 900px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }}
         .logo-box {{ display: flex; align-items: center; text-decoration: none; gap: 10px; font-weight:700; color:#3a1c5c; }}
         .logo-img {{ width: 40px; height: 40px; border-radius: 50%; }}
-        .nav-links a {{ margin-left: 20px; text-decoration: none; color: #555; font-weight: 600; font-size: 0.9em; }}
+        .nav-links a {{ margin-left: 20px; text-decoration: none; color: #555; font-weight: 600; font-size: 0.9em; transition: color 0.2s; }}
         .nav-links a:hover {{ color: #8e44ad; }}
         .container {{ max-width: 800px; margin: 50px auto; padding: 0 20px; }}
-        h1 {{ color: #1c1328; font-size: 2.5em; margin-bottom: 30px; text-align:center; }}
+        h1 {{ color: #1c1328; font-size: 2.5em; margin-bottom: 30px; text-align:center; line-height: 1.2; }}
         footer {{ background: #1c1328; color: #bbb; text-align: center; padding: 30px 20px; margin-top: 50px; font-size: 0.9em; }}
         footer a {{ color: #fff; }}
+
+        /* Pretraga */
+        .search-wrapper {{ max-width: 600px; margin: 0 auto 35px auto; position: relative; }}
+        .search-box {{ position: relative; display: flex; align-items: center; }}
+        .search-icon {{ position: absolute; left: 18px; width: 20px; height: 20px; color: #7b2cbf; pointer-events: none; }}
+        .search-input {{ width: 100%; padding: 14px 20px 14px 50px; font-size: 1em; font-family: 'Poppins', sans-serif; border: 2px solid #eaeaea; border-radius: 30px; outline: none; background: #ffffff; color: #333; box-shadow: 0 4px 12px rgba(0,0,0,0.04); transition: all 0.3s ease; box-sizing: border-box; }}
+        .search-input:focus {{ border-color: #7b2cbf; box-shadow: 0 4px 18px rgba(123, 44, 191, 0.18); }}
+        .no-results {{ display: none; text-align: center; padding: 20px; color: #666; font-size: 1.1em; font-weight: 600; background: #fff; border-radius: 12px; margin-bottom: 20px; }}
+
+        /* Kartice članaka */
+        .article-card {{ background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; display: block; }}
+        .article-card:hover {{ transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.08); }}
+
+        /* Dugme Back to Top */
+        #backToTop {{
+            display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            z-index: 99; border: none; outline: none; background-color: #7b2cbf; color: white;
+            cursor: pointer; width: 50px; height: 50px; border-radius: 50%; font-size: 22px; font-weight: bold;
+            box-shadow: 0 4px 15px rgba(123, 44, 191, 0.4); transition: background-color 0.3s;
+            align-items: center; justify-content: center;
+        }}
+        #backToTop:hover {{ background-color: #5a189a; }}
+
+        /* Mobilni Prikaz */
+        @media (max-width: 768px) {{
+            .nav-container {{ flex-direction: column; gap: 15px; padding: 5px 0; }}
+            .nav-links {{ display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }}
+            .nav-links a {{ margin-left: 0; background: #f0ecf4; padding: 8px 16px; border-radius: 20px; color: #3a1c5c; }}
+            h1 {{ font-size: 2em; }}
+        }}
     </style>
 </head>
 <body>
@@ -322,12 +352,71 @@ def update_blog_index():
 
     <div class="container">
         <h1>Latest Pet Articles & Gift Guides</h1>
+        
+        <!-- Pretraga -->
+        <div class="search-wrapper">
+            <div class="search-box">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="petSearchInput" class="search-input" placeholder="Search by animal (e.g. Pitbull, Cat)...">
+            </div>
+        </div>
+
+        <div id="noResultsMessage" class="no-results">
+            No articles found for that search. Try another animal! 🐾
+        </div>
+
         {posts_list_html}
     </div>
+
+    <!-- Back to Top -->
+    <button id="backToTop" title="Go to top">↑</button>
 
     <footer>
         <p>&copy; 2026 Petzzz Studio. | <a href="privacy.html">Privacy Policy</a></p>
     </footer>
+
+    <script>
+        // Pretraga
+        document.getElementById('petSearchInput').addEventListener('keyup', function() {{
+            let filter = this.value.toLowerCase().trim();
+            let cards = document.querySelectorAll('.article-card'); 
+            let visibleCount = 0;
+
+            cards.forEach(function(card) {{
+                let title = card.querySelector('h3').innerText.toLowerCase();
+                if (title.includes(filter)) {{
+                    card.style.display = "block";
+                    visibleCount++;
+                }} else {{
+                    card.style.display = "none";
+                }}
+            }});
+
+            let noResults = document.getElementById('noResultsMessage');
+            if (visibleCount === 0) {{
+                noResults.style.display = "block";
+            }} else {{
+                noResults.style.display = "none";
+            }}
+        }});
+
+        // Back to Top strelica
+        let mybutton = document.getElementById("backToTop");
+        window.onscroll = function() {{
+            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {{
+                mybutton.style.display = "flex";
+            }} else {{
+                mybutton.style.display = "none";
+            }}
+        }};
+        
+        mybutton.onclick = function() {{
+            window.scrollTo({{ top: 0, behavior: 'smooth' }});
+        }};
+    </script>
 </body>
 </html>"""
 
