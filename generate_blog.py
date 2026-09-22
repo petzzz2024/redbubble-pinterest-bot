@@ -132,7 +132,7 @@ def get_related_posts_html(current_slug, max_posts=3):
             title = title_match.group(1) if title_match else "Petzzz Article"
             
             slug = os.path.basename(file).replace(".html", "")
-            clean_url = f"/blog/{slug}"
+            clean_url = f"/blog/{slug}.html"
             
             cards_html += f"""
             <div style="flex:1; min-width:220px; background:#fdfbfb; padding:15px; border-radius:8px; border:1px solid #eee; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
@@ -150,69 +150,52 @@ def get_related_posts_html(current_slug, max_posts=3):
     </div>
     """
 
-def update_sitemaps(post_url=None):
-    """Upravlja sa sitemap-main.xml i sitemap-blog.xml datotekama."""
-    today = datetime.date.today().strftime("%Y-%m-%d")
-    
-    # 1. Provera/Kreiranje sitemap-main.xml ako ne postoji
-    sitemap_main_file = "sitemap-main.xml"
-    if not os.path.exists(sitemap_main_file):
-        main_xml = [
-            '<?xml version="1.0" encoding="UTF-8"?>',
-            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-            '  <url>',
-            f'    <loc>https://{SITE_DOMAIN}/</loc>',
-            f'    <lastmod>{today}</lastmod>',
-            '    <priority>1.0</priority>',
-            '  </url>',
-            '  <url>',
-            f'    <loc>https://{SITE_DOMAIN}/privacy</loc>',
-            f'    <lastmod>{today}</lastmod>',
-            '    <priority>0.5</priority>',
-            '  </url>',
-            '</urlset>'
-        ]
-        with open(sitemap_main_file, "w", encoding="utf-8") as f:
-            f.write("\n".join(main_xml) + "\n")
-        print("sitemap-main.xml uspešno kreiran!")
-
-    # 2. Generisanje i ažuriranje sitemap-blog.xml sa čistim URL-ovima
-    sitemap_blog_file = "sitemap-blog.xml"
-    
-    urls = [f"https://{SITE_DOMAIN}/blog"]
-    
+def update_sitemap():
+    """Generiše jednu ujedinjenu sitemap.xml sa ispravnim .html ekstenzijama."""
+    today = datetime.datetime.now().strftime('%Y-%m-%d')
     blog_files = glob.glob("blog/*.html")
-    for file_path in blog_files:
-        filename = os.path.basename(file_path)
-        if filename == "index.html":
-            continue
-        slug = filename.replace(".html", "")
-        urls.append(f"https://{SITE_DOMAIN}/blog/{slug}")
-        
-    if post_url and post_url not in urls:
-        urls.append(post_url)
-        
-    urls = list(dict.fromkeys(urls))
     
-    xml_lines = [
-        '<?xml version="1.0" encoding="UTF-8"?>',
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-    ]
+    xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Glavne Stranice -->
+  <url>
+    <loc>https://{SITE_DOMAIN}/</loc>
+    <lastmod>{today}</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://{SITE_DOMAIN}/blog.html</loc>
+    <lastmod>{today}</lastmod>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://{SITE_DOMAIN}/privacy.html</loc>
+    <lastmod>{today}</lastmod>
+    <priority>0.3</priority>
+  </url>
+"""
+
+    # Dodavanje svih blog članaka sa .html ekstenzijom
+    for file in blog_files:
+        clean_path = file.replace("\\", "/") # Osiguranje formata 'blog/clanak.html' na svim OS
+        xml_content += f"""  <url>
+    <loc>https://{SITE_DOMAIN}/{clean_path}</loc>
+    <lastmod>{today}</lastmod>
+    <priority>0.8</priority>
+  </url>\n"""
+
+    xml_content += "</urlset>"
+
+    # Zapisujemo i prebrisujemo u jednu sitemap.xml
+    with open("sitemap.xml", "w", encoding="utf-8") as f:
+        f.write(xml_content)
     
-    for url in urls:
-        xml_lines.append("  <url>")
-        xml_lines.append(f"    <loc>{url}</loc>")
-        xml_lines.append(f"    <lastmod>{today}</lastmod>")
-        if url.endswith("/blog"):
-            xml_lines.append("    <priority>0.9</priority>")
-        xml_lines.append("  </url>")
-        
-    xml_lines.append("</urlset>")
-    
-    with open(sitemap_blog_file, "w", encoding="utf-8") as f:
-        f.write("\n".join(xml_lines) + "\n")
-        
-    print("sitemap-blog.xml uspešno ažuriran sa čistim URL-ovima!")
+    # Brišemo stare fajlove ako postoje (da GitHub repo ostane čist)
+    for old_sitemap in ["sitemap-main.xml", "sitemap-blog.xml"]:
+        if os.path.exists(old_sitemap):
+            os.remove(old_sitemap)
+            
+    print("Jedinstvena sitemap.xml uspešno izgenerisana i stare obrisane!")
 
 def update_rss(title, post_url, content_summary):
     rss_file = "rss.xml"
@@ -291,7 +274,7 @@ def update_blog_index():
                 dt_obj = datetime.datetime(2020, 1, 1)
                 
             slug = filename.replace(".html", "")
-            clean_url = f"/blog/{slug}"
+            clean_url = f"/blog/{slug}.html" # Dodata .html ekstenzija
             
             articles_data.append({
                 'clean_url': clean_url,
@@ -411,7 +394,7 @@ def update_blog_index():
     <button id="backToTop" title="Go to top">↑</button>
 
     <footer>
-        <p>&copy; 2026 Petzzz Studio. | <a href="/privacy">Privacy Policy</a></p>
+        <p>&copy; 2026 Petzzz Studio. | <a href="/privacy.html">Privacy Policy</a></p>
     </footer>
 
     <script>
@@ -536,7 +519,6 @@ def generate_post():
     if not raw_article_content:
         raise Exception("Nijedan Gemini 3 model nije uspeo da vrati tekst. Proverite greške u logu iznad.")
 
-    # Automatsko dodavanje prodajnih hiperlinkova na ključne fraze u tekstu
     article_content = auto_link_keywords(raw_article_content, animal, category['product_link'])
     related_posts_html = get_related_posts_html(slug)
 
@@ -603,7 +585,7 @@ def generate_post():
     </header>
 
     <div class="container">
-        <a href="/blog" class="back-btn">← Back to All Articles</a>
+        <a href="/blog.html" class="back-btn">← Back to All Articles</a>
         <h1>{topic}</h1>
         <p><em>Published on {datetime.date.today().strftime('%B %d, %Y')} by Petzzz Studio Team</em></p>
         {tag_badges}
@@ -614,7 +596,7 @@ def generate_post():
     </div>
 
     <footer>
-        <p>&copy; 2026 Petzzz Studio. | <a href="/privacy">Privacy Policy</a></p>
+        <p>&copy; 2026 Petzzz Studio. | <a href="/privacy.html">Privacy Policy</a></p>
     </footer>
 </body>
 </html>"""
@@ -628,9 +610,9 @@ def generate_post():
     print(f"Blog post uspešno kreiran sa internal linkovima: {file_path}")
     
     update_blog_index()
+    update_sitemap() # Pozivamo novu funkciju
 
-    clean_post_url = f"https://{SITE_DOMAIN}/blog/{slug}"
-    update_sitemaps(clean_post_url)
+    clean_post_url = f"https://{SITE_DOMAIN}/blog/{slug}.html"
     update_rss(topic, clean_post_url, article_content)
     notify_indexnow(clean_post_url)
 
