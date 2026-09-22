@@ -398,7 +398,7 @@ def update_blog_index():
     </div>
 
     <!-- Back to Top -->
-    <button id="backToTop" title="Go to top">Top ↑</button>
+    <button id="backToTop" title="Go to top">↑</button>
 
     <footer>
         <p>&copy; 2026 Petzzz Studio. | <a href="/privacy.html">Privacy Policy</a></p>
