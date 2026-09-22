@@ -26,33 +26,40 @@ INDEXNOW_KEY = "c8f1e2d3a4b5c6d7e8f9a0b1c2d3e4f5"
 
 # Lista životinja koje bot pokriva
 ANIMALS_DATA = [
-    # Psi
+    # Psi i divlje vrste pasa
     "corgi", "bernese mountain dog", "golden retriever", "border collie", 
     "english bulldog", "basset hound", "belgian malinois", "shiba inu", 
     "red heeler", "pug", "norwegian lundehund", "chihuahua", 
-    "samoyed", "pitbull", "husky", "dachshund",
+    "samoyed", "pitbull", "husky", "dachshund", "afghan hound", 
+    "newfoundland dog", "cavalier king charles spaniel", "doberman", 
+    "spotted hyena",
 
     # Mačke i divlje mačke
     "cat", "black cat", "maine coon", "sphynx cat", 
-    "pallas cat", "snow leopard", "jaguarundi",
+    "pallas cat", "manul", "snow leopard", "jaguarundi",
 
     # Ptice
     "canada goose", "crow", "great potoo", "cassowary", 
-    "green cheeked conure", "pigeon", "silkie chicken", "duck",
+    "green cheeked conure", "pigeon", "silkie chicken", "duck", 
+    "emu", "bearded vulture",
 
-    # Gmizavci i vodozemci
-    "turtle", "blue pit viper", "hognose snake", "corn snake", 
+    # Gmizavci (Kornjače, zmije, gušteri)
+    "turtle", "russian tortoise", "african sulcata tortoise", 
+    "blue pit viper", "hognose snake", "corn snake", 
     "argentine tegu", "uromastyx", "leachianus gecko", "crested gecko", 
-    "poison dart frog", "pacman frog",
+    "red-eyed crocodile skink",
 
-    # Morske i vodene životinje
+    # Vodozemci (Žabe)
+    "poison dart frog", "pacman frog", "black rain frog", "dumpy tree frog",
+
+    # Morske, vodene životinje i beskičmenjaci
     "sea otter", "harbor seal", "shark", "vampire crab", "sea sheep nudibranch",
+    "blobfish", "jumping spider", "weevil",
 
-    # Ostali sisari, insekti i paučnjaci
+    # Ostali sisari i egzotične vrste
     "capybara", "wombat", "honey badger", "beaver", "platypus", 
-    "maned wolf", "stoat", "tibetan fox", "binturong", "jumping spider"
+    "maned wolf", "stoat", "tibetan fox", "binturong", "hedgehog"
 ]
-
 def slugify(text):
     text = text.lower()
     text = re.sub(r'[^a-z0-9\s-]', '', text)
