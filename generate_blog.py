@@ -118,7 +118,7 @@ def auto_link_keywords(content, animal, store_url):
 def get_related_posts_html(current_slug, max_posts=3):
     """Generiše blok sa preporučenim srodnim tekstovima za unutrašnje SEO povezivanje."""
     html_files = glob.glob("blog/*.html")
-    other_files = [f for f in html_files if current_slug not in f]
+    other_files = [f for f in html_files if current_slug not in f and not f.endswith("index.html")]
     if not other_files:
         return ""
     
@@ -130,11 +130,14 @@ def get_related_posts_html(current_slug, max_posts=3):
             content = f.read()
             title_match = re.search(r'<h1>(.*?)</h1>', content)
             title = title_match.group(1) if title_match else "Petzzz Article"
-            clean_file_path = file.replace("\\", "/")
+            
+            slug = os.path.basename(file).replace(".html", "")
+            clean_url = f"/blog/{slug}"
+            
             cards_html += f"""
             <div style="flex:1; min-width:220px; background:#fdfbfb; padding:15px; border-radius:8px; border:1px solid #eee; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-                <h4 style="margin:0 0 10px 0; font-size:1.0em; line-height:1.3;"><a href="../{clean_file_path}" style="color:#1c1328; text-decoration:none;">{title}</a></h4>
-                <a href="../{clean_file_path}" style="color:#7b2cbf; font-size:0.85em; font-weight:600; text-decoration:none;">Read Article ➔</a>
+                <h4 style="margin:0 0 10px 0; font-size:1.0em; line-height:1.3;"><a href="{clean_url}" style="color:#1c1328; text-decoration:none;">{title}</a></h4>
+                <a href="{clean_url}" style="color:#7b2cbf; font-size:0.85em; font-weight:600; text-decoration:none;">Read Article ➔</a>
             </div>
             """
     
@@ -147,19 +150,44 @@ def get_related_posts_html(current_slug, max_posts=3):
     </div>
     """
 
-def update_sitemap(post_url=None):
-    sitemap_file = "sitemap.xml"
+def update_sitemaps(post_url=None):
+    """Upravlja sa sitemap-main.xml i sitemap-blog.xml datotekama."""
     today = datetime.date.today().strftime("%Y-%m-%d")
     
-    urls = [
-        f"https://{SITE_DOMAIN}/index.html",
-        f"https://{SITE_DOMAIN}/blog.html"
-    ]
+    # 1. Provera/Kreiranje sitemap-main.xml ako ne postoji
+    sitemap_main_file = "sitemap-main.xml"
+    if not os.path.exists(sitemap_main_file):
+        main_xml = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+            '  <url>',
+            f'    <loc>https://{SITE_DOMAIN}/</loc>',
+            f'    <lastmod>{today}</lastmod>',
+            '    <priority>1.0</priority>',
+            '  </url>',
+            '  <url>',
+            f'    <loc>https://{SITE_DOMAIN}/privacy</loc>',
+            f'    <lastmod>{today}</lastmod>',
+            '    <priority>0.5</priority>',
+            '  </url>',
+            '</urlset>'
+        ]
+        with open(sitemap_main_file, "w", encoding="utf-8") as f:
+            f.write("\n".join(main_xml) + "\n")
+        print("sitemap-main.xml uspešno kreiran!")
+
+    # 2. Generisanje i ažuriranje sitemap-blog.xml sa čistim URL-ovima
+    sitemap_blog_file = "sitemap-blog.xml"
+    
+    urls = [f"https://{SITE_DOMAIN}/blog"]
     
     blog_files = glob.glob("blog/*.html")
     for file_path in blog_files:
-        clean_path = file_path.replace("\\", "/")
-        urls.append(f"https://{SITE_DOMAIN}/{clean_path}")
+        filename = os.path.basename(file_path)
+        if filename == "index.html":
+            continue
+        slug = filename.replace(".html", "")
+        urls.append(f"https://{SITE_DOMAIN}/blog/{slug}")
         
     if post_url and post_url not in urls:
         urls.append(post_url)
@@ -175,14 +203,16 @@ def update_sitemap(post_url=None):
         xml_lines.append("  <url>")
         xml_lines.append(f"    <loc>{url}</loc>")
         xml_lines.append(f"    <lastmod>{today}</lastmod>")
+        if url.endswith("/blog"):
+            xml_lines.append("    <priority>0.9</priority>")
         xml_lines.append("  </url>")
         
     xml_lines.append("</urlset>")
     
-    with open(sitemap_file, "w", encoding="utf-8") as f:
+    with open(sitemap_blog_file, "w", encoding="utf-8") as f:
         f.write("\n".join(xml_lines) + "\n")
         
-    print("Sitemap.xml uspešno generisan sa čistim XML zaglavljem i svim linkovima!")
+    print("sitemap-blog.xml uspešno ažuriran sa čistim URL-ovima!")
 
 def update_rss(title, post_url, content_summary):
     rss_file = "rss.xml"
@@ -239,6 +269,10 @@ def update_blog_index():
     articles_data = []
     
     for file in html_files:
+        filename = os.path.basename(file)
+        if filename == "index.html":
+            continue
+            
         with open(file, 'r', encoding='utf-8') as f:
             content = f.read()
             
@@ -256,9 +290,11 @@ def update_blog_index():
                 date_str = "Unknown Date"
                 dt_obj = datetime.datetime(2020, 1, 1)
                 
-            clean_path = file.replace("\\", "/")
+            slug = filename.replace(".html", "")
+            clean_url = f"/blog/{slug}"
+            
             articles_data.append({
-                'file': clean_path,
+                'clean_url': clean_url,
                 'title': title,
                 'date_str': date_str,
                 'dt_obj': dt_obj
@@ -270,9 +306,9 @@ def update_blog_index():
     for article in articles_data:
         posts_list_html += f"""
         <div class="article-card">
-            <h3 style="margin-top:0; font-size:1.4em;"><a href="{article['file']}" style="text-decoration:none; color:#1c1328;">{article['title']}</a></h3>
+            <h3 style="margin-top:0; font-size:1.4em;"><a href="{article['clean_url']}" style="text-decoration:none; color:#1c1328;">{article['title']}</a></h3>
             <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on {article['date_str']}</p>
-            <a href="{article['file']}" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
+            <a href="{article['clean_url']}" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
         </div>
         """
 
@@ -339,12 +375,12 @@ def update_blog_index():
 <body>
     <header>
         <div class="nav-container">
-            <a href="index.html" class="logo-box">
+            <a href="/" class="logo-box">
                 <img src="Logo 2.png" alt="Petzzz Logo" class="logo-img">
                 <span>Petzzz Studio</span>
             </a>
             <div class="nav-links">
-                <a href="index.html">Home Store</a>
+                <a href="/">Home Store</a>
                 <a href="https://petzzz.redbubble.com" target="_blank">Redbubble Shop</a>
             </div>
         </div>
@@ -375,7 +411,7 @@ def update_blog_index():
     <button id="backToTop" title="Go to top">↑</button>
 
     <footer>
-        <p>&copy; 2026 Petzzz Studio. | <a href="privacy.html">Privacy Policy</a></p>
+        <p>&copy; 2026 Petzzz Studio. | <a href="/privacy">Privacy Policy</a></p>
     </footer>
 
     <script>
@@ -558,7 +594,7 @@ def generate_post():
 <body>
     <header>
         <div class="nav-container">
-            <a href="../index.html" class="logo-box">
+            <a href="/" class="logo-box">
                 <img src="../Logo 2.png" alt="Petzzz Logo" class="logo-img">
                 <span>Petzzz Studio</span>
             </a>
@@ -567,7 +603,7 @@ def generate_post():
     </header>
 
     <div class="container">
-        <a href="../blog.html" class="back-btn">← Back to All Articles</a>
+        <a href="/blog" class="back-btn">← Back to All Articles</a>
         <h1>{topic}</h1>
         <p><em>Published on {datetime.date.today().strftime('%B %d, %Y')} by Petzzz Studio Team</em></p>
         {tag_badges}
@@ -578,7 +614,7 @@ def generate_post():
     </div>
 
     <footer>
-        <p>&copy; 2026 Petzzz Studio. | <a href="../privacy.html">Privacy Policy</a></p>
+        <p>&copy; 2026 Petzzz Studio. | <a href="/privacy">Privacy Policy</a></p>
     </footer>
 </body>
 </html>"""
@@ -593,10 +629,10 @@ def generate_post():
     
     update_blog_index()
 
-    full_post_url = f"https://{SITE_DOMAIN}/{file_path}"
-    update_sitemap(full_post_url)
-    update_rss(topic, full_post_url, article_content)
-    notify_indexnow(full_post_url)
+    clean_post_url = f"https://{SITE_DOMAIN}/blog/{slug}"
+    update_sitemaps(clean_post_url)
+    update_rss(topic, clean_post_url, article_content)
+    notify_indexnow(clean_post_url)
 
 if __name__ == "__main__":
     generate_post()
