@@ -21,7 +21,7 @@ GEMINI_MODELS = [
     'gemini-3.1-flash-lite'
 ]
 
-SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "petzzz2024.github.io/redbubble-pinterest-bot")
+SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "petzzz.world")
 INDEXNOW_KEY = "c8f1e2d3a4b5c6d7e8f9a0b1c2d3e4f5"
 
 # Lista životinja koje bot pokriva
