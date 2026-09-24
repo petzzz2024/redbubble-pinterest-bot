@@ -4,6 +4,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from google import genai
+from google.genai import types
 
 GEMINI_KEY = os.environ.get('GEMINI_API_KEY', '').strip()
 EMAIL_SENDER = os.environ.get('EMAIL_SENDER', '').strip()
@@ -11,28 +12,74 @@ EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD', '').strip()
 EMAIL_RECEIVER = os.environ.get('EMAIL_RECEIVER', '').strip()
 
 def get_trending_animals(client):
-    """Pita AI da sam istraži i predloži 5 najprofitabilnijih životinja za današnji dan."""
-    prompt = """
-    You are an expert Print-on-Demand market researcher.
-    Identify 5 highly profitable, trending, or high-demand animal/pet niches for Redbubble right now.
-    Include a mix of specific pet breeds (like 'Cavalier King Charles', 'Sphynx Cat') and internet-popular/meme animals (like 'Capybara', 'Opossum', 'Highland Cow', 'Raccoon', 'Red Panda', 'Axolotl', 'Goose').
-    Return ONLY a single line with a comma-separated list of exactly 5 animals. Do not include any other text, bullet points, or explanations.
+    """Pita AI da sam istraži i predloži 5 najprofitabilnijih životinja za današnji dan sa dinamičkom rotacijom tema."""
+    
+    # Lista različitih kategorija koja osigurava raznovrsnost bez ikakvih zabrana
+    categories = [
+        "rare or underrated dog and cat breeds",
+        "funny farm animals, ducks, and poultry",
+        "viral internet meme wild animals",
+        "cute exotic pets, reptiles, amphibians, and aquatic creatures",
+        "popular woodland and forest animals",
+        "small rodents, ferrets, and cute mammals"
+    ]
+    
+    # Nasumično biramo 2 fokusa u Pythonu za današnji dan
+    today_focus = random.sample(categories, 2)
+    
+    prompt = f"""
+    You are an elite Print-on-Demand (POD) market analyst, SEO strategist, and global e-commerce trend hunter.
+    
+    Your task is to identify 5 highly profitable, trending, and commercially viable animal or pet niches right now.
+    
+    Base your market research on aggregated signals from across the entire internet, including:
+    - Google Search & Google Trends (high query velocity and search volume)
+    - Pinterest Trends & Visual Boards (high pinning activity, aesthetic demand, and gift inspiration)
+    - Marketplace Demand (Etsy, Redbubble, and Amazon POD buyer intent and low-to-medium saturation opportunities)
+    - Social Media Viral Culture (TikTok, Instagram, and Reddit pet/meme communities)
+
+    TODAY'S SPECIAL FOCUS DOMAINS:
+    To ensure diverse results, you MUST source your 5 choices primarily from a mix of these two focus areas today:
+    1. '{today_focus[0]}'
+    2. '{today_focus[1]}'
+
+    SELECTION CRITERIA:
+    - High Buyer Intent: Choose animals with passionate owner fanbases, emotional connections, or high humor/gift value.
+    - Trend Freshness: Favor specific breeds, emerging viral animals, or unique species over generic catch-all terms.
+    - Design Potential: The niche must translate easily into graphic t-shirts, stickers, mugs, and phone cases.
+
+    OUTPUT FORMAT REQUIREMENT:
+    Return ONLY a single line containing a comma-separated list of exactly 5 animals/niches.
+    Do NOT include any introductory or concluding text, bullet points, numbers, markdown styling, or explanations.
     """
+    
+    # Podešavanje veće kreativnosti (temperature = 1.0)
+    config = types.GenerateContentConfig(
+        temperature=1.0
+    )
     
     models_to_try = ['gemini-3.7-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview']
     for model_name in models_to_try:
         try:
-            res = client.models.generate_content(model=model_name, contents=prompt)
+            res = client.models.generate_content(
+                model=model_name, 
+                contents=prompt,
+                config=config
+            )
             raw_text = res.text.strip().replace('\n', '')
             animals = [a.strip().strip('.') for a in raw_text.split(',') if a.strip()]
             if len(animals) >= 5:
-                print(f"🤖 AI trendovi uspešno izvučeni pomoću modela: {model_name}")
+                print(f"🤖 AI trendovi uspešno izvučeni pomoću modela: {model_name} (Fokus: {today_focus})")
                 return animals[:5]
         except Exception as e:
             print(f"Model {model_name} nedostupan za pretragu trendova, pokušavam sledeći...")
             
-    print("Svi AI modeli nedostupni. Koristim rezervnu profitabilnu listu.")
-    backup_list = ["Capybara", "Opossum", "Raccoon", "Highland Cow", "Red Panda", "Axolotl", "Silly Goose", "Frog", "Corgi", "Black Cat"]
+    print("Svi AI modeli nedostupni. Koristim proširenu rezervnu listu.")
+    backup_list = [
+        "Capybara", "Opossum", "Raccoon", "Highland Cow", "Red Panda", "Axolotl", 
+        "Silly Goose", "Frog", "Corgi", "Black Cat", "Ferret", "Otter", "Capuchin Monkey",
+        "Chinchilla", "Hedgehog", "Dachshund", "Shiba Inu", "Bearded Dragon", "Duck", "Alpaca"
+    ]
     return random.sample(backup_list, 5)
 
 def generate_mega_report(client, selected_animals):
