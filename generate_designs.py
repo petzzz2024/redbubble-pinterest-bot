@@ -49,7 +49,9 @@ def generate_and_process_image(image_prompt, title):
     if not FAL_KEY:
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
+    # Ispravljen čist link bez markdown zagrada
     url = "[https://fal.run/fal-ai/recraft-v3](https://fal.run/fal-ai/recraft-v3)"
+    
     headers = {
         "Authorization": f"Key {FAL_KEY}",
         "Content-Type": "application/json"
@@ -89,38 +91,53 @@ def generate_and_process_image(image_prompt, title):
     
     return filepath
 
-def send_email_with_limit(text_path, image_paths):
+def send_email_via_cloud(text_path, image_paths):
     if not EMAIL_SENDER or not EMAIL_PASSWORD:
         print("Email podaci nisu uneseni u GitHub Secrets.")
         return
 
     zip_filename = "redbubble_designs.zip"
-    MAX_RAW_SIZE = 18 * 1024 * 1024 
     
-    added_images = 0
-    current_size = os.path.getsize(text_path)
-
+    print("Pakujem sve fajlove u ZIP...")
     with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
         zipf.write(text_path, arcname=os.path.basename(text_path))
-        
         for img_path in image_paths:
-            img_size = os.path.getsize(img_path)
-            if current_size + img_size > MAX_RAW_SIZE:
-                print(f"Dostignut limit za email (do 25MB). Spakovano {added_images} slika.")
-                break
-            
             zipf.write(img_path, arcname=os.path.basename(img_path))
-            current_size += img_size
-            added_images += 1
 
+    print("Šaljem ZIP na File.io cloud...")
+    try:
+        with open(zip_filename, 'rb') as f:
+            response = requests.post('[https://file.io](https://file.io)', files={'file': f})
+            response_data = response.json()
+            
+        if response_data.get('success'):
+            download_link = response_data['link']
+            print(f"Fajl uspešno uploadovan! Link: {download_link}")
+        else:
+            raise Exception("File.io upload nije uspeo.")
+    except Exception as e:
+        print(f"Greška pri uploadu: {e}")
+        return
+
+    # Slanje Emaila samo sa linkom
+    print("Šaljem email sa linkom...")
     msg = EmailMessage()
-    msg['Subject'] = f'Tvoji Redbubble dizajni (Spakovano: {added_images})'
+    msg['Subject'] = 'Tvoji Redbubble dizajni su spremni!'
     msg['From'] = EMAIL_SENDER
     msg['To'] = EMAIL_RECEIVER
-    msg.set_content(f"U privitku se nalazi Notepad fajl s podacima i {added_images} slika (2000x2000 do ivica).\nSlike koje nisu stale zbog limita od 25MB preuzmi sa GitHuba pod 'Artifacts'.")
+    
+    email_tekst = f"""Pozdrav,
 
-    with open(zip_filename, 'rb') as f:
-        msg.add_attachment(f.read(), maintype='application', subtype='zip', filename=zip_filename)
+Tvoji Redbubble dizajni (njih 25 na 2000x2000 px do ivica, plus tekstualni fajl) su uspešno generisani i spakovani u jedan ZIP.
+
+Možeš ih preuzeti klikom na ovaj link:
+{download_link}
+
+Napomena: Zbog tvoje privatnosti, File.io dozvoljava samo JEDNO preuzimanje. Kada klikneš na link i skineš fajl, on će biti automatski obrisan sa servera.
+
+Srećan rad!"""
+    
+    msg.set_content(email_tekst)
 
     try:
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
@@ -167,4 +184,5 @@ if __name__ == "__main__":
                 f.write(f"Slika (Ime fajla): {os.path.basename(item.get('file_path', ''))}\n")
                 f.write("\n")
         
-        send_email_with_limit(txt_path, generated_images)
+        # Ovdje se sada koristi File.io funkcija
+        send_email_via_cloud(txt_path, generated_images)
