@@ -21,15 +21,15 @@ EMAIL_RECEIVER = os.getenv("EMAIL_RECEIVER")
 genai.configure(api_key=GEMINI_API_KEY)
 
 def get_design_data():
-    model = genai.GenerativeModel('model = genai.GenerativeModel('gemini-3.1-flash-lite')
+    model = genai.GenerativeModel('gemini-3.1-flash-lite')
     
     prompt = """
-    Ti si stručnjak za Redbubble SEO i dizajn. Smisli 1 jedinstvenu ideju za dizajn majice/naljepnice vezanu za životinje.
+    Ti si stručnjak za Redbubble SEO i dizajn. Istraži interenet sa životinjskim nišama koje ljudi pretražuju i smisli 10 jedinstvenih ideju za dizajn majice/stikera vezanu za životinje.
     Vrati ISKLJUČIVO validan JSON format, bez ikakvog dodatnog teksta ili markdown oznaka, u ovom formatu:
     {
       "title": "Kratak SEO naslov na engleskom (max 5-6 riječi)",
       "description": "SEO opis do 150 znakova na engleskom s ključnim riječima",
-      "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag MORA biti točan naziv te životinje na engleskom)",
+      "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag MORA biti točan naziv te životinje na engleskom). Svi tagovi trebaju da budu na engleskom",
       "image_prompt": "Prompt za sliku na engleskom. OBAVEZNO uključi ove fraze: circular badge layout, emblem design, isolated on solid white background, vector style sticker design of [opis životinje], text wrapping inside the circular frame reading '[Tekst]', high contrast, clean lines, flat colors."
     }
     """
