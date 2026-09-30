@@ -43,7 +43,7 @@ def get_batch_of_designs(batch_index, used_animals):
         "title": "Kratak SEO naslov na engleskom (max 5-6 riječi)",
         "description": "SEO opis do 150 znakova na engleskom",
         "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je naziv životinje)",
-        "image_prompt": "Flat 2D vector graphic design of [opis životinje i situacije]. PERFECTLY CLOSED circular badge emblem. Unbroken thick circular border. ALL elements and text must be strictly contained INSIDE the circular frame. Nothing breaking out. Text reads '[Tekst]'. Solid white background. STRICTLY NO MOCKUPS, NO physical stickers, NO 3D."
+        "image_prompt": "Flat 2D vector graphic design of [opis životinje i situacije]. PERFECTLY CLOSED circular badge emblem. Unbroken thick circular border. ALL elements and text must be strictly contained INSIDE the circular frame. Nothing breaking out. Text reads '[Tekst]'. Solid white background. STRICTLY NO MOCKUPS, NO physical stickers, NO 3D. NO shadows outside of the circle."
       }}
     ]
     """
