@@ -30,7 +30,7 @@ def get_design_data():
       "title": "Kratak SEO naslov na engleskom (max 5-6 riječi)",
       "description": "SEO opis do 150 znakova na engleskom s ključnim riječima",
       "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag MORA biti točan naziv te životinje na engleskom). Svi tagovi trebaju da budu na engleskom",
-      "image_prompt": "Prompt za sliku na engleskom. OBAVEZNO uključi ove fraze: circular badge layout, emblem design, isolated on solid white background, vector style sticker design of [opis životinje], text wrapping inside the circular frame reading '[Tekst]', high contrast, clean lines, flat colors."
+      "image_prompt": "Prompt za sliku na engleskom. OBAVEZNO uključi tačno ove fraze na početku prompta: Masterpiece, highly detailed, vibrant colors, professional t-shirt vector design, crisp sharp edges, bold black outlines, 2D flat shading, Adobe Illustrator style, circular badge layout, emblem design, isolated on solid white background, vector style sticker of [opis životinje], text wrapping inside the circular frame reading '[Tekst]'."
     }
     """
     response = model.generate_content(prompt)
