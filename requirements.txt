@@ -2,6 +2,7 @@ requests
 feedparser
 beautifulsoup4
 google-genai
+google-generativeai
 pillow
 onnxruntime
 rembg
