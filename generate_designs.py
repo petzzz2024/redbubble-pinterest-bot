@@ -43,7 +43,7 @@ def get_batch_of_designs(batch_index, used_animals):
         "title": "Kratak SEO naslov na engleskom (max 5-6 riječi)",
         "description": "SEO opis do 150 znakova na engleskom",
         "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je naziv životinje)",
-        "image_prompt": "Flat 2D vector graphic design of [opis životinje i situacije]. PERFECTLY CLOSED circular badge emblem. Unbroken thick circular border. ALL elements and text must be strictly contained INSIDE the circular frame. Nothing breaking out. Text reads '[Tekst]'. Solid white background. STRICTLY NO MOCKUPS, NO physical stickers, NO 3D. NO shadows outside of the circle."
+        "image_prompt": "Flat 2D vector graphic design of [opis životinje i situacije]. PERFECTLY CLOSED circular badge emblem. Unbroken thick circular border. ALL elements and text must be strictly contained INSIDE the circular frame. Nothing breaking out. Text reads '[Tekst]'. Solid white background. STRICTLY NO MOCKUPS, NO physical stickers, NO 3D."
       }}
     ]
     """
@@ -76,22 +76,19 @@ def generate_and_process_image(image_prompt, title, animal_name):
     img_response = requests.get(image_url)
     input_image = Image.open(BytesIO(img_response.content))
     
-    # 1. Uklanjanje pozadine
-    output_transparent = remove(input_image)
+    # Korištenje post_process_mask=True sprječava brisanje unutrašnjosti dizajna
+    output_transparent = remove(input_image, post_process_mask=True)
     
-    # 2. Obrezivanje praznog prostora
     bbox = output_transparent.getbbox()
     if bbox:
         output_transparent = output_transparent.crop(bbox)
     
-    # 3. SILOVITO RASTEZANJE na 2000x2000 (Ovo garantuje da će slika popuniti ivice)
     target_size = 2000
     ratio = min(target_size / output_transparent.width, target_size / output_transparent.height)
     new_w = int(output_transparent.width * ratio)
     new_h = int(output_transparent.height * ratio)
     output_transparent = output_transparent.resize((new_w, new_h), Image.Resampling.LANCZOS)
     
-    # 4. Lijepljenje na centar platna
     canvas = Image.new("RGBA", (2000, 2000), (0, 0, 0, 0))
     x = (2000 - new_w) // 2
     y = (2000 - new_h) // 2
