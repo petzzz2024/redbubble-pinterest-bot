@@ -50,7 +50,7 @@ def generate_and_process_image(image_prompt, title):
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
     # Ispravljen čist link bez markdown zagrada
-    url = "[https://fal.run/fal-ai/recraft-v3](https://fal.run/fal-ai/recraft-v3)"
+    url = "https://fal.run/fal-ai/recraft-v3"
     
     headers = {
         "Authorization": f"Key {FAL_KEY}",
