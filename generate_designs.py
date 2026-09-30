@@ -30,7 +30,7 @@ def get_batch_of_designs(batch_index, used_animals):
     Ti si stručnjak za Redbubble SEO i dizajn. Ovo je serija broj {batch_index} od 5.
     
     ZADATAK:
-    1. Izaberi JEDNU specifičnu, istraži internet i pronađi nišu popularne životinju koja ima dosta pretraga ali malo konkurencije. {zabrana}
+    1. Izaberi JEDNU specifičnu, popularnu životinju. {zabrana}
     2. Osmisli 5 POTPUNO RAZLIČITIH ideja za dizajn vezanih ISKLJUČIVO za tu životinju.
     
     Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata u ovom formatu:
@@ -52,8 +52,8 @@ def generate_and_process_image(image_prompt, title):
     if not FAL_KEY:
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
-    # Prelazak na flux/dev za masovnu uštedu novca uz odličan tekst i vektore
-    url = "https://fal.run/fal-ai/flux/dev"
+    # Prelazak na flux/schnell model radi drastično niže cijene
+    url = "https://fal.run/fal-ai/flux/schnell"
     
     headers = {
         "Authorization": f"Key {FAL_KEY}",
@@ -74,7 +74,13 @@ def generate_and_process_image(image_prompt, title):
     img_response = requests.get(image_url)
     input_image = Image.open(BytesIO(img_response.content))
     
+    # Skidanje pozadine
     output_transparent = remove(input_image)
+    
+    # KORAK ZA ODSECANJE NEVIDLJIVIH IVICA (CROP)
+    bbox = output_transparent.getbbox()
+    if bbox:
+        output_transparent = output_transparent.crop(bbox)
     
     canvas = Image.new("RGBA", (2000, 2000), (0, 0, 0, 0))
     output_transparent.thumbnail((2000, 2000), Image.Resampling.LANCZOS)
@@ -95,14 +101,13 @@ def send_chunked_emails(text_path, image_paths):
         print("Email podaci nedostaju.")
         return
 
-    MAX_ZIP_SIZE = 18 * 1024 * 1024 # 18 MB sigurnosni limit po emailu
+    MAX_ZIP_SIZE = 18 * 1024 * 1024 
     email_counter = 1
     current_zip_images = []
     current_size = os.path.getsize(text_path)
     
     all_chunks = []
 
-    # Deljenje slika u grupe (chunks) kako nijedan ZIP ne bi prešao 18MB
     for img in image_paths:
         img_size = os.path.getsize(img)
         if current_size + img_size > MAX_ZIP_SIZE:
@@ -118,7 +123,6 @@ def send_chunked_emails(text_path, image_paths):
 
     print(f"Slike su podeljene u {len(all_chunks)} email(ova) zbog veličine.")
 
-    # Slanje svakog ZIP fajla u posebnom emailu
     for chunk in all_chunks:
         zip_filename = f"redbubble_part_{email_counter}.zip"
         with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -155,7 +159,6 @@ if __name__ == "__main__":
             print(f"Tražim životinju {i+1}/5 i generišem 5 njenih dizajna...")
             batch_data = get_batch_of_designs(i + 1, used_animals)
             
-            # Beležimo životinju kako je Gemini ne bi ponovo koristio
             current_animal = batch_data[0].get("animal_used", "unknown_animal")
             if current_animal not in used_animals:
                 used_animals.append(current_animal)
