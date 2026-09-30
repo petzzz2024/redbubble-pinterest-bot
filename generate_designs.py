@@ -22,12 +22,25 @@ genai.configure(api_key=GEMINI_API_KEY)
 def get_safe_name(text):
     return "".join(c for c in text if c.isalnum() or c in (' ', '_')).rstrip()
 
+def load_used_animals(filename="used_animals.txt"):
+    if os.path.exists(filename):
+        with open(filename, "r", encoding="utf-8") as f:
+            # Učitaj životinje, ukloni praznine i prebaci u mala slova radi lakše usporedbe
+            return [line.strip().lower() for line in f if line.strip()]
+    return []
+
+def save_used_animals(animals, filename="used_animals.txt"):
+    # Sačuvaj sve (stare i nove) životinje nazad u fajl
+    with open(filename, "w", encoding="utf-8") as f:
+        for animal in sorted(set(animals)):
+            f.write(f"{animal}\n")
+
 def get_batch_of_designs(batch_index, used_animals):
     model = genai.GenerativeModel('gemini-3.1-flash-lite')
     
     zabrana = ""
     if used_animals:
-        zabrana = f"STROGO ZABRANJENO: NE SMEŠ koristiti sledeće životinje: {', '.join(used_animals)}. Izaberi neku potpuno novu i drugačiju!"
+        zabrana = f"STROGO ZABRANJENO: NE SMEŠ koristiti sledeće životinje: {', '.join(used_animals)}. Izaberi neku potpuno novu i drugačiju životinju!"
 
     prompt = f"""
     Ti si stručnjak za Redbubble SEO i dizajn. Ovo je serija broj {batch_index} od 5.
@@ -39,7 +52,7 @@ def get_batch_of_designs(batch_index, used_animals):
     Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata u ovom formatu:
     [
       {{
-        "animal_used": "tačan naziv životinje na engleskom",
+        "animal_used": "tačan naziv životinje na engleskom (npr. 'Red Panda', 'Capybara')",
         "title": "Kratak SEO naslov na engleskom (max 5-6 riječi)",
         "description": "SEO opis do 150 znakova na engleskom",
         "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je naziv životinje)",
@@ -76,7 +89,6 @@ def generate_and_process_image(image_prompt, title, animal_name):
     img_response = requests.get(image_url)
     input_image = Image.open(BytesIO(img_response.content))
     
-    # Korištenje post_process_mask=True sprječava brisanje unutrašnjosti dizajna
     output_transparent = remove(input_image, post_process_mask=True)
     
     bbox = output_transparent.getbbox()
@@ -156,16 +168,18 @@ def send_chunked_emails(files_to_zip):
 
 if __name__ == "__main__":
     results = []
-    used_animals = []
+    # 1. Učitaj već iskorištene životinje iz tekstualnog fajla
+    used_animals = load_used_animals()
+    print(f"Pronađene već iskorištene životinje u arhivi: {len(used_animals)}")
     
     for i in range(5):
         try:
             print(f"Tražim životinju {i+1}/5 i generišem 5 njenih dizajna...")
             batch_data = get_batch_of_designs(i + 1, used_animals)
             
-            current_animal = batch_data[0].get("animal_used", "unknown_animal")
+            current_animal = batch_data[0].get("animal_used", "unknown_animal").lower()
             if current_animal not in used_animals:
-                used_animals.append(current_animal)
+                used_animals.append(current_animal) # Dodajemo novu životinju na listu
             
             for j, data in enumerate(batch_data):
                 design_num = (i * 5) + j + 1
@@ -183,6 +197,9 @@ if __name__ == "__main__":
             print(f"❌ Greška na seriji životinje {i+1}: {e}")
         
         time.sleep(10)
+
+    # 2. Sačuvaj ažuriranu listu nazad u fajl
+    save_used_animals(used_animals)
 
     if results:
         grouped_results = {}
