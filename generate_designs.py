@@ -11,7 +11,6 @@ from PIL import Image
 from rembg import remove
 import google.generativeai as genai
 
-# API ključevi i Email podaci
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 FAL_KEY = os.getenv("FAL_KEY")
 EMAIL_SENDER = os.getenv("EMAIL_SENDER")
@@ -20,25 +19,29 @@ EMAIL_RECEIVER = os.getenv("EMAIL_RECEIVER")
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-def get_batch_of_designs(batch_index):
+def get_batch_of_designs(batch_index, used_animals):
     model = genai.GenerativeModel('gemini-3.1-flash-lite')
     
+    zabrana = ""
+    if used_animals:
+        zabrana = f"STROGO ZABRANJENO: NE SMEŠ koristiti sledeće životinje: {', '.join(used_animals)}. Izaberi neku potpuno novu i drugačiju!"
+
     prompt = f"""
     Ti si stručnjak za Redbubble SEO i dizajn. Ovo je serija broj {batch_index} od 5.
     
     ZADATAK:
-    1. Izaberi JEDNU specifičnu, popularnu životinju (svaki put izaberi neku novu, zanimljivu životinjsku nišu).
-    2. Osmisli 5 POTPUNO RAZLIČITIH i jedinstvenih ideja za dizajn majice/stikera vezanih ISKLJUČIVO za tu istu životinju (npr. različite situacije, tekstovi, stilovi).
+    1. Izaberi JEDNU specifičnu, istraži internet i pronađi nišu popularne životinju koja ima dosta pretraga ali malo konkurencije. {zabrana}
+    2. Osmisli 5 POTPUNO RAZLIČITIH ideja za dizajn vezanih ISKLJUČIVO za tu životinju.
     
-    Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata, bez markdown oznaka (bez ```json), tačno u ovom formatu:
+    Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata u ovom formatu:
     [
       {{
+        "animal_used": "tačan naziv životinje na engleskom (ovo je važno da znamo koju si izabrao)",
         "title": "Kratak SEO naslov na engleskom (max 5-6 riječi)",
         "description": "SEO opis do 150 znakova na engleskom s ključnim riječima",
-        "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag MORA biti točan naziv te životinje na engleskom). Svi tagovi na engleskom.",
-        "image_prompt": "Vector illustration sticker of [opis životinje i specifične situacije], isolated on solid white background. Clean 2D flat style, bold black outlines, Adobe Illustrator style, highly detailed. Circular badge emblem design. Text wrapping perfectly inside the circular frame reading '[Tekst]'."
-      }},
-      ... (i tako još 4 objekta za istu životinju)
+        "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je naziv životinje)",
+        "image_prompt": "Flat 2D vector graphic design, digital artwork of [opis životinje i situacije]. Circular badge emblem. Text reads '[Tekst]'. Solid white background. STRICTLY NO MOCKUPS, NO physical physical stickers, NO hands, NO 3D, NO shadows."
+      }}
     ]
     """
     response = model.generate_content(prompt)
@@ -49,8 +52,8 @@ def generate_and_process_image(image_prompt, title):
     if not FAL_KEY:
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
-    # Ispravljen čist link bez markdown zagrada
-    url = "https://fal.run/fal-ai/recraft-v3"
+    # Prelazak na flux/dev za masovnu uštedu novca uz odličan tekst i vektore
+    url = "https://fal.run/fal-ai/flux/dev"
     
     headers = {
         "Authorization": f"Key {FAL_KEY}",
@@ -68,14 +71,11 @@ def generate_and_process_image(image_prompt, title):
     result = response.json()
     image_url = result["images"][0]["url"]
     
-    # Preuzimanje gotove slike
     img_response = requests.get(image_url)
     input_image = Image.open(BytesIO(img_response.content))
     
-    # Brisanje pozadine pomoću rembg
     output_transparent = remove(input_image)
     
-    # Postavljanje na 2000x2000 transparentno platno SKROZ DO IVICA
     canvas = Image.new("RGBA", (2000, 2000), (0, 0, 0, 0))
     output_transparent.thumbnail((2000, 2000), Image.Resampling.LANCZOS)
     
@@ -83,7 +83,6 @@ def generate_and_process_image(image_prompt, title):
     y = (2000 - output_transparent.height) // 2
     canvas.paste(output_transparent, (x, y), output_transparent)
     
-    # Čuvanje slike pod imenom iz naslova
     clean_filename = "".join(c for c in title if c.isalnum() or c in (' ', '_')).rstrip()
     os.makedirs("output_images", exist_ok=True)
     filepath = f"output_images/{clean_filename}.png"
@@ -91,70 +90,75 @@ def generate_and_process_image(image_prompt, title):
     
     return filepath
 
-def send_email_via_cloud(text_path, image_paths):
+def send_chunked_emails(text_path, image_paths):
     if not EMAIL_SENDER or not EMAIL_PASSWORD:
-        print("Email podaci nisu uneseni u GitHub Secrets.")
+        print("Email podaci nedostaju.")
         return
 
-    zip_filename = "redbubble_designs.zip"
+    MAX_ZIP_SIZE = 18 * 1024 * 1024 # 18 MB sigurnosni limit po emailu
+    email_counter = 1
+    current_zip_images = []
+    current_size = os.path.getsize(text_path)
     
-    print("Pakujem sve fajlove u ZIP...")
-    with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        zipf.write(text_path, arcname=os.path.basename(text_path))
-        for img_path in image_paths:
-            zipf.write(img_path, arcname=os.path.basename(img_path))
+    all_chunks = []
 
-    print("Šaljem ZIP na File.io cloud...")
-    try:
-        with open(zip_filename, 'rb') as f:
-            response = requests.post('[https://file.io](https://file.io)', files={'file': f})
-            response_data = response.json()
-            
-        if response_data.get('success'):
-            download_link = response_data['link']
-            print(f"Fajl uspešno uploadovan! Link: {download_link}")
+    # Deljenje slika u grupe (chunks) kako nijedan ZIP ne bi prešao 18MB
+    for img in image_paths:
+        img_size = os.path.getsize(img)
+        if current_size + img_size > MAX_ZIP_SIZE:
+            all_chunks.append(current_zip_images)
+            current_zip_images = [img]
+            current_size = os.path.getsize(text_path) + img_size
         else:
-            raise Exception("File.io upload nije uspeo.")
-    except Exception as e:
-        print(f"Greška pri uploadu: {e}")
-        return
+            current_zip_images.append(img)
+            current_size += img_size
+            
+    if current_zip_images:
+        all_chunks.append(current_zip_images)
 
-    # Slanje Emaila samo sa linkom
-    print("Šaljem email sa linkom...")
-    msg = EmailMessage()
-    msg['Subject'] = 'Tvoji Redbubble dizajni su spremni!'
-    msg['From'] = EMAIL_SENDER
-    msg['To'] = EMAIL_RECEIVER
-    
-    email_tekst = f"""Pozdrav,
+    print(f"Slike su podeljene u {len(all_chunks)} email(ova) zbog veličine.")
 
-Tvoji Redbubble dizajni (njih 25 na 2000x2000 px do ivica, plus tekstualni fajl) su uspešno generisani i spakovani u jedan ZIP.
+    # Slanje svakog ZIP fajla u posebnom emailu
+    for chunk in all_chunks:
+        zip_filename = f"redbubble_part_{email_counter}.zip"
+        with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            zipf.write(text_path, arcname=os.path.basename(text_path))
+            for img in chunk:
+                zipf.write(img, arcname=os.path.basename(img))
+                
+        msg = EmailMessage()
+        msg['Subject'] = f'Tvoji Redbubble Dizajni - Deo {email_counter}/{len(all_chunks)}'
+        msg['From'] = EMAIL_SENDER
+        msg['To'] = EMAIL_RECEIVER
+        msg.set_content(f"Deo {email_counter} sa {len(chunk)} slika i Notepad podacima je u prilogu.")
 
-Možeš ih preuzeti klikom na ovaj link:
-{download_link}
+        with open(zip_filename, 'rb') as f:
+            msg.add_attachment(f.read(), maintype='application', subtype='zip', filename=zip_filename)
 
-Napomena: Zbog tvoje privatnosti, File.io dozvoljava samo JEDNO preuzimanje. Kada klikneš na link i skineš fajl, on će biti automatski obrisan sa servera.
-
-Srećan rad!"""
-    
-    msg.set_content(email_tekst)
-
-    try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
-            smtp.send_message(msg)
-        print("Email je uspješno poslan!")
-    except Exception as e:
-        print(f"Greška pri slanju emaila: {e}")
+        try:
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+                smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
+                smtp.send_message(msg)
+            print(f"Email {email_counter}/{len(all_chunks)} je uspešno poslan!")
+        except Exception as e:
+            print(f"Greška pri slanju emaila {email_counter}: {e}")
+            
+        email_counter += 1
 
 if __name__ == "__main__":
     results = []
     generated_images = []
+    used_animals = []
     
     for i in range(5):
         try:
             print(f"Tražim životinju {i+1}/5 i generišem 5 njenih dizajna...")
-            batch_data = get_batch_of_designs(i + 1)
+            batch_data = get_batch_of_designs(i + 1, used_animals)
+            
+            # Beležimo životinju kako je Gemini ne bi ponovo koristio
+            current_animal = batch_data[0].get("animal_used", "unknown_animal")
+            if current_animal not in used_animals:
+                used_animals.append(current_animal)
             
             for j, data in enumerate(batch_data):
                 design_num = (i * 5) + j + 1
@@ -178,11 +182,11 @@ if __name__ == "__main__":
         with open(txt_path, "w", encoding="utf-8") as f:
             for index, item in enumerate(results):
                 f.write(f"--- DIZAJN {index + 1} ---\n")
+                f.write(f"Životinja: {item.get('animal_used', '')}\n")
                 f.write(f"Naslov: {item.get('title', '')}\n")
                 f.write(f"Opis: {item.get('description', '')}\n")
                 f.write(f"Tagovi: {item.get('tags', '')}\n")
                 f.write(f"Slika (Ime fajla): {os.path.basename(item.get('file_path', ''))}\n")
                 f.write("\n")
         
-        # Ovdje se sada koristi File.io funkcija
-        send_email_via_cloud(txt_path, generated_images)
+        send_chunked_emails(txt_path, generated_images)
