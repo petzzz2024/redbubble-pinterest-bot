@@ -1,5 +1,4 @@
 import os
-import csv
 import json
 import requests
 import urllib.parse
@@ -45,15 +44,13 @@ def generate_and_process_image(image_prompt, title):
     for attempt in range(max_retries):
         response = requests.get(url)
         if response.status_code == 200:
-            break  # Uspješno dobiven odgovor, izađi iz petlje
+            break
         elif response.status_code in [402, 524]:
             print(f"    Upozorenje: Pollinations API vratio {response.status_code}. Pokušaj {attempt + 1}/{max_retries}. Čekam 10s...")
-            time.sleep(10) # Čekaj 10 sekundi prije ponovnog pokušaja
+            time.sleep(10)
         else:
-            # Neka druga greška na koju nećemo raditi retry
             raise Exception(f"Pollinations API greška: {response.status_code}")
     else:
-        # Ovaj blok se izvršava ako se petlja završi a da se nije desio 'break' (tj. svi retryji su propali)
         raise Exception(f"Pollinations API greška nakon {max_retries} pokušaja.")
         
     input_image = Image.open(BytesIO(response.content))
@@ -73,25 +70,23 @@ def generate_and_process_image(image_prompt, title):
     
     return filepath
 
-def send_email_with_limit(csv_path, image_paths):
+def send_email_with_limit(text_path, image_paths):
     if not EMAIL_SENDER or not EMAIL_PASSWORD:
         print("Email podaci nisu uneseni u GitHub Secrets.")
         return
 
     zip_filename = "redbubble_designs.zip"
-    # Maksimalna veličina sirovih datoteka prije nego što Base64 "napuše" fajl (cca 18 MB)
     MAX_RAW_SIZE = 18 * 1024 * 1024 
     
     added_images = 0
-    current_size = os.path.getsize(csv_path)
+    current_size = os.path.getsize(text_path)
 
-    # Pakiranje u ZIP pazeći na limit
+    # Pakiranje u ZIP
     with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        zipf.write(csv_path, arcname=os.path.basename(csv_path))
+        zipf.write(text_path, arcname=os.path.basename(text_path))
         
         for img_path in image_paths:
             img_size = os.path.getsize(img_path)
-            # Ako dodavanjem ove slike prelazimo limit od 18MB, zaustavi pakiranje
             if current_size + img_size > MAX_RAW_SIZE:
                 print(f"Dostignut limit za email (do 25MB). Spakovano {added_images} slika.")
                 break
@@ -105,7 +100,7 @@ def send_email_with_limit(csv_path, image_paths):
     msg['Subject'] = f'Tvoji Redbubble dizajni (Spakovano: {added_images})'
     msg['From'] = EMAIL_SENDER
     msg['To'] = EMAIL_RECEIVER
-    msg.set_content(f"U privitku se nalazi tablica i {added_images} slika.\nSlike koje nisu stale zbog limita od 25MB možeš preuzeti sa GitHuba pod 'Artifacts'.")
+    msg.set_content(f"U privitku se nalazi Notepad fajl s podacima i {added_images} slika.\nSlike koje nisu stale zbog limita od 25MB možeš preuzeti sa GitHuba pod 'Artifacts'.")
 
     with open(zip_filename, 'rb') as f:
         msg.add_attachment(f.read(), maintype='application', subtype='zip', filename=zip_filename)
@@ -127,11 +122,8 @@ if __name__ == "__main__":
             print(f"Generiranje {i+1}/25...")
             data = get_design_data()
             
-            # --- NOVI SIGURNOSNI KORAK ---
-            # Ako Gemini vrati podatke unutar liste (niza), uzimamo prvi element
             if isinstance(data, list):
                 data = data[0]
-            # -----------------------------
             
             filepath = generate_and_process_image(data["image_prompt"], data["title"])
             
@@ -142,16 +134,19 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"❌ Greška na {i+1}: {e}")
         
-        # Pauza od 15 sekundi da se izbegne Error 429 (Quota Exceeded) i Error 402
-        print("Pauza od 15 sekundi radi limita API-ja...")
-        time.sleep(15)
+        print("Pauza od 25 sekundi radi limita API-ja...")
+        time.sleep(25)
 
     if results:
-        csv_path = "redbubble_metadata.csv"
-        with open(csv_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=["title", "description", "tags", "image_prompt", "file_path"])
-            writer.writeheader()
-            writer.writerows(results)
+        # Pisanje u običan tekstualni (Notepad) fajl umjesto CSV-a
+        txt_path = "redbubble_podaci.txt"
+        with open(txt_path, "w", encoding="utf-8") as f:
+            for index, item in enumerate(results):
+                f.write(f"--- DIZAJN {index + 1} ---\n")
+                f.write(f"Naslov: {item.get('title', '')}\n")
+                f.write(f"Opis: {item.get('description', '')}\n")
+                f.write(f"Tagovi: {item.get('tags', '')}\n")
+                f.write(f"Slika: {item.get('file_path', '')}\n")
+                f.write("\n") # Prazan red između dizajna za bolju preglednost
         
-        # Pozivamo pametno slanje emaila na kraju
-        send_email_with_limit(csv_path, generated_images)
+        send_email_with_limit(txt_path, generated_images)
