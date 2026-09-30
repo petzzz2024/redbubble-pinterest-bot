@@ -20,7 +20,6 @@ EMAIL_RECEIVER = os.getenv("EMAIL_RECEIVER")
 genai.configure(api_key=GEMINI_API_KEY)
 
 def get_safe_name(text):
-    # Uklanja specijalne karaktere kako bi ime foldera/fajla bilo sigurno
     return "".join(c for c in text if c.isalnum() or c in (' ', '_')).rstrip()
 
 def get_batch_of_designs(batch_index, used_animals):
@@ -40,11 +39,11 @@ def get_batch_of_designs(batch_index, used_animals):
     Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata u ovom formatu:
     [
       {{
-        "animal_used": "tačan naziv životinje na engleskom (ovo je važno da znamo koju si izabrao)",
+        "animal_used": "tačan naziv životinje na engleskom",
         "title": "Kratak SEO naslov na engleskom (max 5-6 riječi)",
-        "description": "SEO opis do 150 znakova na engleskom s ključnim riječima",
+        "description": "SEO opis do 150 znakova na engleskom",
         "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je naziv životinje)",
-        "image_prompt": "Flat 2D vector graphic design, digital artwork of [opis životinje i situacije]. Circular badge emblem. Text reads '[Tekst]'. Solid white background. STRICTLY NO MOCKUPS, NO physical physical stickers, NO hands, NO 3D, NO shadows."
+        "image_prompt": "Flat 2D vector graphic design of [opis životinje i situacije]. PERFECTLY CLOSED circular badge emblem. Unbroken thick circular border. ALL elements and text must be strictly contained INSIDE the circular frame. Nothing breaking out. Text reads '[Tekst]'. Solid white background. STRICTLY NO MOCKUPS, NO physical stickers, NO 3D."
       }}
     ]
     """
@@ -77,20 +76,27 @@ def generate_and_process_image(image_prompt, title, animal_name):
     img_response = requests.get(image_url)
     input_image = Image.open(BytesIO(img_response.content))
     
+    # 1. Uklanjanje pozadine
     output_transparent = remove(input_image)
     
+    # 2. Obrezivanje praznog prostora
     bbox = output_transparent.getbbox()
     if bbox:
         output_transparent = output_transparent.crop(bbox)
     
-    canvas = Image.new("RGBA", (2000, 2000), (0, 0, 0, 0))
-    output_transparent.thumbnail((2000, 2000), Image.Resampling.LANCZOS)
+    # 3. SILOVITO RASTEZANJE na 2000x2000 (Ovo garantuje da će slika popuniti ivice)
+    target_size = 2000
+    ratio = min(target_size / output_transparent.width, target_size / output_transparent.height)
+    new_w = int(output_transparent.width * ratio)
+    new_h = int(output_transparent.height * ratio)
+    output_transparent = output_transparent.resize((new_w, new_h), Image.Resampling.LANCZOS)
     
-    x = (2000 - output_transparent.width) // 2
-    y = (2000 - output_transparent.height) // 2
+    # 4. Lijepljenje na centar platna
+    canvas = Image.new("RGBA", (2000, 2000), (0, 0, 0, 0))
+    x = (2000 - new_w) // 2
+    y = (2000 - new_h) // 2
     canvas.paste(output_transparent, (x, y), output_transparent)
     
-    # Kreiranje posebnog foldera za životinju
     safe_animal = get_safe_name(animal_name)
     safe_title = get_safe_name(title)
     
@@ -113,7 +119,6 @@ def send_chunked_emails(files_to_zip):
     current_size = 0
     all_chunks = []
 
-    # Grupisanje fajlova u pakete (chunks) da se ne pređe 18MB po emailu
     for local_path, arc_name in files_to_zip.items():
         file_size = os.path.getsize(local_path)
         if current_size + file_size > MAX_ZIP_SIZE and current_zip_files:
@@ -126,8 +131,6 @@ def send_chunked_emails(files_to_zip):
             
     if current_zip_files:
         all_chunks.append(current_zip_files)
-
-    print(f"Podaci su podijeljeni u {len(all_chunks)} email(ova) zbog veličine.")
 
     for chunk in all_chunks:
         zip_filename = f"redbubble_part_{email_counter}.zip"
@@ -158,7 +161,6 @@ if __name__ == "__main__":
     results = []
     used_animals = []
     
-    # 1. FAZA: Generisanje slika i prikupljanje podataka
     for i in range(5):
         try:
             print(f"Tražim životinju {i+1}/5 i generišem 5 njenih dizajna...")
@@ -172,7 +174,6 @@ if __name__ == "__main__":
                 design_num = (i * 5) + j + 1
                 print(f"  -> Generisanje slike {design_num}/25: {data['title']}")
                 
-                # Prosljeđujemo ime životinje kako bi slika otišla u pravi folder
                 filepath = generate_and_process_image(data["image_prompt"], data["title"], current_animal)
                 
                 data["file_path"] = filepath
@@ -186,19 +187,16 @@ if __name__ == "__main__":
         
         time.sleep(10)
 
-    # 2. FAZA: Grupisanje po folderima, kreiranje Notepad fajlova i ZIP-ovanje
     if results:
         grouped_results = {}
-        files_to_zip = {} # Mape: stvarna_lokacija_fajla -> ime_fajla_u_zipu
+        files_to_zip = {} 
         
-        # Sortiranje generisanih rezultata po životinjama
         for item in results:
             animal = item["safe_animal_name"]
             if animal not in grouped_results:
                 grouped_results[animal] = []
             grouped_results[animal].append(item)
             
-        # Pisanje posebnog txt fajla za svaku životinju u njen folder
         for animal, items in grouped_results.items():
             folder_path = os.path.join("output_images", animal)
             txt_path = os.path.join(folder_path, f"{animal}_podaci.txt")
@@ -212,9 +210,7 @@ if __name__ == "__main__":
                     f.write(f"Slika (Ime fajla): {os.path.basename(item.get('file_path', ''))}\n")
                     f.write("\n")
             
-            # Priprema za ZIP: dodaj txt fajl
             files_to_zip[txt_path] = f"{animal}/{os.path.basename(txt_path)}"
-            # Priprema za ZIP: dodaj svih 5 slika te životinje
             for item in items:
                 img_path = item["file_path"]
                 files_to_zip[img_path] = f"{animal}/{os.path.basename(img_path)}"
