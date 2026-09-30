@@ -38,7 +38,7 @@ def get_design_data():
 
 def generate_and_process_image(image_prompt, title):
     encoded_prompt = urllib.parse.quote(image_prompt)
-    url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&model=flux&nologo=true"
+    url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&model=turbo&nologo=true"
     
     max_retries = 3
     for attempt in range(max_retries):
