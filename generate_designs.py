@@ -15,7 +15,7 @@ import google.generativeai as genai
 # API ključevi i Email podaci
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 EMAIL_SENDER = os.getenv("EMAIL_SENDER")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD") 
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 EMAIL_RECEIVER = os.getenv("EMAIL_RECEIVER")
 
 genai.configure(api_key=GEMINI_API_KEY)
@@ -24,7 +24,7 @@ def get_design_data():
     model = genai.GenerativeModel('gemini-3.1-flash-lite')
     
     prompt = """
-    Ti si stručnjak za Redbubble SEO i dizajn. Istraži interenet sa životinjskim nišama koje ljudi pretražuju i smisli 10 jedinstvenih ideju za dizajn majice/stikera vezanu za životinje.
+    Ti si stručnjak za Redbubble SEO i dizajn. Istraži internet sa životinjskim nišama koje ljudi pretražuju i smisli 1 jedinstvenu ideju za dizajn majice/stikera vezanu za životinje.
     Vrati ISKLJUČIVO validan JSON format, bez ikakvog dodatnog teksta ili markdown oznaka, u ovom formatu:
     {
       "title": "Kratak SEO naslov na engleskom (max 5-6 riječi)",
@@ -115,6 +115,13 @@ if __name__ == "__main__":
         try:
             print(f"Generiranje {i+1}/25...")
             data = get_design_data()
+            
+            # --- NOVI SIGURNOSNI KORAK ---
+            # Ako Gemini vrati podatke unutar liste (niza), uzimamo prvi element
+            if isinstance(data, list):
+                data = data[0]
+            # -----------------------------
+            
             filepath = generate_and_process_image(data["image_prompt"], data["title"])
             
             data["file_path"] = filepath
