@@ -21,12 +21,7 @@ EMAIL_RECEIVER = os.getenv("EMAIL_RECEIVER")
 genai.configure(api_key=GEMINI_API_KEY)
 
 def get_design_data():
-    model = genai.GenerativeModel('gemini-3.5-flash-lite',
-    'gemini-3.8-flash',
-    'gemini-3.7-flash',
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
-    'gemini-3.1-flash-lite')
+    model = genai.GenerativeModel('model = genai.GenerativeModel('gemini-3.1-flash-lite')
     
     prompt = """
     Ti si stručnjak za Redbubble SEO i dizajn. Smisli 1 jedinstvenu ideju za dizajn majice/naljepnice vezanu za životinje.
