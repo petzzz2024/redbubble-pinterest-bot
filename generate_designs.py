@@ -41,9 +41,20 @@ def generate_and_process_image(image_prompt, title):
     encoded_prompt = urllib.parse.quote(image_prompt)
     url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&model=flux&nologo=true"
     
-    response = requests.get(url)
-    if response.status_code != 200:
-        raise Exception(f"Pollinations API greška: {response.status_code}")
+    max_retries = 3
+    for attempt in range(max_retries):
+        response = requests.get(url)
+        if response.status_code == 200:
+            break  # Uspješno dobiven odgovor, izađi iz petlje
+        elif response.status_code in [402, 524]:
+            print(f"    Upozorenje: Pollinations API vratio {response.status_code}. Pokušaj {attempt + 1}/{max_retries}. Čekam 10s...")
+            time.sleep(10) # Čekaj 10 sekundi prije ponovnog pokušaja
+        else:
+            # Neka druga greška na koju nećemo raditi retry
+            raise Exception(f"Pollinations API greška: {response.status_code}")
+    else:
+        # Ovaj blok se izvršava ako se petlja završi a da se nije desio 'break' (tj. svi retryji su propali)
+        raise Exception(f"Pollinations API greška nakon {max_retries} pokušaja.")
         
     input_image = Image.open(BytesIO(response.content))
     output_transparent = remove(input_image)
