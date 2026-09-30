@@ -5,6 +5,7 @@ import requests
 import urllib.parse
 import smtplib
 import zipfile
+import time
 from email.message import EmailMessage
 from io import BytesIO
 from PIL import Image
@@ -20,7 +21,7 @@ EMAIL_RECEIVER = os.getenv("EMAIL_RECEIVER")
 genai.configure(api_key=GEMINI_API_KEY)
 
 def get_design_data():
-    model = genai.GenerativeModel('gemini-3.5-flash-lite')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
     prompt = """
     Ti si stručnjak za Redbubble SEO i dizajn. Smisli 1 jedinstvenu ideju za dizajn majice/naljepnice vezanu za životinje.
@@ -122,6 +123,10 @@ if __name__ == "__main__":
             print(f"✅ Uspješno: {data['title']}")
         except Exception as e:
             print(f"❌ Greška na {i+1}: {e}")
+        
+        # Pauza od 15 sekundi da se izbegne Error 429 (Quota Exceeded) i Error 402
+        print("Pauza od 15 sekundi radi limita API-ja...")
+        time.sleep(15)
 
     if results:
         csv_path = "redbubble_metadata.csv"
