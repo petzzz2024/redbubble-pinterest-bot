@@ -2,10 +2,8 @@ import os
 import json
 import requests
 import urllib.parse
-import smtplib
 import zipfile
 import time
-from email.message import EmailMessage
 from io import BytesIO
 from PIL import Image
 from rembg import remove
@@ -13,9 +11,8 @@ import google.generativeai as genai
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 FAL_KEY = os.getenv("FAL_KEY")
-EMAIL_SENDER = os.getenv("EMAIL_SENDER")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-EMAIL_RECEIVER = os.getenv("EMAIL_RECEIVER")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -25,12 +22,10 @@ def get_safe_name(text):
 def load_used_animals(filename="used_animals.txt"):
     if os.path.exists(filename):
         with open(filename, "r", encoding="utf-8") as f:
-            # Učitaj životinje, ukloni praznine i prebaci u mala slova radi lakše usporedbe
             return [line.strip().lower() for line in f if line.strip()]
     return []
 
 def save_used_animals(animals, filename="used_animals.txt"):
-    # Sačuvaj sve (stare i nove) životinje nazad u fajl
     with open(filename, "w", encoding="utf-8") as f:
         for animal in sorted(set(animals)):
             f.write(f"{animal}\n")
@@ -46,13 +41,13 @@ def get_batch_of_designs(batch_index, used_animals):
     Ti si stručnjak za Redbubble SEO i dizajn. Ovo je serija broj {batch_index} od 5.
     
     ZADATAK:
-    1. Izaberi JEDNU specifičnu, popularnu životinju. {zabrana}
+    1. Izaberi JEDNU specifičnu popularnu životinju, istraži internet sa popularnim nišama pogodnim za dizajn stikera i majici koji imaju veliki broj pretraga ali malu konkurenciju. {zabrana}
     2. Osmisli 5 POTPUNO RAZLIČITIH ideja za dizajn vezanih ISKLJUČIVO za tu životinju.
     
     Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata u ovom formatu:
     [
       {{
-        "animal_used": "tačan naziv životinje na engleskom (npr. 'Red Panda', 'Capybara')",
+        "animal_used": "tačan naziv životinje na engleskom",
         "title": "Kratak SEO naslov na engleskom (max 5-6 riječi)",
         "description": "SEO opis do 150 znakova na engleskom",
         "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je naziv životinje)",
@@ -69,42 +64,28 @@ def generate_and_process_image(image_prompt, title, animal_name):
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
     url = "https://fal.run/fal-ai/flux/schnell"
-    
-    headers = {
-        "Authorization": f"Key {FAL_KEY}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "prompt": image_prompt,
-        "image_size": "square_hd"
-    }
+    headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
+    payload = {"prompt": image_prompt, "image_size": "square_hd"}
     
     response = requests.post(url, headers=headers, json=payload)
     if response.status_code != 200:
         raise Exception(f"Fal.ai greška: {response.text}")
         
     result = response.json()
-    image_url = result["images"][0]["url"]
-    
-    img_response = requests.get(image_url)
+    img_response = requests.get(result["images"][0]["url"])
     input_image = Image.open(BytesIO(img_response.content))
     
-    # 1. Uklanjanje pozadine bez oštećenja unutrašnjosti
     output_transparent = remove(input_image, post_process_mask=True)
-    
-    # 2. Obrezivanje praznog prostora
     bbox = output_transparent.getbbox()
     if bbox:
         output_transparent = output_transparent.crop(bbox)
     
-    # 3. NOVO: Povećavamo target_size na 12500
     target_size = 12500
     ratio = min(target_size / output_transparent.width, target_size / output_transparent.height)
     new_w = int(output_transparent.width * ratio)
     new_h = int(output_transparent.height * ratio)
     output_transparent = output_transparent.resize((new_w, new_h), Image.Resampling.LANCZOS)
     
-    # 4. Kreiranje ogromnog platna od 12500x12500
     canvas = Image.new("RGBA", (12500, 12500), (0, 0, 0, 0))
     x = (12500 - new_w) // 2
     y = (12500 - new_h) // 2
@@ -121,13 +102,13 @@ def generate_and_process_image(image_prompt, title, animal_name):
     
     return filepath
 
-def send_chunked_emails(files_to_zip):
-    if not EMAIL_SENDER or not EMAIL_PASSWORD:
-        print("Email podaci nedostaju.")
+def send_telegram_chunks(files_to_zip):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("Telegram podaci nedostaju u GitHub Secrets.")
         return
 
-    MAX_ZIP_SIZE = 18 * 1024 * 1024 
-    email_counter = 1
+    MAX_ZIP_SIZE = 48 * 1024 * 1024 # 48 MB limit za Telegram (Maksimalno je 50MB)
+    zip_counter = 1
     current_zip_files = {}
     current_size = 0
     all_chunks = []
@@ -145,34 +126,33 @@ def send_chunked_emails(files_to_zip):
     if current_zip_files:
         all_chunks.append(current_zip_files)
 
+    print(f"Podaci su podijeljeni u {len(all_chunks)} ZIP paket(a) za Telegram.")
+
     for chunk in all_chunks:
-        zip_filename = f"redbubble_part_{email_counter}.zip"
+        zip_filename = f"redbubble_part_{zip_counter}.zip"
         with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for local_path, arc_name in chunk.items():
                 zipf.write(local_path, arcname=arc_name)
                 
-        msg = EmailMessage()
-        msg['Subject'] = f'Tvoji Redbubble Dizajni - Dio {email_counter}/{len(all_chunks)}'
-        msg['From'] = EMAIL_SENDER
-        msg['To'] = EMAIL_RECEIVER
-        msg.set_content(f"Dio {email_counter} organizovan po folderima je u prilogu.")
-
+        # Slanje na Telegram
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendDocument"
+        data = {
+            "chat_id": TELEGRAM_CHAT_ID,
+            "caption": f"🚀 Redbubble Dizajni - Dio {zip_counter}/{len(all_chunks)} (12500x12500 px)"
+        }
+        
+        print(f"Šaljem ZIP paket {zip_counter} na Telegram...")
         with open(zip_filename, 'rb') as f:
-            msg.add_attachment(f.read(), maintype='application', subtype='zip', filename=zip_filename)
-
-        try:
-            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-                smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
-                smtp.send_message(msg)
-            print(f"Email {email_counter}/{len(all_chunks)} je uspješno poslan!")
-        except Exception as e:
-            print(f"Greška pri slanju emaila {email_counter}: {e}")
-            
-        email_counter += 1
+            response = requests.post(url, data=data, files={"document": f})
+            if response.status_code == 200:
+                print(f"✅ Telegram paket {zip_counter}/{len(all_chunks)} uspješno poslan!")
+            else:
+                print(f"❌ Greška pri slanju na Telegram: {response.text}")
+                
+        zip_counter += 1
 
 if __name__ == "__main__":
     results = []
-    # 1. Učitaj već iskorištene životinje iz tekstualnog fajla
     used_animals = load_used_animals()
     print(f"Pronađene već iskorištene životinje u arhivi: {len(used_animals)}")
     
@@ -183,7 +163,7 @@ if __name__ == "__main__":
             
             current_animal = batch_data[0].get("animal_used", "unknown_animal").lower()
             if current_animal not in used_animals:
-                used_animals.append(current_animal) # Dodajemo novu životinju na listu
+                used_animals.append(current_animal)
             
             for j, data in enumerate(batch_data):
                 design_num = (i * 5) + j + 1
@@ -202,7 +182,6 @@ if __name__ == "__main__":
         
         time.sleep(10)
 
-    # 2. Sačuvaj ažuriranu listu nazad u fajl
     save_used_animals(used_animals)
 
     if results:
@@ -233,4 +212,4 @@ if __name__ == "__main__":
                 img_path = item["file_path"]
                 files_to_zip[img_path] = f"{animal}/{os.path.basename(img_path)}"
         
-        send_chunked_emails(files_to_zip)
+        send_telegram_chunks(files_to_zip)
