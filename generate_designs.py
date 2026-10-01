@@ -89,21 +89,25 @@ def generate_and_process_image(image_prompt, title, animal_name):
     img_response = requests.get(image_url)
     input_image = Image.open(BytesIO(img_response.content))
     
+    # 1. Uklanjanje pozadine bez oštećenja unutrašnjosti
     output_transparent = remove(input_image, post_process_mask=True)
     
+    # 2. Obrezivanje praznog prostora
     bbox = output_transparent.getbbox()
     if bbox:
         output_transparent = output_transparent.crop(bbox)
     
-    target_size = 2000
+    # 3. NOVO: Povećavamo target_size na 12500
+    target_size = 12500
     ratio = min(target_size / output_transparent.width, target_size / output_transparent.height)
     new_w = int(output_transparent.width * ratio)
     new_h = int(output_transparent.height * ratio)
     output_transparent = output_transparent.resize((new_w, new_h), Image.Resampling.LANCZOS)
     
-    canvas = Image.new("RGBA", (2000, 2000), (0, 0, 0, 0))
-    x = (2000 - new_w) // 2
-    y = (2000 - new_h) // 2
+    # 4. Kreiranje ogromnog platna od 12500x12500
+    canvas = Image.new("RGBA", (12500, 12500), (0, 0, 0, 0))
+    x = (12500 - new_w) // 2
+    y = (12500 - new_h) // 2
     canvas.paste(output_transparent, (x, y), output_transparent)
     
     safe_animal = get_safe_name(animal_name)
