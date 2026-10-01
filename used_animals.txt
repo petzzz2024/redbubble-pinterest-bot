@@ -1,5 +1,10 @@
 axolotl
 capybara
+hedgehog
 opossum
+pangolin
 platypus
+puffin
 red panda
+tapir
+wombat
