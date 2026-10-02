@@ -1,6 +1,9 @@
 axol-oh wait, shifting to: pangolin? no, forbidden. let's go with: binturong
 axolotl
+capuchin monkey
 capybara
+cassowary
+fennec fox
 hedgehog
 opossum
 pangolin
@@ -8,5 +11,7 @@ platypus
 puffin
 quokka
 red panda
+shoebill
+slow loris
 tapir
 wombat
