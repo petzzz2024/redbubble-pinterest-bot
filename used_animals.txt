@@ -1,3 +1,4 @@
+axol-oh wait, shifting to: pangolin? no, forbidden. let's go with: binturong
 axolotl
 capybara
 hedgehog
@@ -5,6 +6,7 @@ opossum
 pangolin
 platypus
 puffin
+quokka
 red panda
 tapir
 wombat
