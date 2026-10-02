@@ -245,7 +245,7 @@ def update_rss(title, post_url, content_summary, image_url=None):
     rss_file = "rss.xml"
     pub_date = datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S +0000")
     
-    # Odstrani HTML tagove i sredivanje razmaka
+    # Odstrani HTML tagove i sređivanje razmaka
     text_only = re.sub(r'<[^>]+>', ' ', content_summary)
     text_only = re.sub(r'\s+', ' ', text_only).strip()
     
@@ -261,7 +261,7 @@ def update_rss(title, post_url, content_summary, image_url=None):
         clean_description = text_only
 
     if not os.path.exists(rss_file):
-        rss = ET.Element("rss", version="2.0", attrib={"xmlns:media": "http://search.yahoo.com/mrss/"})
+        rss = ET.Element("rss", version="2.0")
         channel = ET.SubElement(rss, "channel")
         ET.SubElement(channel, "title").text = "Petzzz Studio Blog"
         ET.SubElement(channel, "link").text = f"https://{SITE_DOMAIN}"
@@ -270,11 +270,9 @@ def update_rss(title, post_url, content_summary, image_url=None):
         try:
             tree = ET.parse(rss_file)
             rss = tree.getroot()
-            if "xmlns:media" not in rss.attrib:
-                rss.set("xmlns:media", "http://search.yahoo.com/mrss/")
             channel = rss.find("channel")
         except Exception:
-            rss = ET.Element("rss", version="2.0", attrib={"xmlns:media": "http://search.yahoo.com/mrss/"})
+            rss = ET.Element("rss", version="2.0")
             channel = ET.SubElement(rss, "channel")
 
     item = ET.SubElement(channel, "item")
@@ -291,7 +289,7 @@ def update_rss(title, post_url, content_summary, image_url=None):
     tree = ET.ElementTree(rss)
     ET.indent(tree, space="  ", level=0)
     tree.write(rss_file, encoding="utf-8", xml_declaration=True)
-    print("Rss.xml uspešno ažuriran sa punim rečenicama!")
+    print("Rss.xml uspešno ažuriran!")
 
 def notify_indexnow(post_url):
     endpoint = "https://api.indexnow.org/indexnow"
@@ -615,7 +613,7 @@ def generate_post():
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{topic} - Petzzz Studio Blog</title>
     <!-- Google Tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_MEASUREMENT_ID}"></script>
+    <script async src="https://www.googletagmanager.com/gtag/id={GA_MEASUREMENT_ID}"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){{dataLayer.push(arguments);}}
