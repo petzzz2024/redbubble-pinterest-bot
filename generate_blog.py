@@ -322,9 +322,11 @@ def update_blog_index():
         with open(file, 'r', encoding='utf-8') as f:
             content = f.read()
             
+            # Izvlačenje naslova
             title_match = re.search(r'<h1>(.*?)</h1>', content)
             title = title_match.group(1) if title_match else "Petzzz Article"
             
+            # Izvlačenje datuma
             date_match = re.search(r'Published on (.*?) by', content)
             if date_match:
                 date_str = date_match.group(1).strip()
@@ -336,6 +338,15 @@ def update_blog_index():
                 date_str = "Unknown Date"
                 dt_obj = datetime.datetime(2020, 1, 1)
                 
+            # Izvlačenje Fal.ai slike iz članka
+            img_match = re.search(r'<img\s+src="([^"]+)"', content)
+            if img_match:
+                img_url = img_match.group(1)
+                if img_url.startswith("../"):
+                    img_url = img_url.replace("../", "")
+            else:
+                img_url = "Logo 2.png"
+
             slug = filename.replace(".html", "")
             clean_url = f"/blog/{slug}.html"
             
@@ -343,7 +354,8 @@ def update_blog_index():
                 'clean_url': clean_url,
                 'title': title,
                 'date_str': date_str,
-                'dt_obj': dt_obj
+                'dt_obj': dt_obj,
+                'img_url': img_url
             })
             
     articles_data.sort(key=lambda x: x['dt_obj'], reverse=True)
@@ -352,9 +364,14 @@ def update_blog_index():
     for article in articles_data:
         posts_list_html += f"""
         <div class="article-card">
-            <h3 style="margin-top:0; font-size:1.4em;"><a href="{article['clean_url']}" style="text-decoration:none; color:#1c1328;">{article['title']}</a></h3>
-            <p style="font-size:0.85em; color:#888; margin-bottom:15px;">Published on {article['date_str']}</p>
-            <a href="{article['clean_url']}" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.9em;">Read Article ➔</a>
+            <a href="{article['clean_url']}">
+                <img src="{article['img_url']}" alt="{article['title']}" class="article-thumb" onerror="this.src='Logo 2.png'">
+            </a>
+            <div class="article-content">
+                <h3 style="margin-top:0; font-size:1.3em; line-height:1.3;"><a href="{article['clean_url']}" style="text-decoration:none; color:#1c1328;">{article['title']}</a></h3>
+                <p style="font-size:0.85em; color:#888; margin-bottom:12px;">Published on {article['date_str']}</p>
+                <a href="{article['clean_url']}" style="display:inline-block; padding:8px 16px; background:#e7d9fc; color:#7b2cbf; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.85em;">Read Article ➔</a>
+            </div>
         </div>
         """
 
@@ -395,9 +412,28 @@ def update_blog_index():
         .search-input:focus {{ border-color: #7b2cbf; box-shadow: 0 4px 18px rgba(123, 44, 191, 0.18); }}
         .no-results {{ display: none; text-align: center; padding: 20px; color: #666; font-size: 1.1em; font-weight: 600; background: #fff; border-radius: 12px; margin-bottom: 20px; }}
 
-        /* Kartice članaka */
-        .article-card {{ background:#fff; padding:25px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; display: block; }}
+        /* Kartice članaka sa kockastom sličicom */
+        .article-card {{ 
+            background: #fff; 
+            padding: 20px; 
+            border-radius: 12px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            transition: transform 0.2s, box-shadow 0.2s; 
+            display: flex; 
+            align-items: center; 
+            gap: 20px; 
+        }}
         .article-card:hover {{ transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.08); }}
+        .article-thumb {{ 
+            width: 100px; 
+            height: 100px; 
+            border-radius: 10px; 
+            object-fit: cover; 
+            flex-shrink: 0; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+        }}
+        .article-content {{ flex: 1; }}
 
         /* Dugme Back to Top */
         #backToTop {{
@@ -410,11 +446,13 @@ def update_blog_index():
         #backToTop:hover {{ background-color: #5a189a; }}
 
         /* Mobilni Prikaz */
-        @media (max-width: 768px) {{
+        @media (max-width: 600px) {{
             .nav-container {{ flex-direction: column; gap: 15px; padding: 5px 0; }}
             .nav-links {{ display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }}
             .nav-links a {{ margin-left: 0; background: #f0ecf4; padding: 8px 16px; border-radius: 20px; color: #3a1c5c; }}
             h1 {{ font-size: 2em; }}
+            .article-card {{ flex-direction: column; align-items: flex-start; gap: 15px; }}
+            .article-thumb {{ width: 100%; height: 180px; }}
         }}
     </style>
 </head>
@@ -470,7 +508,7 @@ def update_blog_index():
             cards.forEach(function(card) {{
                 let title = card.querySelector('h3').innerText.toLowerCase();
                 if (title.includes(filter)) {{
-                    card.style.display = "block";
+                    card.style.display = "flex";
                     visibleCount++;
                 }} else {{
                     card.style.display = "none";
@@ -613,7 +651,7 @@ def generate_post():
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{topic} - Petzzz Studio Blog</title>
     <!-- Google Tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/id={GA_MEASUREMENT_ID}"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_MEASUREMENT_ID}"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){{dataLayer.push(arguments);}}
