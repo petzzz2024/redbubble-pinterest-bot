@@ -43,28 +43,30 @@ You are an expert Print-on-Demand (POD) and Redbubble SEO strategist. This is ba
 
 YOUR MISSION:
 1. Identify ONE specific animal that is highly profitable for stickers and t-shirts. It must have HIGH search volume (Google/Redbubble) but LOW competition. {zabrana}
-2. Brainstorm 5 COMPLETELY DIFFERENT, highly marketable design concepts for this specific animal.
+2. Brainstorm 5 COMPLETELY DIFFERENT, highly marketable design concepts for this specific animal. Each concept MUST include a catchy, fitting short phrase/quote.
 
 IMAGE PROMPT RULES (Crucial for Fal.ai FLUX SCHNELL):
 - Write the image prompt SPECIFICALLY optimized for the Flux Schnell model.
-- Flux models excel with direct, concise language and comma-separated keywords rather than long narrative sentences. Start with the main subject, follow with style, then details, and end with background/render instructions.
-- Do not restrict the art style to flat 2D; let the AI choose the best style (e.g., pop art, watercolor, highly detailed vector), but you MUST mandate "striking colors, vibrant palette, high contrast".
-- Explicitly demand ANATOMICAL PERFECTION. Include phrases like: "flawless anatomy, correct number of limbs, perfect symmetry, no extra legs or arms, no mutations".
-- Ensure it is suitable for POD: always include "isolated on a solid white background, clean edges".
+- CIRCULAR BADGE FORMAT: Every single design MUST be a perfectly circular badge/emblem. All elements (animal, background, text) must be strictly contained INSIDE an unbroken circular frame. Nothing breaking out.
+- TEXT INCLUSION: You must invent a short, punchy, and highly marketable phrase (1-4 words) that perfectly matches the concept (e.g., "STAY WILD", "COFFEE TIME"). Instruct Flux to generate this exact text by putting it in quotes (e.g., text reading "YOUR PHRASE HERE").
+- Flux models excel with direct, concise language and comma-separated keywords.
+- Let the AI choose the best style, but you MUST mandate "striking colors, vibrant palette, high contrast".
+- Explicitly demand ANATOMICAL PERFECTION: "flawless anatomy, correct number of limbs, perfect symmetry, no extra legs or arms, no mutations".
+- Ensure it is suitable for POD: always include "isolated on a solid white background".
 
 OUTPUT FORMAT REQUIREMENTS:
 - Return STRICTLY a valid JSON ARRAY.
 - DO NOT wrap the JSON in markdown formatting if it causes parsing errors.
 - DO NOT output any conversational text, introductions, or explanations before or after the JSON.
-- STRICT TITLE RULE: Do not include words like "sticker", "design", "art", "t-shirt", "print", "illustration", or similar terms in the title. The title must be purely the creative name of the artwork.
+- STRICT TITLE RULE: Do not include words like "sticker", "design", "art", "t-shirt", etc. Just the creative name.
 
 [
   {{
     "animal_used": "ONLY the exact English name of the chosen animal (e.g., 'axolotl'). STRICTLY NO sentences.",
-    "title": "SEO-optimized English title (max 5-6 words). STRICTLY NO words like 'sticker', 'design', 'art', etc. Just the creative name.",
+    "title": "SEO-optimized English title (max 5-6 words). STRICTLY NO words like 'sticker', 'design', etc.",
     "description": "Engaging, keyword-rich product description in English (max 150 characters)",
     "tags": "tag1, tag2, tag3 (Exactly 15 tags, comma-separated. The first tag MUST be the animal's name)",
-    "image_prompt": "Visually striking [insert best art style], [animal + unique situation], highly detailed, vibrant eye-catching colors, high contrast. Flawless anatomy, exact correct number of limbs and facial features, perfect symmetry, no AI mutations. Clean composition, isolated subject, solid white background. No text, no mockups."
+    "image_prompt": "Perfectly closed circular badge emblem design, [insert best art style], [animal + unique situation] completely inside the circle. Bold typography text reading '[INSERT AI GENERATED SHORT PHRASE BASED ON TITLE]' integrated perfectly inside the circular frame. Highly detailed, vibrant eye-catching colors, high contrast. Flawless anatomy, exact correct number of limbs, perfect symmetry, no AI mutations. Clean composition, isolated on a solid white background. No physical mockups."
   }}
 ]
 """
