@@ -28,26 +28,27 @@ def load_used_animals(filename="used_animals.txt"):
 def save_used_animals(animals, filename="used_animals.txt"):
     with open(filename, "w", encoding="utf-8") as f:
         for animal in sorted(set(animals)):
-            f.write(f"{animal}\n")
+            if animal: # Da ne upisuje prazne redove
+                f.write(f"{animal}\n")
 
 def get_batch_of_designs(batch_index, used_animals):
     model = genai.GenerativeModel('gemini-3.1-flash-lite')
     
     zabrana = ""
     if used_animals:
-        zabrana = f"STROGO ZABRANJENO: NE SMEŠ koristiti sledeće životinje: {', '.join(used_animals)}. Izaberi neku potpuno novu i drugačiju životinju!"
+        zabrana = f"STROGO ZABRANJENO: NE SMEŠ koristiti sledeće životinje: {', '.join(used_animals)}. Izaberi neku potpuno novu!"
 
     prompt = f"""
     Ti si stručnjak za Redbubble SEO i dizajn. Ovo je serija broj {batch_index} od 5.
     
     ZADATAK:
-    1. Izaberi JEDNU specifičnu popularnu životinju, istraži internet sa popularnim nišama pogodnim za dizajn stikera i majici koji imaju veliki broj pretraga ali malu konkurenciju. {zabrana}
+    1. Izaberi JEDNU specifičnu, popularnu životinju. {zabrana}
     2. Osmisli 5 POTPUNO RAZLIČITIH ideja za dizajn vezanih ISKLJUČIVO za tu životinju.
     
     Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata u ovom formatu:
     [
       {{
-        "animal_used": "tačan naziv životinje na engleskom",
+        "animal_used": "SAMO I ISKLJUČIVO ime životinje na engleskom (npr. 'binturong'). STROGO ZABRANJENO je pisanje rečenica, objašnjenja ili toka misli!",
         "title": "Kratak SEO naslov na engleskom (max 5-6 riječi)",
         "description": "SEO opis do 150 znakova na engleskom",
         "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je naziv životinje)",
@@ -80,14 +81,13 @@ def generate_and_process_image(image_prompt, title, animal_name):
     if bbox:
         output_transparent = output_transparent.crop(bbox)
     
-    # 3. Optimizovano rastezanje na 8000x8000 (maksimalan Redbubble kvalitet, a prolazi Telegram limit)
+    # Optimizovano na 8000x8000 zbog Telegram limita
     target_size = 8000
     ratio = min(target_size / output_transparent.width, target_size / output_transparent.height)
     new_w = int(output_transparent.width * ratio)
     new_h = int(output_transparent.height * ratio)
     output_transparent = output_transparent.resize((new_w, new_h), Image.Resampling.LANCZOS)
     
-    # 4. Kreiranje platna od 8000x8000
     canvas = Image.new("RGBA", (8000, 8000), (0, 0, 0, 0))
     x = (8000 - new_w) // 2
     y = (8000 - new_h) // 2
@@ -109,7 +109,7 @@ def send_telegram_chunks(files_to_zip):
         print("Telegram podaci nedostaju u GitHub Secrets.")
         return
 
-    MAX_ZIP_SIZE = 48 * 1024 * 1024 # 48 MB limit za Telegram (Maksimalno je 50MB)
+    MAX_ZIP_SIZE = 48 * 1024 * 1024
     zip_counter = 1
     current_zip_files = {}
     current_size = 0
@@ -128,22 +128,18 @@ def send_telegram_chunks(files_to_zip):
     if current_zip_files:
         all_chunks.append(current_zip_files)
 
-    print(f"Podaci su podijeljeni u {len(all_chunks)} ZIP paket(a) za Telegram.")
-
     for chunk in all_chunks:
         zip_filename = f"redbubble_part_{zip_counter}.zip"
         with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for local_path, arc_name in chunk.items():
                 zipf.write(local_path, arcname=arc_name)
                 
-        # Slanje na Telegram
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendDocument"
         data = {
             "chat_id": TELEGRAM_CHAT_ID,
-            "caption": f"🚀 Redbubble Dizajni - Dio {zip_counter}/{len(all_chunks)} (12500x12500 px)"
+            "caption": f"🚀 Redbubble Dizajni - Dio {zip_counter}/{len(all_chunks)} (8000x8000 px)"
         }
         
-        print(f"Šaljem ZIP paket {zip_counter} na Telegram...")
         with open(zip_filename, 'rb') as f:
             response = requests.post(url, data=data, files={"document": f})
             if response.status_code == 200:
@@ -156,20 +152,27 @@ def send_telegram_chunks(files_to_zip):
 if __name__ == "__main__":
     results = []
     used_animals = load_used_animals()
-    print(f"Pronađene već iskorištene životinje u arhivi: {len(used_animals)}")
     
     for i in range(5):
         try:
-            print(f"Tražim životinju {i+1}/5 i generišem 5 njenih dizajna...")
+            print(f"Tražim životinju {i+1}/5 i generišem njene dizajne...")
             batch_data = get_batch_of_designs(i + 1, used_animals)
             
-            current_animal = batch_data[0].get("animal_used", "unknown_animal").lower()
-            if current_animal not in used_animals:
-                used_animals.append(current_animal)
-            
             for j, data in enumerate(batch_data):
+                # Čitanje imena životinje za SVAKI dizajn posebno
+                raw_animal = data.get("animal_used", "unknown_animal")
+                
+                # Očisti ako je Gemini ponovo ubacio dvotačku i tok misli
+                if ":" in raw_animal:
+                    raw_animal = raw_animal.split(":")[-1]
+                
+                current_animal = raw_animal.strip().lower()
+                
+                if current_animal not in used_animals:
+                    used_animals.append(current_animal)
+                    
                 design_num = (i * 5) + j + 1
-                print(f"  -> Generisanje slike {design_num}/25: {data['title']}")
+                print(f"  -> Generisanje slike {design_num}/25: {data['title']} ({current_animal})")
                 
                 filepath = generate_and_process_image(data["image_prompt"], data["title"], current_animal)
                 
@@ -180,7 +183,7 @@ if __name__ == "__main__":
                 time.sleep(2)
                 
         except Exception as e:
-            print(f"❌ Greška na seriji životinje {i+1}: {e}")
+            print(f"❌ Greška na seriji {i+1}: {e}")
         
         time.sleep(10)
 
@@ -190,6 +193,7 @@ if __name__ == "__main__":
         grouped_results = {}
         files_to_zip = {} 
         
+        # Grupisanje slika u tačne foldere
         for item in results:
             animal = item["safe_animal_name"]
             if animal not in grouped_results:
