@@ -27,6 +27,7 @@ jobs:
       - name: Run Blog Generator Script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FAL_KEY: ${{ secrets.FAL_KEY }}
         run: python generate_blog.py
 
       - name: Commit and Push Updated Blog, Sitemap and RSS
