@@ -338,14 +338,13 @@ def update_blog_index():
                 date_str = "Unknown Date"
                 dt_obj = datetime.datetime(2020, 1, 1)
                 
-            # Izvlačenje Fal.ai slike iz članka
-            img_match = re.search(r'<img\s+src="([^"]+)"', content)
-            if img_match:
-                img_url = img_match.group(1)
-                if img_url.startswith("../"):
-                    img_url = img_url.replace("../", "")
-            else:
-                img_url = "Logo 2.png"
+            # Pronalaženje prave slike (preskače Logo 2.png iz headera)
+            all_imgs = re.findall(r'<img\s+src="([^"]+)"', content)
+            img_url = "Logo 2.png"
+            for img in all_imgs:
+                if "Logo 2.png" not in img and "logo" not in img.lower():
+                    img_url = img.replace("../", "")
+                    break
 
             slug = filename.replace(".html", "")
             clean_url = f"/blog/{slug}.html"
