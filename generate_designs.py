@@ -39,23 +39,35 @@ def get_batch_of_designs(batch_index, used_animals):
         zabrana = f"STROGO ZABRANJENO: NE SMEŠ koristiti sledeće životinje: {', '.join(used_animals)}. Izaberi neku potpuno novu!"
 
     prompt = f"""
-    Ti si stručnjak za Redbubble SEO i dizajn. Ovo je serija broj {batch_index} od 5.
-    
-    ZADATAK:
-    1. Izaberi JEDNU specifičnu, popularnu životinju. {zabrana}
-    2. Osmisli 5 POTPUNO RAZLIČITIH ideja za dizajn vezanih ISKLJUČIVO za tu životinju.
-    
-    Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata u ovom formatu:
-    [
-      {{
-        "animal_used": "SAMO I ISKLJUČIVO ime životinje na engleskom (npr. 'binturong'). STROGO ZABRANJENO je pisanje rečenica, objašnjenja ili toka misli!",
-        "title": "Kratak SEO naslov na engleskom (max 5-6 riječi)",
-        "description": "SEO opis do 150 znakova na engleskom",
-        "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je naziv životinje)",
-        "image_prompt": "Flat 2D vector graphic design of [opis životinje i situacije]. PERFECTLY CLOSED circular badge emblem. Unbroken thick circular border. ALL elements and text must be strictly contained INSIDE the circular frame. Nothing breaking out. Text reads '[Tekst]'. Solid white background. STRICTLY NO MOCKUPS, NO physical stickers, NO 3D."
-      }}
-    ]
-    """
+You are an expert Print-on-Demand (POD) and Redbubble SEO strategist. This is batch number {batch_index} of 5.
+
+YOUR MISSION:
+1. Identify ONE specific animal that is highly profitable for stickers and t-shirts. It must have HIGH search volume (Google/Redbubble) but LOW competition. {zabrana}
+2. Brainstorm 5 COMPLETELY DIFFERENT, highly marketable design concepts for this specific animal.
+
+IMAGE PROMPT RULES (Crucial for Fal.ai FLUX SCHNELL):
+- Write the image prompt SPECIFICALLY optimized for the Flux Schnell model.
+- Flux models excel with direct, concise language and comma-separated keywords rather than long narrative sentences. Start with the main subject, follow with style, then details, and end with background/render instructions.
+- Do not restrict the art style to flat 2D; let the AI choose the best style (e.g., pop art, watercolor, highly detailed vector), but you MUST mandate "striking colors, vibrant palette, high contrast".
+- Explicitly demand ANATOMICAL PERFECTION. Include phrases like: "flawless anatomy, correct number of limbs, perfect symmetry, no extra legs or arms, no mutations".
+- Ensure it is suitable for POD: always include "isolated on a solid white background, clean edges".
+
+OUTPUT FORMAT REQUIREMENTS:
+- Return STRICTLY a valid JSON ARRAY.
+- DO NOT wrap the JSON in markdown formatting if it causes parsing errors.
+- DO NOT output any conversational text, introductions, or explanations before or after the JSON.
+- STRICT TITLE RULE: Do not include words like "sticker", "design", "art", "t-shirt", "print", "illustration", or similar terms in the title. The title must be purely the creative name of the artwork.
+
+[
+  {{
+    "animal_used": "ONLY the exact English name of the chosen animal (e.g., 'axolotl'). STRICTLY NO sentences.",
+    "title": "SEO-optimized English title (max 5-6 words). STRICTLY NO words like 'sticker', 'design', 'art', etc. Just the creative name.",
+    "description": "Engaging, keyword-rich product description in English (max 150 characters)",
+    "tags": "tag1, tag2, tag3 (Exactly 15 tags, comma-separated. The first tag MUST be the animal's name)",
+    "image_prompt": "Visually striking [insert best art style], [animal + unique situation], highly detailed, vibrant eye-catching colors, high contrast. Flawless anatomy, exact correct number of limbs and facial features, perfect symmetry, no AI mutations. Clean composition, isolated subject, solid white background. No text, no mockups."
+  }}
+]
+"""
     response = model.generate_content(prompt)
     clean_text = response.text.replace("```json", "").replace("```", "").strip()
     return json.loads(clean_text)
