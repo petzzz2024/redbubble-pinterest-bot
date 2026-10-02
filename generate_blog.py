@@ -8,7 +8,11 @@ import urllib.parse
 import xml.etree.ElementTree as ET
 from google import genai
 
+# Registracija media imenskog prostora za Pinterest/RSS kompatibilnost
+ET.register_namespace("media", "http://search.yahoo.com/mrss/")
+
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+FAL_KEY = os.environ.get("FAL_KEY")
 GA_MEASUREMENT_ID = "G-JHTGX1J5HX"
 
 # Zvanični Gemini 3 modeli
@@ -60,6 +64,7 @@ ANIMALS_DATA = [
     "capybara", "wombat", "honey badger", "beaver", "platypus", 
     "maned wolf", "stoat", "tibetan fox", "binturong", "hedgehog"
 ]
+
 def slugify(text):
     text = text.lower()
     text = re.sub(r'[^a-z0-9\s-]', '', text)
@@ -89,14 +94,49 @@ def get_next_animal():
     print(f"Sve životinje su upotrebljene. Izabrana iz grupe najmanje korišćenih: {chosen}")
     return chosen
 
+def generate_fal_image(clean_animal):
+    """Generiše AI sliku preko Fal.ai (Flux Schnell model)."""
+    if not FAL_KEY:
+        print("FAL_KEY nije pronađen u environment varijablama! Koristim podrazumevani logo.")
+        return "../Logo 2.png"
+
+    prompt = f"cute high quality studio photo portrait of a {clean_animal}, detailed, vibrant colors, 8k"
+    endpoint = "https://fal.run/fal-ai/flux/schnell"
+    
+    headers = {
+        "Authorization": f"Key {FAL_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "prompt": prompt,
+        "image_size": "square_hd",
+        "num_inference_steps": 4,
+        "enable_safety_checker": True
+    }
+
+    try:
+        print(f"Generišem sliku preko Fal.ai (flux/schnell) za: {clean_animal}...")
+        response = requests.post(endpoint, json=payload, headers=headers, timeout=30)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "images" in data and len(data["images"]) > 0:
+                img_url = data["images"][0]["url"]
+                print(f"Fal.ai slika uspešno generisana: {img_url}")
+                return img_url
+        print(f"Fal.ai API vrati status {response.status_code}: {response.text}")
+    except Exception as e:
+        print(f"Greška pri pozivanju Fal.ai API-ja: {e}")
+
+    return "../Logo 2.png"
+
 def get_store_category(animal_keyword):
     clean_animal = animal_keyword.lower().strip()
     query_encoded = urllib.parse.quote(clean_animal)
     shop_search_url = f"https://www.redbubble.com/shop/?query={query_encoded}&artistUserName=Petzzz"
     
-    prompt = urllib.parse.quote(f"cute high quality studio photo portrait of a {clean_animal}, detailed, vibrant colors, 8k")
-    seed = random.randint(1000, 99999)
-    ai_cover_img = f"https://image.pollinations.ai/prompt/{prompt}?width=800&height=800&nologo=true&seed={seed}"
+    ai_cover_img = generate_fal_image(clean_animal)
 
     return {
         "title": f"Explore Petzzz {clean_animal.title()} Designs",
@@ -182,9 +222,8 @@ def update_sitemap():
   </url>
 """
 
-    # Dodavanje svih blog članaka sa .html ekstenzijom
     for file in blog_files:
-        clean_path = file.replace("\\", "/") # Osiguranje formata 'blog/clanak.html' na svim OS
+        clean_path = file.replace("\\", "/")
         xml_content += f"""  <url>
     <loc>https://{SITE_DOMAIN}/{clean_path}</loc>
     <lastmod>{today}</lastmod>
@@ -193,24 +232,22 @@ def update_sitemap():
 
     xml_content += "</urlset>"
 
-    # Zapisujemo i prebrisujemo u jednu sitemap.xml
     with open("sitemap.xml", "w", encoding="utf-8") as f:
         f.write(xml_content)
     
-    # Brišemo stare fajlove ako postoje (da GitHub repo ostane čist)
     for old_sitemap in ["sitemap-main.xml", "sitemap-blog.xml"]:
         if os.path.exists(old_sitemap):
             os.remove(old_sitemap)
             
     print("Jedinstvena sitemap.xml uspešno izgenerisana i stare obrisane!")
 
-def update_rss(title, post_url, content_summary):
+def update_rss(title, post_url, content_summary, image_url=None):
     rss_file = "rss.xml"
     pub_date = datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S +0000")
     clean_description = re.sub(r'<[^>]+>', '', content_summary)[:200] + "..."
     
     if not os.path.exists(rss_file):
-        rss = ET.Element("rss", version="2.0")
+        rss = ET.Element("rss", version="2.0", attrib={"xmlns:media": "http://search.yahoo.com/mrss/"})
         channel = ET.SubElement(rss, "channel")
         ET.SubElement(channel, "title").text = "Petzzz Studio Blog"
         ET.SubElement(channel, "link").text = f"https://{SITE_DOMAIN}"
@@ -219,9 +256,11 @@ def update_rss(title, post_url, content_summary):
         try:
             tree = ET.parse(rss_file)
             rss = tree.getroot()
+            if "xmlns:media" not in rss.attrib:
+                rss.set("xmlns:media", "http://search.yahoo.com/mrss/")
             channel = rss.find("channel")
         except Exception:
-            rss = ET.Element("rss", version="2.0")
+            rss = ET.Element("rss", version="2.0", attrib={"xmlns:media": "http://search.yahoo.com/mrss/"})
             channel = ET.SubElement(rss, "channel")
 
     item = ET.SubElement(channel, "item")
@@ -230,10 +269,15 @@ def update_rss(title, post_url, content_summary):
     ET.SubElement(item, "description").text = clean_description
     ET.SubElement(item, "pubDate").text = pub_date
 
+    # Dodavanje slika za Pinterest, Make.com i ostale RSS čitače
+    if image_url and not image_url.startswith("../"):
+        ET.SubElement(item, "enclosure", attrib={"url": image_url, "type": "image/jpeg", "length": "0"})
+        ET.SubElement(item, "{http://search.yahoo.com/mrss/}content", attrib={"url": image_url, "medium": "image"})
+
     tree = ET.ElementTree(rss)
     ET.indent(tree, space="  ", level=0)
     tree.write(rss_file, encoding="utf-8", xml_declaration=True)
-    print("Rss.xml uspešno ažuriran!")
+    print("Rss.xml uspešno ažuriran sa slikom!")
 
 def notify_indexnow(post_url):
     endpoint = "https://api.indexnow.org/indexnow"
@@ -281,7 +325,7 @@ def update_blog_index():
                 dt_obj = datetime.datetime(2020, 1, 1)
                 
             slug = filename.replace(".html", "")
-            clean_url = f"/blog/{slug}.html" # Dodata .html ekstenzija
+            clean_url = f"/blog/{slug}.html"
             
             articles_data.append({
                 'clean_url': clean_url,
@@ -617,10 +661,10 @@ def generate_post():
     print(f"Blog post uspešno kreiran sa internal linkovima: {file_path}")
     
     update_blog_index()
-    update_sitemap() # Pozivamo novu funkciju
+    update_sitemap()
 
     clean_post_url = f"https://{SITE_DOMAIN}/blog/{slug}.html"
-    update_rss(topic, clean_post_url, article_content)
+    update_rss(topic, clean_post_url, article_content, category['img_url'])
     notify_indexnow(clean_post_url)
 
 if __name__ == "__main__":
