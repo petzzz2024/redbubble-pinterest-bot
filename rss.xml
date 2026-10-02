@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<rss version="2.0">
+<rss xmlns:media="http://search.yahoo.com/mrss/" version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
   <channel>
     <title>Petzzz Studio Blog</title>
     <link>https://petzzz2024.github.io/redbubble-pinterest-bot</link>
@@ -455,6 +455,14 @@ If your heart melts every time those big, soulful brown eyes look up at you, you
       <description>10 Cutest Cassowary Shirts Every Proud Pet Parent Needs
 So, you share your life, your home, and perhaps a healthy dose of pure adrenaline with the world's most misunderstood prehistoric powerhouse. Th...</description>
       <pubDate>Fri, 02 Oct 2026 07:00:57 +0000</pubDate>
+    </item>
+    <item>
+      <title>10 Cutest Pallas Cat Gifts Every Obsessed Pet Parent Needs</title>
+      <link>https://petzzz.world/blog/10-cutest-pallas-cat-gifts-every-obsessed-pet-parent-needs.html</link>
+      <description>10 Cutest Pallas Cat Gifts Every Obsessed Pet Parent Needs If your heart melts every time you see a delightfully grumpy, perpetually round Pallas cat (also affectionately known as the Manul), you are definitely in good company.</description>
+      <pubDate>Fri, 02 Oct 2026 08:41:07 +0000</pubDate>
+      <enclosure url="https://v3b.fal.media/files/b/0aacbe36/wHPuRlPCgtigGTeEcX2Vt.jpg" type="image/jpeg" length="0" />
+      <media:content url="https://v3b.fal.media/files/b/0aacbe36/wHPuRlPCgtigGTeEcX2Vt.jpg" medium="image" />
     </item>
   </channel>
 </rss>
