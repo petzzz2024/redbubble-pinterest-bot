@@ -1,13 +1,16 @@
 <?xml version='1.0' encoding='utf-8'?>
 <rss xmlns:media="http://search.yahoo.com/mrss/" version="2.0">
   <channel>
+    <title>Petzzz Studio Blog</title>
+    <link>https://petzzz.world</link>
+    <description>Latest posts and gift guides from Petzzz Studio</description>
     <item>
-      <title>10 Cutest Sea Sheep Nudibranch Gifts Every Pet Parent Needs</title>
-      <link>https://petzzz.world/blog/10-cutest-sea-sheep-nudibranch-gifts-every-pet-parent-needs.html</link>
-      <description>Dive into Cuteness: Why Sea Sheep Nudibranchs Are Taking Over the Pet World If you thought traditional house pets held a monopoly on cuteness, think again. Meet the sea sheep nudibranch ( Costasiella kuroshimae )—a tiny, leaf-shaped marine slug with beady little eyes, adorable "sheep" horns, and the unique ability to photosynthesize.</description>
-      <pubDate>Fri, 02 Oct 2026 19:10:09 +0000</pubDate>
-      <enclosure url="https://v3b.fal.media/files/b/0aacccf4/sorJ1H2kBvTRZBknWrrrj.jpg" type="image/jpeg" length="0" />
-      <media:content url="https://v3b.fal.media/files/b/0aacccf4/sorJ1H2kBvTRZBknWrrrj.jpg" medium="image" />
+      <title>10 Must-Have Hognose Snake Gifts Every Owner Will Obsess Over</title>
+      <link>https://petzzz.world/blog/10-must-have-hognose-snake-gifts-every-owner-will-obsess-over.html</link>
+      <description>10 Must-Have Hognose Snake Gifts Every Owner Will Obsess Over Are you shopping for a devoted reptile lover who is completely obsessed with their dramatic, shovel-nosed little buddy? Hognose snakes are famous for their sassy attitudes, adorable upturned snouts, and hilarious "dead" acting routines when they are feeling dramatic.</description>
+      <pubDate>Fri, 02 Oct 2026 16:01:38 +0000</pubDate>
+      <enclosure url="https://v3b.fal.media/files/b/0aacc889/Hqj46kaD2BjX3VzhDXkBn.jpg" type="image/jpeg" length="0" />
+      <media:content url="https://v3b.fal.media/files/b/0aacc889/Hqj46kaD2BjX3VzhDXkBn.jpg" medium="image" />
     </item>
   </channel>
 </rss>
