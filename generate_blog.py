@@ -244,8 +244,22 @@ def update_sitemap():
 def update_rss(title, post_url, content_summary, image_url=None):
     rss_file = "rss.xml"
     pub_date = datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S +0000")
-    clean_description = re.sub(r'<[^>]+>', '', content_summary)[:200] + "..."
     
+    # Odstrani HTML tagove i sredivanje razmaka
+    text_only = re.sub(r'<[^>]+>', ' ', content_summary)
+    text_only = re.sub(r'\s+', ' ', text_only).strip()
+    
+    # Pametno skraćivanje na poslednju celu rečenicu (do oko 350 karaktera)
+    if len(text_only) > 350:
+        short_text = text_only[:350]
+        last_dot = short_text.rfind('.')
+        if last_dot != -1:
+            clean_description = short_text[:last_dot + 1]
+        else:
+            clean_description = short_text + "..."
+    else:
+        clean_description = text_only
+
     if not os.path.exists(rss_file):
         rss = ET.Element("rss", version="2.0", attrib={"xmlns:media": "http://search.yahoo.com/mrss/"})
         channel = ET.SubElement(rss, "channel")
@@ -277,7 +291,7 @@ def update_rss(title, post_url, content_summary, image_url=None):
     tree = ET.ElementTree(rss)
     ET.indent(tree, space="  ", level=0)
     tree.write(rss_file, encoding="utf-8", xml_declaration=True)
-    print("Rss.xml uspešno ažuriran sa slikom!")
+    print("Rss.xml uspešno ažuriran sa punim rečenicama!")
 
 def notify_indexnow(post_url):
     endpoint = "https://api.indexnow.org/indexnow"
