@@ -28,56 +28,46 @@ def load_used_animals(filename="used_animals.txt"):
 def save_used_animals(animals, filename="used_animals.txt"):
     with open(filename, "w", encoding="utf-8") as f:
         for animal in sorted(set(animals)):
-            if animal: # Da ne upisuje prazne redove
+            if animal: 
                 f.write(f"{animal}\n")
 
 def get_batch_of_designs(batch_index, used_animals):
     model = genai.GenerativeModel('gemini-3.1-flash-lite')
     
-    zabrana = ""
-    if used_animals:
-        zabrana = f"STROGO ZABRANJENO: NE SMEŠ koristiti sledeće životinje: {', '.join(used_animals)}. Izaberi neku potpuno novu!"
+    forbidden_str = ", ".join(used_animals) if used_animals else "nema zabranjenih"
 
     prompt = f"""
-You are an expert Print-on-Demand (POD) and Redbubble SEO strategist. This is batch number {batch_index} of 5.
+    Ti si stručnjak za Print-on-Demand (POD) i Redbubble SEO. Prati trenutne internet trendove. Ovo je serija {batch_index} od 5.
 
-YOUR MISSION:
-1. Identify ONE specific animal that is highly profitable for stickers and t-shirts. It must have HIGH search volume (Google/Redbubble) but LOW competition. {zabrana}
-2. Brainstorm 5 COMPLETELY DIFFERENT, highly marketable design concepts for this specific animal. Each concept MUST include a catchy, fitting short phrase/quote.
+    CRVENO UPOZORENJE - STROGO ZABRANJENE ŽIVOTINJE (već smo ih radili i NE SMIJEŠ ih ponoviti):
+    [{forbidden_str}]
 
-IMAGE PROMPT RULES (Crucial for Fal.ai FLUX SCHNELL):
-- Write the image prompt SPECIFICALLY optimized for the Flux Schnell model.
-- CIRCULAR BADGE FORMAT: Every single design MUST be a perfectly circular badge/emblem. All elements (animal, background, text) must be strictly contained INSIDE an unbroken circular frame. Nothing breaking out.
-- TEXT INCLUSION: You must invent a short, punchy, and highly marketable phrase (1-4 words) that perfectly matches the concept (e.g., "STAY WILD", "COFFEE TIME"). Instruct Flux to generate this exact text by putting it in quotes (e.g., text reading "YOUR PHRASE HERE").
-- Flux models excel with direct, concise language and comma-separated keywords.
-- Let the AI choose the best style, but you MUST mandate "striking colors, vibrant palette, high contrast".
-- Explicitly demand ANATOMICAL PERFECTION: "flawless anatomy, correct number of limbs, perfect symmetry, no extra legs or arms, no mutations".
-- Ensure it is suitable for POD: always include "isolated on a solid white background".
-
-OUTPUT FORMAT REQUIREMENTS:
-- Return STRICTLY a valid JSON ARRAY.
-- DO NOT wrap the JSON in markdown formatting if it causes parsing errors.
-- DO NOT output any conversational text, introductions, or explanations before or after the JSON.
-- STRICT TITLE RULE: Do not include words like "sticker", "design", "art", "t-shirt", etc. Just the creative name.
-
-[
-  {{
-    "animal_used": "ONLY the exact English name of the chosen animal (e.g., 'axolotl'). STRICTLY NO sentences.",
-    "title": "SEO-optimized English title (max 5-6 words). STRICTLY NO words like 'sticker', 'design', etc.",
-    "description": "Engaging, keyword-rich product description in English (max 150 characters)",
-    "tags": "tag1, tag2, tag3 (Exactly 15 tags, comma-separated. The first tag MUST be the animal's name)",
-    "image_prompt": "Perfectly closed circular badge emblem design, [insert best art style], [animal + unique situation] completely inside the circle. Bold typography text reading '[INSERT AI GENERATED SHORT PHRASE BASED ON TITLE]' integrated perfectly inside the circular frame. Highly detailed, vibrant eye-catching colors, high contrast. Flawless anatomy, exact correct number of limbs, perfect symmetry, no AI mutations. Clean composition, isolated on a solid white background. No physical mockups."
-  }}
-]
-"""
+    ZADATAK:
+    1. Izaberi JEDNU specifičnu, popularnu životinju koja ima veliki broj pretraga, ali NIJE na gornjoj listi zabranjenih.
+    2. Osmisli 5 POTPUNO RAZLIČITIH dizajna za tu JEDNU novu životinju.
+    
+    Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata u ovom formatu:
+    [
+      {{
+        "animal_used": "SAMO i isključivo ime životinje na engleskom (npr. 'red panda'). Bez rečenica, objašnjavanja i bez dvotačke!",
+        "title": "Kratak SEO naslov na engleskom (max 5-6 riječi). Bez reči 'sticker', 'design'.",
+        "description": "SEO opis do 150 znakova na engleskom",
+        "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je naziv životinje)",
+        "visual_scene": "Kratak opis radnje na engleskom, npr. 'wearing sunglasses and playing video games'. BEZ spominjanja pozadine, okvira ili kruga.",
+        "text": "Kratak tekst koji ide na stiker, npr. 'GAMER VIBES'"
+      }}
+    ]
+    """
     response = model.generate_content(prompt)
     clean_text = response.text.replace("```json", "").replace("```", "").strip()
     return json.loads(clean_text)
 
-def generate_and_process_image(image_prompt, title, animal_name):
+def generate_and_process_image(visual_scene, text, title, animal_name):
     if not FAL_KEY:
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
+    image_prompt = f"A cute 2D vector graphic illustration of a {animal_name} {visual_scene}. The entire artwork AND the text '{text}' MUST be strictly contained INSIDE a perfectly round, thick continuous black circular border. White background outside the circle. No elements, no leaves, and no text can break or extend past the circular border. Clean flat design, sticker art style, striking colors, flawless anatomy."
+    
     url = "https://fal.run/fal-ai/flux/schnell"
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
     payload = {"prompt": image_prompt, "image_size": "square_hd"}
@@ -90,12 +80,18 @@ def generate_and_process_image(image_prompt, title, animal_name):
     img_response = requests.get(result["images"][0]["url"])
     input_image = Image.open(BytesIO(img_response.content))
     
-    output_transparent = remove(input_image, post_process_mask=True)
+    # DODATO ALPHA MATTING - Skida "bijeli oreol" i pravi oštru ivicu
+    output_transparent = remove(
+        input_image, 
+        post_process_mask=True,
+        alpha_matting=True,
+        alpha_matting_erode_size=3  # "Odgrize" 3 piksela sa ivice da ukloni bijelu liniju
+    )
+    
     bbox = output_transparent.getbbox()
     if bbox:
         output_transparent = output_transparent.crop(bbox)
     
-    # Optimizovano na 8000x8000 zbog Telegram limita
     target_size = 8000
     ratio = min(target_size / output_transparent.width, target_size / output_transparent.height)
     new_w = int(output_transparent.width * ratio)
@@ -169,26 +165,23 @@ if __name__ == "__main__":
     
     for i in range(5):
         try:
-            print(f"Tražim životinju {i+1}/5 i generišem njene dizajne...")
+            print(f"\nTražim trendi životinju {i+1}/5...")
             batch_data = get_batch_of_designs(i + 1, used_animals)
             
+            raw_animal = batch_data[0].get("animal_used", "unknown_animal")
+            if ":" in raw_animal:
+                raw_animal = raw_animal.split(":")[-1]
+            current_animal = raw_animal.strip().lower()
+            
+            print(f"Gemini je izabrao: {current_animal.upper()}")
+            if current_animal not in used_animals:
+                used_animals.append(current_animal)
+            
             for j, data in enumerate(batch_data):
-                # Čitanje imena životinje za SVAKI dizajn posebno
-                raw_animal = data.get("animal_used", "unknown_animal")
-                
-                # Očisti ako je Gemini ponovo ubacio dvotačku i tok misli
-                if ":" in raw_animal:
-                    raw_animal = raw_animal.split(":")[-1]
-                
-                current_animal = raw_animal.strip().lower()
-                
-                if current_animal not in used_animals:
-                    used_animals.append(current_animal)
-                    
                 design_num = (i * 5) + j + 1
-                print(f"  -> Generisanje slike {design_num}/25: {data['title']} ({current_animal})")
+                print(f"  -> Generisanje slike {design_num}/25: {data['title']}")
                 
-                filepath = generate_and_process_image(data["image_prompt"], data["title"], current_animal)
+                filepath = generate_and_process_image(data["visual_scene"], data["text"], data["title"], current_animal)
                 
                 data["file_path"] = filepath
                 data["safe_animal_name"] = get_safe_name(current_animal)
@@ -207,7 +200,6 @@ if __name__ == "__main__":
         grouped_results = {}
         files_to_zip = {} 
         
-        # Grupisanje slika u tačne foldere
         for item in results:
             animal = item["safe_animal_name"]
             if animal not in grouped_results:
