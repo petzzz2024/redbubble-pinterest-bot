@@ -43,7 +43,7 @@ def get_batch_of_designs(batch_index, used_animals):
     [{forbidden_str}]
 
     ZADATAK:
-    1. Izaberi JEDNU specifičnu, popularnu životinju koja ima veliki broj pretraga, ali NIJE na gornjoj listi zabranjenih.
+    1. Izaberi JEDNU specifičnu, popularnu životinju koja ima veliki broj pretraga, ali APSOLUTNO NIJE na gornjoj listi zabranjenih.
     2. Osmisli 5 POTPUNO RAZLIČITIH dizajna za tu JEDNU novu životinju.
     
     Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata u ovom formatu:
@@ -66,7 +66,16 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     if not FAL_KEY:
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
-    image_prompt = f"A cute 2D vector graphic illustration of a {animal_name} {visual_scene}. The entire artwork AND the text '{text}' MUST be strictly contained INSIDE a perfectly round, thick continuous black circular border. White background outside the circle. No elements, no leaves, and no text can break or extend past the circular border. Clean flat design, sticker art style, striking colors, flawless anatomy."
+    # Novi, znatno agresivniji prompt za Flux koji forsira debeli crni krug
+    image_prompt = (
+        f"A perfectly circular badge logo design. "
+        f"A thick, continuous black circular border enclosing the entire artwork. "
+        f"Inside the black circle: A cute {animal_name}, {visual_scene}. "
+        f"Also inside the black circle: Bold typography text reading '{text}'. "
+        f"Outside the black circle is a solid, pure white background. "
+        f"Everything must be strictly contained within the circular border ring, absolutely no elements spilling out. "
+        f"Clean vector art style, vibrant colors, striking sticker design."
+    )
     
     url = "https://fal.run/fal-ai/flux/schnell"
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
@@ -80,12 +89,14 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     img_response = requests.get(result["images"][0]["url"])
     input_image = Image.open(BytesIO(img_response.content))
     
-    # DODATO ALPHA MATTING - Skida "bijeli oreol" i pravi oštru ivicu
+    # Pojačano odgrizanje ivica (sa 3 na 5 piksela) i osjetljivija maska za čiste ivice
     output_transparent = remove(
         input_image, 
         post_process_mask=True,
         alpha_matting=True,
-        alpha_matting_erode_size=3  # "Odgrize" 3 piksela sa ivice da ukloni bijelu liniju
+        alpha_matting_erode_size=5,
+        alpha_matting_foreground_threshold=240,
+        alpha_matting_background_threshold=10
     )
     
     bbox = output_transparent.getbbox()
@@ -164,33 +175,47 @@ if __name__ == "__main__":
     used_animals = load_used_animals()
     
     for i in range(5):
-        try:
-            print(f"\nTražim trendi životinju {i+1}/5...")
-            batch_data = get_batch_of_designs(i + 1, used_animals)
-            
-            raw_animal = batch_data[0].get("animal_used", "unknown_animal")
-            if ":" in raw_animal:
-                raw_animal = raw_animal.split(":")[-1]
-            current_animal = raw_animal.strip().lower()
-            
-            print(f"Gemini je izabrao: {current_animal.upper()}")
-            if current_animal not in used_animals:
+        # OVO JE NOVI ZAŠTITNI ZID - Tjera Geminija da pokuša ponovo ako izbaci duplikat!
+        success = False
+        attempts = 0
+        
+        while not success and attempts < 3:
+            try:
+                print(f"\nTražim trendi životinju {i+1}/5 (Pokušaj {attempts+1})...")
+                batch_data = get_batch_of_designs(i + 1, used_animals)
+                
+                raw_animal = batch_data[0].get("animal_used", "unknown_animal")
+                if ":" in raw_animal:
+                    raw_animal = raw_animal.split(":")[-1]
+                current_animal = raw_animal.strip().lower()
+                
+                # Provjera da li je Gemini izabrao zabranjenu životinju
+                if current_animal in used_animals:
+                    print(f"⚠️ UPOZORENJE: Gemini je ponovo izabrao '{current_animal}', odbijam i pokušavam ponovo!")
+                    attempts += 1
+                    time.sleep(3)
+                    continue # Vraća ga na početak while petlje da smisli drugu životinju
+                
+                print(f"✅ Gemini je izabrao potpuno novu životinju: {current_animal.upper()}")
                 used_animals.append(current_animal)
-            
-            for j, data in enumerate(batch_data):
-                design_num = (i * 5) + j + 1
-                print(f"  -> Generisanje slike {design_num}/25: {data['title']}")
+                success = True
                 
-                filepath = generate_and_process_image(data["visual_scene"], data["text"], data["title"], current_animal)
-                
-                data["file_path"] = filepath
-                data["safe_animal_name"] = get_safe_name(current_animal)
-                results.append(data)
-                
-                time.sleep(2)
-                
-        except Exception as e:
-            print(f"❌ Greška na seriji {i+1}: {e}")
+                for j, data in enumerate(batch_data):
+                    design_num = (i * 5) + j + 1
+                    print(f"  -> Generisanje slike {design_num}/25: {data['title']}")
+                    
+                    filepath = generate_and_process_image(data["visual_scene"], data["text"], data["title"], current_animal)
+                    
+                    data["file_path"] = filepath
+                    data["safe_animal_name"] = get_safe_name(current_animal)
+                    results.append(data)
+                    
+                    time.sleep(2)
+                    
+            except Exception as e:
+                print(f"❌ Greška na seriji {i+1}: {e}")
+                attempts += 1
+                time.sleep(5)
         
         time.sleep(10)
 
