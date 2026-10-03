@@ -5,13 +5,16 @@ capybara
 cassowary
 fennec fox
 hedgehog
+honey badger
 opossum
+otter
 pangolin
 platypus
 puffin
 quokka
 red panda
 shoebill
+sloth
 slow loris
 sugar glider
 tapir
