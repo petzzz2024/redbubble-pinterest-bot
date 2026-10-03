@@ -13,5 +13,6 @@ quokka
 red panda
 shoebill
 slow loris
+sugar glider
 tapir
 wombat
