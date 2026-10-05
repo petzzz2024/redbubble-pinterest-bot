@@ -5,9 +5,14 @@ capuchin monkey
 capybara
 cassowary
 fennec fox
+goose
 hedgehog
+highland cattle
+highland cow
 honey badger
+jellyfish
 lemur
+octopus
 opossum
 otter
 pangolin
