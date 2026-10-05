@@ -6,7 +6,6 @@ import zipfile
 import time
 from io import BytesIO
 from PIL import Image
-from rembg import remove
 import google.generativeai as genai
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -33,15 +32,13 @@ def save_used_animals(animals, filename="used_animals.txt"):
 
 def get_unique_trending_animals(used_animals, target_count=5):
     """
-    FAZA 1: Traži trendi životinje od Geminija. 
-    Zadržava one koje nisu duplikati i traži dopunu dok ne skupi tačan broj (target_count).
+    FAZA 1: Traži trendi životinje od Geminija i osigurava tačno 5 novih.
     """
     model = genai.GenerativeModel('gemini-3.1-flash-lite')
     fresh_animals = []
     
     while len(fresh_animals) < target_count:
         needed = target_count - len(fresh_animals)
-        # Geminiju branimo ono što je u fajlu PLUS ono što smo već odobrili u ovoj sesiji
         forbidden_list = used_animals + fresh_animals
         forbidden_str = ", ".join(forbidden_list) if forbidden_list else "nema zabranjenih"
         
@@ -58,12 +55,10 @@ def get_unique_trending_animals(used_animals, target_count=5):
         
         try:
             response = model.generate_content(prompt)
-            # Čistimo odgovor (menjamo nove redove i tačke u zareze) da bismo lakše izvukli imena
             raw_text = response.text.replace('\n', ',').replace('.', ',')
             suggested = [a.strip().lower() for a in raw_text.split(',') if a.strip()]
             
             for animal in suggested:
-                # Ignorišemo prazne stringove, dugačke rečenice i duplikate
                 if animal and len(animal) < 25 and animal not in forbidden_list and animal not in fresh_animals:
                     fresh_animals.append(animal)
                     if len(fresh_animals) == target_count:
@@ -105,7 +100,6 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     if not FAL_KEY:
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
-    # Strogi prompt koji zabranjuje Flux-u šaranje oko kruga
     image_prompt = (
         f"A perfect circular badge sticker design. A smooth, thick, solid black circular border encloses the entire artwork. "
         f"Inside the circular border: a cute {animal_name} {visual_scene}, and bold typography reading '{text}'. "
@@ -113,27 +107,33 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
         f"Everything must be strictly contained inside the black ring. Clean vector illustration, flat colors, sharp edges."
     )
     
-    url = "https://fal.run/fal-ai/flux/schnell"
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
-    payload = {"prompt": image_prompt, "image_size": "square_hd"}
     
-    response = requests.post(url, headers=headers, json=payload)
-    if response.status_code != 200:
-        raise Exception(f"Fal.ai greška: {response.text}")
+    # 1. KORAK: Fal.ai Flux generiše sliku
+    url_flux = "https://fal.run/fal-ai/flux/schnell"
+    payload_flux = {"prompt": image_prompt, "image_size": "square_hd"}
+    
+    response_flux = requests.post(url_flux, headers=headers, json=payload_flux)
+    if response_flux.status_code != 200:
+        raise Exception(f"Fal.ai Flux greška: {response_flux.text}")
         
-    result = response.json()
-    img_response = requests.get(result["images"][0]["url"])
-    input_image = Image.open(BytesIO(img_response.content))
+    result_flux = response_flux.json()
+    original_image_url = result_flux["images"][0]["url"]
     
-    # Uklanjanje pozadine i odgrizanje ivica (2 piksela) da se ukloni beli oreol
-    output_transparent = remove(
-        input_image, 
-        post_process_mask=True,
-        alpha_matting=True,
-        alpha_matting_erode_size=2,
-        alpha_matting_foreground_threshold=240,
-        alpha_matting_background_threshold=10
-    )
+    # 2. KORAK: Fal.ai BiRefNet skida pozadinu sa savršenim ivicama!
+    url_birefnet = "https://fal.run/fal-ai/birefnet"
+    payload_birefnet = {"image_url": original_image_url}
+    
+    response_birefnet = requests.post(url_birefnet, headers=headers, json=payload_birefnet)
+    if response_birefnet.status_code != 200:
+        raise Exception(f"Fal.ai BiRefNet greška: {response_birefnet.text}")
+        
+    result_birefnet = response_birefnet.json()
+    transparent_image_url = result_birefnet["image"]["url"]
+    
+    # 3. KORAK: Preuzimanje prozirne slike i skaliranje na 8000x8000 px
+    img_response = requests.get(transparent_image_url)
+    output_transparent = Image.open(BytesIO(img_response.content)).convert("RGBA")
     
     bbox = output_transparent.getbbox()
     if bbox:
@@ -220,7 +220,6 @@ if __name__ == "__main__":
             print(f"\n--- Životinja {i+1}/5: {current_animal.upper()} ---")
             batch_data = get_designs_for_animal(current_animal)
             
-            # Dodajemo je na listu iskorištenih
             used_animals.append(current_animal)
             
             for j, data in enumerate(batch_data):
@@ -240,7 +239,6 @@ if __name__ == "__main__":
         
         time.sleep(10)
 
-    # Čuvanje na kraju da budemo sigurni da se baza ažurira
     save_used_animals(used_animals)
 
     if results:
