@@ -5,4 +5,3 @@ google-genai
 google-generativeai
 pillow
 onnxruntime
-rembg
