@@ -4,18 +4,23 @@ beaver
 capuchin monkey
 capybara
 cassowary
+elephant
 fennec fox
+flamingo
+giraffe
 goose
 hedgehog
 highland cattle
 highland cow
 honey badger
 jellyfish
+koala
 lemur
 octopus
 opossum
 otter
 pangolin
+penguin
 platypus
 puffin
 quokka
