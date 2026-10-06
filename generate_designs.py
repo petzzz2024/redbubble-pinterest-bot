@@ -5,7 +5,7 @@ import urllib.parse
 import zipfile
 import time
 from io import BytesIO
-from PIL import Image
+from PIL import Image, ImageFilter
 import google.generativeai as genai
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -31,9 +31,6 @@ def save_used_animals(animals, filename="used_animals.txt"):
                 f.write(f"{animal}\n")
 
 def get_unique_trending_animals(used_animals, target_count=5):
-    """
-    FAZA 1: Traži trendi životinje od Geminija i osigurava tačno 5 novih.
-    """
     model = genai.GenerativeModel('gemini-3.1-flash-lite')
     fresh_animals = []
     
@@ -74,7 +71,6 @@ def get_unique_trending_animals(used_animals, target_count=5):
     return fresh_animals
 
 def get_designs_for_animal(animal):
-    """FAZA 2: Generiše 5 dizajna za tačno određenu, proverenu životinju."""
     model = genai.GenerativeModel('gemini-3.1-flash-lite')
     
     prompt = f"""
@@ -101,15 +97,17 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
     image_prompt = (
-        f"A perfect circular badge sticker design. A smooth, thick, solid black circular border encloses the entire artwork. "
-        f"Inside the circular border: a cute {animal_name} {visual_scene}, and bold typography reading '{text}'. "
-        f"The background outside the black border must be plain, solid flat white. No brush strokes, no textures, no splashes, no messy edges. "
-        f"Everything must be strictly contained inside the black ring. Clean vector illustration, flat colors, sharp edges."
+        f"A beautiful vector graphic sticker design. "
+        f"The overall silhouette should be generally circular or badge-like, but DO NOT use a forced black circular border. "
+        f"Let the artwork form its own natural, creative edges. "
+        f"Design content: A cute {animal_name} {visual_scene}, and bold typography reading '{text}'. "
+        f"The background surrounding the sticker must be pure, solid flat white. "
+        f"Clean flat vector illustration, vibrant colors, sharp edges, professional sticker art."
     )
     
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
     
-    # 1. KORAK: Fal.ai Flux generiše sliku
+    # 1. Generisanje slike
     url_flux = "https://fal.run/fal-ai/flux/schnell"
     payload_flux = {"prompt": image_prompt, "image_size": "square_hd"}
     
@@ -120,7 +118,7 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     result_flux = response_flux.json()
     original_image_url = result_flux["images"][0]["url"]
     
-    # 2. KORAK: Fal.ai BiRefNet skida pozadinu sa savršenim ivicama!
+    # 2. Skidanje pozadine preko Fal.ai BiRefNet
     url_birefnet = "https://fal.run/fal-ai/birefnet"
     payload_birefnet = {"image_url": original_image_url}
     
@@ -131,10 +129,16 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     result_birefnet = response_birefnet.json()
     transparent_image_url = result_birefnet["image"]["url"]
     
-    # 3. KORAK: Preuzimanje prozirne slike i skaliranje na 8000x8000 px
+    # 3. Preuzimanje i "Giljotina" za bijeli halo
     img_response = requests.get(transparent_image_url)
     output_transparent = Image.open(BytesIO(img_response.content)).convert("RGBA")
     
+    r, g, b, a = output_transparent.split()
+    a = a.filter(ImageFilter.MinFilter(5)) 
+    a = a.point(lambda p: 255 if p > 200 else 0)
+    output_transparent = Image.merge("RGBA", (r, g, b, a))
+    
+    # Obrezivanje i skaliranje
     bbox = output_transparent.getbbox()
     if bbox:
         output_transparent = output_transparent.crop(bbox)
