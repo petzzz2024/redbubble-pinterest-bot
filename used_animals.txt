@@ -1,5 +1,6 @@
 axol-oh wait, shifting to: pangolin? no, forbidden. let's go with: binturong
 axolotl
+axolotl (wait
 beaver
 capuchin monkey
 capybara
@@ -7,9 +8,12 @@ cassowary
 elephant
 fennec fox
 flamingo
+forbidden)
+gecko
 giraffe
 goose
 hedgehog
+hedgehog (wait
 highland cattle
 highland cow
 honey badger
@@ -24,6 +28,7 @@ penguin
 platypus
 puffin
 quokka
+raccoon
 red panda
 shoebill
 sloth
