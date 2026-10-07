@@ -31,10 +31,14 @@ def save_used_animals(animals, filename="used_animals.txt"):
 
 def get_unique_trending_animals(used_animals, target_count=5):
     """
-    FAZA 1: Traži trendi životinje od Geminija koristeći STROGI JSON format.
+    FAZA 1: Traži trendi životinje od Geminija koristeći STROGI JSON format,
+    i filtrira "glupe" riječi koje AI ponekad zalijepi zbog prompta.
     """
     model = genai.GenerativeModel('gemini-3.1-flash-lite')
     fresh_animals = []
+    
+    # Blokiramo reči koje Gemini često halucinira kao životinje
+    banned_words = ['forbidden', 'wait', 'none', 'nema', 'zabranjeno', 'animal', 'unknown', 'here', 'are']
     
     while len(fresh_animals) < target_count:
         needed = target_count - len(fresh_animals)
@@ -61,10 +65,13 @@ def get_unique_trending_animals(used_animals, target_count=5):
             
             for animal in suggested:
                 clean_animal = animal.strip().lower()
-                if clean_animal and clean_animal not in forbidden_list and clean_animal not in fresh_animals:
-                    fresh_animals.append(clean_animal)
-                    if len(fresh_animals) == target_count:
-                        break
+                
+                # Provjera da ime ima smisla i da ne sadrži zabranjene reči poput "forbidden"
+                if clean_animal and len(clean_animal) < 20 and not any(bad in clean_animal for bad in banned_words):
+                    if clean_animal not in forbidden_list and clean_animal not in fresh_animals:
+                        fresh_animals.append(clean_animal)
+                        if len(fresh_animals) == target_count:
+                            break
                         
             print(f"  -> Trenutno imamo {len(fresh_animals)}/{target_count} sigurnih novih životinja...")
             time.sleep(2) 
