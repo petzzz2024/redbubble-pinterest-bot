@@ -1,11 +1,10 @@
 import os
 import json
 import requests
-import urllib.parse
 import zipfile
 import time
 from io import BytesIO
-from PIL import Image, ImageFilter
+from PIL import Image
 import google.generativeai as genai
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -31,6 +30,9 @@ def save_used_animals(animals, filename="used_animals.txt"):
                 f.write(f"{animal}\n")
 
 def get_unique_trending_animals(used_animals, target_count=5):
+    """
+    FAZA 1: Traži trendi životinje od Geminija koristeći STROGI JSON format.
+    """
     model = genai.GenerativeModel('gemini-3.1-flash-lite')
     fresh_animals = []
     
@@ -40,24 +42,27 @@ def get_unique_trending_animals(used_animals, target_count=5):
         forbidden_str = ", ".join(forbidden_list) if forbidden_list else "nema zabranjenih"
         
         prompt = f"""
-        Ti si stručnjak za Print-on-Demand trendove. Analiziraj trenutno najpopularnije životinje za stikere i majice.
-        Tvoj zadatak je da mi daš tačno {needed} trendi životinja.
+        Ti si stručnjak za Print-on-Demand trendove. Tvoj zadatak je da mi daš tačno {needed} trendi životinja.
         
         CRVENO UPOZORENJE - STROGO ZABRANJENO spominjati ove životinje:
         [{forbidden_str}]
         
-        Vrati SAMO i ISKLJUČIVO imena tih {needed} životinja na engleskom, razdvojena zarezom.
-        ZABRANJENO je pisanje brojeva, rečenica, objašnjenja. Samo imena! Npr: capybara, red panda
+        Vrati ISKLJUČIVO validan JSON niz stringova (Array of strings) sa imenima tih životinja na engleskom.
+        Nema objašnjenja, nema toka misli, NEMA rečenica. Samo JSON.
+        
+        Primer ispravnog odgovora:
+        ["capybara", "red panda", "axolotl"]
         """
         
         try:
             response = model.generate_content(prompt)
-            raw_text = response.text.replace('\n', ',').replace('.', ',')
-            suggested = [a.strip().lower() for a in raw_text.split(',') if a.strip()]
+            clean_text = response.text.replace("```json", "").replace("```", "").strip()
+            suggested = json.loads(clean_text)
             
             for animal in suggested:
-                if animal and len(animal) < 25 and animal not in forbidden_list and animal not in fresh_animals:
-                    fresh_animals.append(animal)
+                clean_animal = animal.strip().lower()
+                if clean_animal and clean_animal not in forbidden_list and clean_animal not in fresh_animals:
+                    fresh_animals.append(clean_animal)
                     if len(fresh_animals) == target_count:
                         break
                         
@@ -65,26 +70,27 @@ def get_unique_trending_animals(used_animals, target_count=5):
             time.sleep(2) 
             
         except Exception as e:
-            print(f"  -> Greška pri traženju životinja: {e}. Pokušavam ponovo...")
+            print(f"  -> Greška pri traženju životinja (vjerovatno loš JSON format): {e}. Pokušavam ponovo...")
             time.sleep(5)
             
     return fresh_animals
 
 def get_designs_for_animal(animal):
+    """FAZA 2: Generiše 5 dizajna za proverenu životinju."""
     model = genai.GenerativeModel('gemini-3.1-flash-lite')
     
     prompt = f"""
-    Ti si stručnjak za Print-on-Demand i Redbubble SEO.
+    Ti si stručnjak za Print-on-Demand i Redbubble SEO, Google trend expert.
     Osmisli 5 POTPUNO RAZLIČITIH dizajna za životinju: {animal.upper()}.
     
     Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata u ovom formatu:
     [
       {{
         "title": "Kratak SEO naslov na engleskom (max 5-6 riječi). Bez reči 'sticker', 'design'.",
-        "description": "SEO opis do 150 znakova na engleskom",
+        "description": "SEO opis do 200 znakova na engleskom",
         "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je {animal})",
         "visual_scene": "Kratak opis radnje na engleskom, npr. 'wearing sunglasses and playing video games'. BEZ spominjanja pozadine, okvira ili kruga.",
-        "text": "Kratak tekst koji ide na stiker, npr. 'GAMER VIBES'"
+        "text": "Kratak tekst koji ide na stiker, tekst nikada ne treba da bude beo, nego uvek da ima stroke a unutra ispunjen nekom bojom koju odrediš, npr. 'GAMER VIBES' sa crnim stroukom u svetlo plavim tekstom"
       }}
     ]
     """
@@ -97,12 +103,11 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
     image_prompt = (
-        f"A beautiful vector graphic sticker design. "
-        f"The overall silhouette should be generally circular or badge-like, but DO NOT use a forced black circular border. "
-        f"Let the artwork form its own natural, creative edges. "
+        f"A beautiful flat vector graphic sticker design. "
+        f"The overall silhouette must be completely self-contained. DO NOT use a forced black circular border. "
         f"Design content: A cute {animal_name} {visual_scene}, and bold typography reading '{text}'. "
-        f"The background surrounding the sticker must be pure, solid flat white. "
-        f"Clean flat vector illustration, vibrant colors, sharp edges, professional sticker art."
+        f"CRITICAL: Pure solid flat white background. ABSOLUTELY NO drop shadows, NO glow, NO blurry edges, NO brush strokes, NO gradients on the edges. "
+        f"Hard, sharp, perfectly crisp edges only. Professional 2D minimalist sticker art."
     )
     
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
@@ -129,16 +134,10 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     result_birefnet = response_birefnet.json()
     transparent_image_url = result_birefnet["image"]["url"]
     
-    # 3. Preuzimanje i "Giljotina" za bijeli halo
+    # 3. Preuzimanje prozirne slike i skaliranje na 8000x8000
     img_response = requests.get(transparent_image_url)
     output_transparent = Image.open(BytesIO(img_response.content)).convert("RGBA")
     
-    r, g, b, a = output_transparent.split()
-    a = a.filter(ImageFilter.MinFilter(5)) 
-    a = a.point(lambda p: 255 if p > 200 else 0)
-    output_transparent = Image.merge("RGBA", (r, g, b, a))
-    
-    # Obrezivanje i skaliranje
     bbox = output_transparent.getbbox()
     if bbox:
         output_transparent = output_transparent.crop(bbox)
