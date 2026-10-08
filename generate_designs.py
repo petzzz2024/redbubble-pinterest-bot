@@ -109,26 +109,34 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     if not FAL_KEY:
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
+    # Novi prompt optimizovan za Z Image Turbo (naglasak na 2D vector)
     image_prompt = (
-        f"A beautiful flat vector graphic sticker design. "
-        f"The overall silhouette must be completely self-contained. DO NOT use a forced black circular border. "
-        f"Design content: A cute {animal_name} {visual_scene}, and bold typography reading '{text}'. "
-        f"CRITICAL: Pure solid flat white background. ABSOLUTELY NO drop shadows, NO glow, NO blurry edges, NO brush strokes, NO gradients on the edges. "
-        f"Hard, sharp, perfectly crisp edges only. Professional 2D minimalist sticker art."
+        f"A standalone, beautiful flat vector graphic sticker design. "
+        f"Design content: A cute 2D cartoon {animal_name} {visual_scene}. "
+        f"Bold typography reading exactly '{text}'. "
+        f"Style: Flat 2D vector art, solid vibrant colors, clean sharp edges, minimalist sticker style illustration. "
+        f"The artwork is completely isolated on a pure, solid flat white background. No frames, no borders."
     )
+    
+    # Negativni prompt kako Z Image Turbo ne bi dodao stvari koje ometaju skidanje pozadine
+    negative_prompt = "3d render, realistic, photograph, drop shadow, glow, blurry edges, brush strokes, gradient background, scenery, border, frame, watermark, messy edges"
     
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
     
-    # 1. Generisanje slike
-    url_flux = "https://fal.run/fal-ai/flux/schnell"
-    payload_flux = {"prompt": image_prompt, "image_size": "square_hd"}
+    # 1. Generisanje slike koristeći Z Image Turbo
+    url_image_gen = "https://fal.run/fal-ai/z-image/turbo"
+    payload_image_gen = {
+        "prompt": image_prompt, 
+        "negative_prompt": negative_prompt,
+        "image_size": "square_hd"
+    }
     
-    response_flux = requests.post(url_flux, headers=headers, json=payload_flux)
-    if response_flux.status_code != 200:
-        raise Exception(f"Fal.ai Flux greška: {response_flux.text}")
+    response_image_gen = requests.post(url_image_gen, headers=headers, json=payload_image_gen)
+    if response_image_gen.status_code != 200:
+        raise Exception(f"Fal.ai Z Image Turbo greška: {response_image_gen.text}")
         
-    result_flux = response_flux.json()
-    original_image_url = result_flux["images"][0]["url"]
+    result_image_gen = response_image_gen.json()
+    original_image_url = result_image_gen["images"][0]["url"]
     
     # 2. Skidanje pozadine preko Fal.ai BiRefNet
     url_birefnet = "https://fal.run/fal-ai/birefnet"
