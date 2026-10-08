@@ -34,7 +34,7 @@ def get_unique_trending_animals(used_animals, target_count=5):
     FAZA 1: Traži trendi životinje od Geminija koristeći STROGI JSON format,
     i filtrira "glupe" riječi koje AI ponekad zalijepi zbog prompta.
     """
-    model = genai.GenerativeModel('gemini-3.1-flash-lite')
+    model = genai.GenerativeModel('gemini-3.8-flash','gemini-3.7-flash','gemini-3.6-flash','gemini-3.5-flash-lite','gemini-3.1-flash-lite')
     fresh_animals = []
     
     # Blokiramo reči koje Gemini često halucinira kao životinje
