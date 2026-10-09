@@ -1,5 +1,10 @@
 axolotl
 capybara
+frog
+goose
 highland cow
+opossum
+otter
 raccoon
 red panda
+sloth
