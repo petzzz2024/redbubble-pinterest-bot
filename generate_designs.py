@@ -4,7 +4,7 @@ import requests
 import zipfile
 import time
 from io import BytesIO
-from PIL import Image
+from PIL import Image, ImageFilter
 from rembg import remove
 import google.generativeai as genai
 
@@ -83,7 +83,6 @@ def get_unique_trending_animals(used_animals, target_count=5):
         """
         
         try:
-            # Koristimo novu funkciju umjesto direktnog pozivanja modela
             raw_response_text = generate_with_fallback(prompt)
             clean_text = raw_response_text.replace("```json", "").replace("```", "").strip()
             suggested = json.loads(clean_text)
@@ -107,10 +106,10 @@ def get_unique_trending_animals(used_animals, target_count=5):
     return fresh_animals
 
 def get_designs_for_animal(animal):
-    """FAZA 2: Generiše 5 dizajna za proverenu životinju koristeći fallback."""
+    """FAZA 2: Generiše 5 ilutracija bez teksta za proverenu životinju koristeći fallback."""
     prompt = f"""
     Ti si stručnjak za Print-on-Demand i Redbubble SEO, Google trend expert.
-    Osmisli 5 POTPUNO RAZLIČITIH dizajna za životinju: {animal.upper()}.
+    Osmisli 5 POTPUNO RAZLIČITIH ilustracija BEZ IKAKVOG TEKSTA za životinju: {animal.upper()}.
     
     Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata u ovom formatu:
     [
@@ -118,8 +117,7 @@ def get_designs_for_animal(animal):
         "title": "Kratak SEO naslov na engleskom (max 5-6 riječi). Bez reči 'sticker', 'design'.",
         "description": "SEO opis do 200 znakova na engleskom",
         "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je {animal})",
-        "visual_scene": "Kratak opis radnje na engleskom, npr. 'wearing sunglasses and playing video games'. BEZ spominjanja pozadine, okvira ili kruga.",
-        "text": "Samo tačna, kratka fraza NA ENGLESKOM koja ide na dizajn (npr. 'GAMER VIBES'). STROGO ZABRANJENO je dodavanje instrukcija o boji ili prevoda u ovo polje! Samo ispis fraze."
+        "visual_scene": "Kratak opis radnje/scene na engleskom, npr. 'wearing retro sunglasses and playing a guitar'. BEZ spominjanja teksta, pozadine ili kruga."
       }}
     ]
     """
@@ -127,21 +125,24 @@ def get_designs_for_animal(animal):
     clean_text = raw_response_text.replace("```json", "").replace("```", "").strip()
     return json.loads(clean_text)
 
-def generate_and_process_image(visual_scene, text, title, animal_name):
+def generate_and_process_image(visual_scene, title, animal_name):
     if not FAL_KEY:
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
-    # PROMPT: Crtamo striktno na crnoj pozadini radi lakšeg brisanja
+    # PROMPT: Fokusiran isključivo na čistu ilustraciju bez teksta
     image_prompt = (
-        f"A standalone flat 2D vector illustration graphic. "
+        f"A standalone flat 2D vector graphic illustration with NO text, NO words, NO letters. "
         f"Subject: A cute 2D cartoon {animal_name} {visual_scene}. "
-        f"Typography: Bold, highly stylized text reading exactly '{text}'. The text MUST have a thick white outline (stroke) and be filled with a vibrant, bright color. "
-        f"Style: Flat 2D vector art, clean crisp sharp edges, solid vibrant colors, NO shading, NO drop shadows, NO 3D effects. "
-        f"Composition: The artwork MUST be completely isolated on a PURE, SOLID PITCH BLACK BACKGROUND (#000000). No frames, no borders."
+        f"Style: Pure flat 2D vector art, clean crisp sharp edges, solid vibrant colors, NO shading, NO drop shadows, NO 3D effects. "
+        f"Composition: The artwork MUST be completely isolated on a PURE, SOLID PITCH BLACK BACKGROUND (#000000). No frames, no borders, NO text."
     )
     
-    # NEGATIVNI PROMPT: Zabranjujemo sve što otežava brisanje
-    negative_prompt = "white background, sticker, sticker peel, die cut, thick border, drop shadow, 3d render, realistic, photograph, glow, blurry edges, brush strokes, gradient background, scenery, border, frame, watermark, messy edges, extra text"
+    # NEGATIVNI PROMPT: Stroga zabrana bilo kakvog teksta i slova
+    negative_prompt = (
+        "text, words, letters, font, typography, slogan, quote, watermark, signature, "
+        "white background, sticker, sticker peel, die cut, thick border, drop shadow, 3d render, "
+        "realistic, photograph, glow, blurry edges, brush strokes, gradient background, scenery, border, frame, messy edges"
+    )
     
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
     
@@ -164,7 +165,7 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     img_response = requests.get(original_image_url)
     input_image = Image.open(BytesIO(img_response.content))
     
-    # 2. Skidanje crne pozadine preko lokalnog REMBG alata sa blagim obrezivanjem (Alpha Matting)
+    # 2. Skidanje crne pozadine preko lokalnog REMBG alata
     output_transparent = remove(
         input_image, 
         post_process_mask=True,
@@ -173,6 +174,12 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
         alpha_matting_background_threshold=10,
         alpha_matting_erode_size=2
     )
+    
+    # 2b. UKLANJANJE CRNIH IVICA (Odsijecanje polu-providnih tamnih piksela)
+    r, g, b, a = output_transparent.split()
+    a = a.filter(ImageFilter.MinFilter(3)) # Skraćuje alfa masku ka unutra
+    a = a.point(lambda p: 255 if p > 180 else 0) # Pretvara rubne polu-providne piksele u 100% providne
+    output_transparent = Image.merge("RGBA", (r, g, b, a))
     
     # 3. Skaliranje i čuvanje
     bbox = output_transparent.getbbox()
@@ -276,7 +283,7 @@ if __name__ == "__main__":
                 design_num = (i * 5) + j + 1
                 print(f"  -> Kreiram sliku {design_num}/25: {data['title']}")
                 
-                filepath = generate_and_process_image(data["visual_scene"], data["text"], data["title"], current_animal)
+                filepath = generate_and_process_image(data["visual_scene"], data["title"], current_animal)
                 
                 data["file_path"] = filepath
                 data["safe_animal_name"] = get_safe_name(current_animal)
