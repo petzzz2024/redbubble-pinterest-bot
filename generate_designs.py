@@ -119,7 +119,7 @@ def get_designs_for_animal(animal):
         "description": "SEO opis do 200 znakova na engleskom",
         "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je {animal})",
         "visual_scene": "Kratak opis radnje na engleskom, npr. 'wearing sunglasses and playing video games'. BEZ spominjanja pozadine, okvira ili kruga.",
-        "text": "Samo tačna, kratka fraza NA ENGLESKOM koja ide na dizajn majice (npr. 'GAMER VIBES'). STROGO ZABRANJENO je dodavanje instrukcija o boji ili prevoda u ovo polje! Samo ispis fraze."
+        "text": "Samo tačna, kratka fraza NA ENGLESKOM koja ide na dizajn (npr. 'GAMER VIBES'). STROGO ZABRANJENO je dodavanje instrukcija o boji ili prevoda u ovo polje! Samo ispis fraze."
       }}
     ]
     """
@@ -131,17 +131,17 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     if not FAL_KEY:
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
-    # POTPUNO IZBAČENA RIJEČ STICKER. Trazimo T-Shirt Graphic / Mascot Logo
+    # PROMPT: Crtamo striktno na crnoj pozadini radi lakšeg brisanja
     image_prompt = (
         f"A standalone flat 2D vector illustration graphic. "
         f"Subject: A cute 2D cartoon {animal_name} {visual_scene}. "
-        f"Typography: Bold, highly stylized text reading exactly '{text}'. The text MUST have a thick black outline (stroke) and be filled with a vibrant, bright color. "
-        f"Style: Flat 2D vector art, clean crisp sharp edges, solid vibrant colors, NO shading, NO 3D effects. "
-        f"Composition: The artwork is completely isolated on a pure, solid flat white background. No frames, no borders."
+        f"Typography: Bold, highly stylized text reading exactly '{text}'. The text MUST have a thick white outline (stroke) and be filled with a vibrant, bright color. "
+        f"Style: Flat 2D vector art, clean crisp sharp edges, solid vibrant colors, NO shading, NO drop shadows, NO 3D effects. "
+        f"Composition: The artwork MUST be completely isolated on a PURE, SOLID PITCH BLACK BACKGROUND (#000000). No frames, no borders."
     )
     
-    # Dodali smo zabranu i za "die cut" i "white border" da ga dodatno obuzdamo
-    negative_prompt = "sticker, sticker peel, die cut, thick white border, drop shadow, 3d render, realistic, photograph, glow, blurry edges, brush strokes, gradient background, scenery, border, frame, watermark, messy edges, extra text"
+    # NEGATIVNI PROMPT: Zabranjujemo sve što otežava brisanje
+    negative_prompt = "white background, sticker, sticker peel, die cut, thick border, drop shadow, 3d render, realistic, photograph, glow, blurry edges, brush strokes, gradient background, scenery, border, frame, watermark, messy edges, extra text"
     
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
     
@@ -164,14 +164,14 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     img_response = requests.get(original_image_url)
     input_image = Image.open(BytesIO(img_response.content))
     
-    # 2. Skidanje pozadine preko lokalnog REMBG alata sa Alpha Matting (Giljotina za vektor)
+    # 2. Skidanje crne pozadine preko lokalnog REMBG alata sa blagim obrezivanjem (Alpha Matting)
     output_transparent = remove(
         input_image, 
         post_process_mask=True,
         alpha_matting=True,
         alpha_matting_foreground_threshold=240,
         alpha_matting_background_threshold=10,
-        alpha_matting_erode_size=3
+        alpha_matting_erode_size=2
     )
     
     # 3. Skaliranje i čuvanje
