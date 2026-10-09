@@ -109,7 +109,7 @@ def get_unique_trending_animals(used_animals, target_count=5):
 def get_designs_for_animal(animal):
     """FAZA 2: Generiše 5 dizajna za proverenu životinju koristeći fallback."""
     prompt = f"""
-    Ti si stručnjak za Print-on-Demand i Redbubble SEO, Google trend expert.
+    Ti si stručnjak za Print-on-Demand i Redbubble SEO.
     Osmisli 5 POTPUNO RAZLIČITIH dizajna za životinju: {animal.upper()}.
     
     Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata u ovom formatu:
@@ -132,7 +132,7 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
     image_prompt = (
-        f"A standalone, beautiful flat vector graphic sticker design. "
+        f"A beautiful standalone flat vector graphic sticker design. "
         f"Subject: A cute 2D cartoon {animal_name} {visual_scene}. "
         f"Typography: Bold, highly stylized text reading exactly '{text}'. The text MUST have a thick black outline (stroke) and be filled with a vibrant, bright color. "
         f"Style: Flat 2D vector art, clean sharp edges, minimalist sticker style illustration. "
@@ -163,6 +163,7 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     input_image = Image.open(BytesIO(img_response.content))
     
     # 2. Skidanje pozadine preko lokalnog REMBG alata sa Alpha Matting (Giljotina za vektor)
+    # Ovo uklanja bijeli oreol i senke koje otežavaju skidanje pozadine
     output_transparent = remove(
         input_image, 
         post_process_mask=True,
