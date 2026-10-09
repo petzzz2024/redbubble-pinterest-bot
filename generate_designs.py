@@ -114,8 +114,8 @@ def get_designs_for_animal(animal):
     Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata u ovom formatu:
     [
       {{
-        "title": "Kratak SEO naslov na engleskom (min 4-7 reči). Bez reči 'sticker', 'design'.",
-        "description": "SEO opis od 150 do 200 znakova na engleskom",
+        "title": "Kratak SEO naslov na engleskom (max 5-6 riječi). Bez reči 'sticker', 'design'.",
+        "description": "SEO opis do 200 znakova na engleskom",
         "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je {animal})",
         "visual_scene": "Kratak opis radnje/scene na engleskom, npr. 'wearing retro sunglasses and playing video games'. BEZ spominjanja teksta, pozadine ili kruga.",
         "text": "Samo kratka, spretna fraza NA ENGLESKOM koja ide u lentu/pravougaonik na dnu (npr. 'GAMER VIBES'). STROGO ZABRANJENO je dodavanje instrukcija o boji ili prevoda!"
@@ -132,10 +132,10 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
         
     # PROMPT: Bela pozadina + crni stroke + lenta na dnu sa tekstom
     image_prompt = (
-        f"A standalone flat 2D vector illustration graphic design. "
+        f"A standalone flat 2D vector mascot illustration graphic for a t-shirt design. "
         f"Subject: A cute 2D cartoon {animal_name} {visual_scene}. "
-        f"Outline: The entire illustration MUST have a bold black outline (stroke). "
-        f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a stylized horizontal rectangle containing bold typography reading exactly '{text}'. "
+        f"Outline: The entire illustration MUST have a thick, bold black outline (stroke). "
+        f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a stylized horizontal ribbon banner or rectangle containing bold typography reading exactly '{text}'. "
         f"Style: Flat 2D vector art, clean crisp sharp edges, solid vibrant colors, NO shading, NO drop shadows, NO 3D effects. "
         f"Composition: The artwork MUST be completely isolated on a PURE, SOLID FLAT WHITE BACKGROUND (#FFFFFF)."
     )
