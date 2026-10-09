@@ -7,10 +7,13 @@ capuchin monkey
 capybara
 cassowary
 chameleon
+corgi
+dachshund
 elephant
 fennec fox
 flamingo
 forbidden)
+frog
 gecko
 giraffe
 goose
@@ -22,6 +25,7 @@ honey badger
 jellyfish
 koala
 lemur
+llama
 mandrill
 narwhal
 octopus
