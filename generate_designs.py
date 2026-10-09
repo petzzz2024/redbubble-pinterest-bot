@@ -287,4 +287,27 @@ if __name__ == "__main__":
         files_to_zip = {} 
         
         for item in results:
-            animal =
+            animal = item["safe_animal_name"]
+            if animal not in grouped_results:
+                grouped_results[animal] = []
+            grouped_results[animal].append(item)
+            
+        for animal, items in grouped_results.items():
+            folder_path = os.path.join("output_images", animal)
+            txt_path = os.path.join(folder_path, f"{animal}_podaci.txt")
+            
+            with open(txt_path, "w", encoding="utf-8") as f:
+                for index, item in enumerate(items):
+                    f.write(f"--- DIZAJN {index + 1} ---\n")
+                    f.write(f"Naslov: {item.get('title', '')}\n")
+                    f.write(f"Opis: {item.get('description', '')}\n")
+                    f.write(f"Tagovi: {item.get('tags', '')}\n")
+                    f.write(f"Slika (Ime fajla): {os.path.basename(item.get('file_path', ''))}\n")
+                    f.write("\n")
+            
+            files_to_zip[txt_path] = f"{animal}/{os.path.basename(txt_path)}"
+            for item in items:
+                img_path = item["file_path"]
+                files_to_zip[img_path] = f"{animal}/{os.path.basename(img_path)}"
+        
+        send_telegram_chunks(files_to_zip)
