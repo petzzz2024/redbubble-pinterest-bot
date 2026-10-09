@@ -2,7 +2,9 @@ armadillo
 axol-oh wait, shifting to: pangolin? no, forbidden. let's go with: binturong
 axolotl
 axolotl (wait
+badger
 beaver
+bison
 capuchin monkey
 capybara
 cassowary
@@ -26,11 +28,14 @@ jellyfish
 koala
 lemur
 llama
+lynx
 mandrill
+moose
 narwhal
 octopus
 opossum
 otter
+owl
 pangolin
 penguin
 platypus
