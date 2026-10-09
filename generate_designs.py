@@ -237,12 +237,22 @@ def send_telegram_chunks(files_to_zip):
             "caption": f"🚀 Redbubble Dizajni - Dio {zip_counter}/{len(all_chunks)} (8000x8000 px)"
         }
         
-        with open(zip_filename, 'rb') as f:
-            response = requests.post(url, data=data, files={"document": f})
-            if response.status_code == 200:
-                print(f"✅ Telegram paket {zip_counter}/{len(all_chunks)} uspješno poslan!")
-            else:
-                print(f"❌ Greška pri slanju na Telegram: {response.text}")
+        # Retry mechanism for Telegram upload
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                with open(zip_filename, 'rb') as f:
+                    response = requests.post(url, data=data, files={"document": f}, timeout=120)
+                    if response.status_code == 200:
+                        print(f"✅ Telegram paket {zip_counter}/{len(all_chunks)} uspješno poslan!")
+                        break
+                    else:
+                        print(f"❌ Greška pri slanju na Telegram: {response.text}")
+            except requests.exceptions.RequestException as e:
+                print(f"⏳ Attempt {attempt + 1} failed: {e}. Retrying in 5 seconds...")
+                time.sleep(5)
+        else:
+            print(f"🚨 Failed to send package {zip_counter} after {max_retries} attempts.")
                 
         zip_counter += 1
 
