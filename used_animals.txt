@@ -3,6 +3,7 @@ axol-oh wait, shifting to: pangolin? no, forbidden. let's go with: binturong
 axolotl
 axolotl (wait
 badger
+bear
 beaver
 bison
 capuchin monkey
@@ -11,6 +12,7 @@ cassowary
 chameleon
 corgi
 dachshund
+eagle
 elephant
 fennec fox
 flamingo
@@ -27,6 +29,7 @@ honey badger
 jellyfish
 koala
 lemur
+lion
 llama
 lynx
 mandrill
@@ -49,4 +52,6 @@ slow loris
 sugar glider
 tapir
 tarsier
+tiger
+wolf
 wombat
