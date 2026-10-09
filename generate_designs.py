@@ -14,6 +14,33 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 genai.configure(api_key=GEMINI_API_KEY)
 
+# LISTA MODELA: Skripta će ići redom. Ako jedan pukne zbog limita, prelazi na sljedeći.
+AVAILABLE_MODELS = [
+    'gemini-3.8-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite',
+    'gemini-3.7-flash',
+    'gemini-3.6-flash',
+    'gemini-3.5-flash'
+]
+
+def generate_with_fallback(prompt_text):
+    """
+    Pokušava generisati sadržaj prolazeći kroz sve dostupne modele.
+    Ako jedan model baci grešku (npr. Rate Limit), automatski prelazi na sljedeći.
+    """
+    for model_name in AVAILABLE_MODELS:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(prompt_text)
+            return response.text
+        except Exception as e:
+            print(f"    [!] Model {model_name} nije uspio (Greška: {e}). Pokušavam sljedeći...")
+            time.sleep(2) # Kratka pauza prije pokušaja sa novim modelom
+            
+    # Ako su apsolutno svi modeli pukli
+    raise Exception("Svi Gemini modeli su preopterećeni ili van funkcije!")
+
 def get_safe_name(text):
     return "".join(c for c in text if c.isalnum() or c in (' ', '_')).rstrip()
 
@@ -31,13 +58,9 @@ def save_used_animals(animals, filename="used_animals.txt"):
 
 def get_unique_trending_animals(used_animals, target_count=5):
     """
-    FAZA 1: Traži trendi životinje od Geminija koristeći STROGI JSON format,
-    i filtrira "glupe" riječi koje AI ponekad zalijepi zbog prompta.
+    FAZA 1: Traži trendi životinje koristeći fallback sistem modela.
     """
-    model = genai.GenerativeModel('gemini-3.8-flash','gemini-3.7-flash','gemini-3.6-flash','gemini-3.5-flash-lite','gemini-3.1-flash-lite')
     fresh_animals = []
-    
-    # Blokiramo reči koje Gemini često halucinira kao životinje
     banned_words = ['forbidden', 'wait', 'none', 'nema', 'zabranjeno', 'animal', 'unknown', 'here', 'are']
     
     while len(fresh_animals) < target_count:
@@ -59,14 +82,14 @@ def get_unique_trending_animals(used_animals, target_count=5):
         """
         
         try:
-            response = model.generate_content(prompt)
-            clean_text = response.text.replace("```json", "").replace("```", "").strip()
+            # Koristimo novu funkciju umjesto direktnog pozivanja modela
+            raw_response_text = generate_with_fallback(prompt)
+            clean_text = raw_response_text.replace("```json", "").replace("```", "").strip()
             suggested = json.loads(clean_text)
             
             for animal in suggested:
                 clean_animal = animal.strip().lower()
                 
-                # Provjera da ime ima smisla i da ne sadrži zabranjene reči poput "forbidden"
                 if clean_animal and len(clean_animal) < 20 and not any(bad in clean_animal for bad in banned_words):
                     if clean_animal not in forbidden_list and clean_animal not in fresh_animals:
                         fresh_animals.append(clean_animal)
@@ -77,15 +100,13 @@ def get_unique_trending_animals(used_animals, target_count=5):
             time.sleep(2) 
             
         except Exception as e:
-            print(f"  -> Greška pri traženju životinja (vjerovatno loš JSON format): {e}. Pokušavam ponovo...")
+            print(f"  -> Greška pri traženju životinja (loš JSON ili su svi modeli pukli): {e}. Pokušavam ponovo...")
             time.sleep(5)
             
     return fresh_animals
 
 def get_designs_for_animal(animal):
-    """FAZA 2: Generiše 5 dizajna za proverenu životinju."""
-    model = genai.GenerativeModel('gemini-3.1-flash-lite')
-    
+    """FAZA 2: Generiše 5 dizajna za proverenu životinju koristeći fallback."""
     prompt = f"""
     Ti si stručnjak za Print-on-Demand i Redbubble SEO, Google trend expert.
     Osmisli 5 POTPUNO RAZLIČITIH dizajna za životinju: {animal.upper()}.
@@ -101,15 +122,14 @@ def get_designs_for_animal(animal):
       }}
     ]
     """
-    response = model.generate_content(prompt)
-    clean_text = response.text.replace("```json", "").replace("```", "").strip()
+    raw_response_text = generate_with_fallback(prompt)
+    clean_text = raw_response_text.replace("```json", "").replace("```", "").strip()
     return json.loads(clean_text)
 
 def generate_and_process_image(visual_scene, text, title, animal_name):
     if not FAL_KEY:
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
-    # Novi prompt optimizovan za Z Image Turbo (naglasak na 2D vector)
     image_prompt = (
         f"A standalone, beautiful flat vector graphic sticker design. "
         f"Design content: A cute 2D cartoon {animal_name} {visual_scene}. "
@@ -118,7 +138,6 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
         f"The artwork is completely isolated on a pure, solid flat white background. No frames, no borders."
     )
     
-    # Negativni prompt kako Z Image Turbo ne bi dodao stvari koje ometaju skidanje pozadine
     negative_prompt = "3d render, realistic, photograph, drop shadow, glow, blurry edges, brush strokes, gradient background, scenery, border, frame, watermark, messy edges"
     
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
