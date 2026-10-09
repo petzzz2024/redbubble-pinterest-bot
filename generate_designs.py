@@ -5,6 +5,7 @@ import zipfile
 import time
 from io import BytesIO
 from PIL import Image
+from rembg import remove
 import google.generativeai as genai
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -118,7 +119,7 @@ def get_designs_for_animal(animal):
         "description": "SEO opis do 200 znakova na engleskom",
         "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je {animal})",
         "visual_scene": "Kratak opis radnje na engleskom, npr. 'wearing sunglasses and playing video games'. BEZ spominjanja pozadine, okvira ili kruga.",
-        "text": "Kratak tekst koji ide na stiker, tekst nikada ne treba da bude beo, nego uvek da ima stroke a unutra ispunjen nekom bojom koju odrediš, npr. 'GAMER VIBES' sa crnim stroukom u svetlo plavim tekstom"
+        "text": "Samo tačna, kratka fraza NA ENGLESKOM koja ide na dizajn (npr. 'GAMER VIBES'). STROGO ZABRANJENO je dodavanje instrukcija o boji ili prevoda u ovo polje! Samo ispis fraze."
       }}
     ]
     """
@@ -132,13 +133,13 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
         
     image_prompt = (
         f"A standalone, beautiful flat vector graphic sticker design. "
-        f"Design content: A cute 2D cartoon {animal_name} {visual_scene}. "
-        f"Bold typography reading exactly '{text}'. "
-        f"Style: Flat 2D vector art, solid vibrant colors, clean sharp edges, minimalist sticker style illustration. "
-        f"The artwork is completely isolated on a pure, solid flat white background. No frames, no borders."
+        f"Subject: A cute 2D cartoon {animal_name} {visual_scene}. "
+        f"Typography: Bold, highly stylized text reading exactly '{text}'. The text MUST have a thick black outline (stroke) and be filled with a vibrant, bright color. "
+        f"Style: Flat 2D vector art, clean sharp edges, minimalist sticker style illustration. "
+        f"Composition: The artwork is completely isolated on a pure, solid flat white background. No frames, no borders."
     )
     
-    negative_prompt = "3d render, realistic, photograph, drop shadow, glow, blurry edges, brush strokes, gradient background, scenery, border, frame, watermark, messy edges"
+    negative_prompt = "3d render, realistic, photograph, drop shadow, glow, blurry edges, brush strokes, gradient background, scenery, border, frame, watermark, messy edges, extra text"
     
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
     
@@ -157,21 +158,21 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     result_image_gen = response_image_gen.json()
     original_image_url = result_image_gen["images"][0]["url"]
     
-    # 2. Skidanje pozadine preko Fal.ai BiRefNet
-    url_birefnet = "https://fal.run/fal-ai/birefnet"
-    payload_birefnet = {"image_url": original_image_url}
+    # Preuzimanje generisane slike
+    img_response = requests.get(original_image_url)
+    input_image = Image.open(BytesIO(img_response.content))
     
-    response_birefnet = requests.post(url_birefnet, headers=headers, json=payload_birefnet)
-    if response_birefnet.status_code != 200:
-        raise Exception(f"Fal.ai BiRefNet greška: {response_birefnet.text}")
-        
-    result_birefnet = response_birefnet.json()
-    transparent_image_url = result_birefnet["image"]["url"]
+    # 2. Skidanje pozadine preko lokalnog REMBG alata sa Alpha Matting (Giljotina za vektor)
+    output_transparent = remove(
+        input_image, 
+        post_process_mask=True,
+        alpha_matting=True,
+        alpha_matting_foreground_threshold=240,
+        alpha_matting_background_threshold=10,
+        alpha_matting_erode_size=3
+    )
     
-    # 3. Preuzimanje prozirne slike i skaliranje na 8000x8000
-    img_response = requests.get(transparent_image_url)
-    output_transparent = Image.open(BytesIO(img_response.content)).convert("RGBA")
-    
+    # 3. Skaliranje i čuvanje
     bbox = output_transparent.getbbox()
     if bbox:
         output_transparent = output_transparent.crop(bbox)
