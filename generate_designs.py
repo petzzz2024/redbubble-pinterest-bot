@@ -109,7 +109,7 @@ def get_unique_trending_animals(used_animals, target_count=5):
 def get_designs_for_animal(animal):
     """FAZA 2: Generiše 5 dizajna za proverenu životinju koristeći fallback."""
     prompt = f"""
-    Ti si stručnjak za Print-on-Demand i Redbubble SEO.
+    Ti si stručnjak za Print-on-Demand i Redbubble SEO, Google trend expert.
     Osmisli 5 POTPUNO RAZLIČITIH dizajna za životinju: {animal.upper()}.
     
     Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata u ovom formatu:
@@ -119,7 +119,7 @@ def get_designs_for_animal(animal):
         "description": "SEO opis do 200 znakova na engleskom",
         "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je {animal})",
         "visual_scene": "Kratak opis radnje na engleskom, npr. 'wearing sunglasses and playing video games'. BEZ spominjanja pozadine, okvira ili kruga.",
-        "text": "Samo tačna, kratka fraza NA ENGLESKOM koja ide na dizajn (npr. 'GAMER VIBES'). STROGO ZABRANJENO je dodavanje instrukcija o boji ili prevoda u ovo polje! Samo ispis fraze."
+        "text": "Samo tačna, kratka fraza NA ENGLESKOM koja ide na dizajn majice (npr. 'GAMER VIBES'). STROGO ZABRANJENO je dodavanje instrukcija o boji ili prevoda u ovo polje! Samo ispis fraze."
       }}
     ]
     """
@@ -131,15 +131,17 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     if not FAL_KEY:
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
+    # POTPUNO IZBAČENA RIJEČ STICKER. Trazimo T-Shirt Graphic / Mascot Logo
     image_prompt = (
-        f"A beautiful standalone flat vector graphic sticker design. "
+        f"A standalone flat 2D vector illustration graphic. "
         f"Subject: A cute 2D cartoon {animal_name} {visual_scene}. "
         f"Typography: Bold, highly stylized text reading exactly '{text}'. The text MUST have a thick black outline (stroke) and be filled with a vibrant, bright color. "
-        f"Style: Flat 2D vector art, clean sharp edges, minimalist sticker style illustration. "
+        f"Style: Flat 2D vector art, clean crisp sharp edges, solid vibrant colors, NO shading, NO 3D effects. "
         f"Composition: The artwork is completely isolated on a pure, solid flat white background. No frames, no borders."
     )
     
-    negative_prompt = "3d render, realistic, photograph, drop shadow, glow, blurry edges, brush strokes, gradient background, scenery, border, frame, watermark, messy edges, extra text"
+    # Dodali smo zabranu i za "die cut" i "white border" da ga dodatno obuzdamo
+    negative_prompt = "sticker, sticker peel, die cut, thick white border, drop shadow, 3d render, realistic, photograph, glow, blurry edges, brush strokes, gradient background, scenery, border, frame, watermark, messy edges, extra text"
     
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
     
@@ -163,7 +165,6 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     input_image = Image.open(BytesIO(img_response.content))
     
     # 2. Skidanje pozadine preko lokalnog REMBG alata sa Alpha Matting (Giljotina za vektor)
-    # Ovo uklanja bijeli oreol i senke koje otežavaju skidanje pozadine
     output_transparent = remove(
         input_image, 
         post_process_mask=True,
@@ -286,27 +287,4 @@ if __name__ == "__main__":
         files_to_zip = {} 
         
         for item in results:
-            animal = item["safe_animal_name"]
-            if animal not in grouped_results:
-                grouped_results[animal] = []
-            grouped_results[animal].append(item)
-            
-        for animal, items in grouped_results.items():
-            folder_path = os.path.join("output_images", animal)
-            txt_path = os.path.join(folder_path, f"{animal}_podaci.txt")
-            
-            with open(txt_path, "w", encoding="utf-8") as f:
-                for index, item in enumerate(items):
-                    f.write(f"--- DIZAJN {index + 1} ---\n")
-                    f.write(f"Naslov: {item.get('title', '')}\n")
-                    f.write(f"Opis: {item.get('description', '')}\n")
-                    f.write(f"Tagovi: {item.get('tags', '')}\n")
-                    f.write(f"Slika (Ime fajla): {os.path.basename(item.get('file_path', ''))}\n")
-                    f.write("\n")
-            
-            files_to_zip[txt_path] = f"{animal}/{os.path.basename(txt_path)}"
-            for item in items:
-                img_path = item["file_path"]
-                files_to_zip[img_path] = f"{animal}/{os.path.basename(img_path)}"
-        
-        send_telegram_chunks(files_to_zip)
+            animal =
