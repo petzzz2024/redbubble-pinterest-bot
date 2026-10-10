@@ -130,20 +130,21 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     if not FAL_KEY:
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
-    # PROMPT: Bela pozadina + crni stroke + obojena lenta na dnu sa tekstom
+    # PROMPT: Bela pozadina + obavezni crni stroke + jarko obojena lenta na dnu sa tekstom
     image_prompt = (
         f"A standalone flat 2D vector mascot illustration graphic for a t-shirt design. "
         f"Subject: A cute 2D cartoon {animal_name} {visual_scene}. "
-        f"Outline: The entire illustration MUST have a thick, bold black outline (stroke). "
-        f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a stylized horizontal ribbon banner or rectangle FILLED WITH A SOLID VIBRANT COLOR (NEVER WHITE, NEVER TRANSPARENT, MUST BE A BRIGHT COLOR LIKE BLUE, YELLOW, RED, OR GREEN) containing bold typography reading exactly '{text}'. "
+        f"Outline: The entire illustration and character MUST have a thick, solid bold black outline (stroke). "
+        f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a horizontal ribbon banner or rectangle FILLED WITH A SOLID BRIGHT COLOR (BRIGHT YELLOW, CYAN, ORANGE, RED, OR GREEN - NEVER WHITE, NEVER TRANSPARENT) with a thick black outline, containing bold typography reading exactly '{text}'. "
         f"Style: Flat 2D vector art, clean crisp sharp edges, solid vibrant colors, NO shading, NO drop shadows, NO 3D effects. "
         f"Composition: The artwork MUST be completely isolated on a PURE, SOLID FLAT WHITE BACKGROUND (#FFFFFF)."
     )
     
     # NEGATIVNI PROMPT: Zabranjujemo bijelu lentu, crnu pozadinu, stiker efekte i sjenke
     negative_prompt = (
-        "white banner, white ribbon, transparent banner, black background, dark background, sticker peel, die cut, drop shadow, 3d render, "
-        "realistic, photograph, glow, blurry edges, brush strokes, gradient background, scenery, border, circular frame, watermark, messy edges, floating text outside banner"
+        "white banner, white ribbon, transparent banner, white text box, monochrome banner, black background, dark background, "
+        "sticker peel, die cut, drop shadow, 3d render, realistic, photograph, glow, blurry edges, brush strokes, "
+        "gradient background, scenery, border, circular frame, watermark, messy edges, floating text outside banner"
     )
     
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
@@ -168,13 +169,14 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     input_image = Image.open(BytesIO(img_response.content))
     
     # 2. Skidanje bele pozadine preko REMBG alata sa Alpha Matting
+    # threshold 240 osigurava da unutrašnji bijeli dijelovi opstaju, a samo spoljašnjost briše
     output_transparent = remove(
         input_image, 
         post_process_mask=True,
         alpha_matting=True,
         alpha_matting_foreground_threshold=240,
         alpha_matting_background_threshold=10,
-        alpha_matting_erode_size=3
+        alpha_matting_erode_size=2
     )
     
     # 3. Skaliranje i čuvanje na platno 8000x8000
