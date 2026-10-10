@@ -130,16 +130,20 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     if not FAL_KEY:
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
+    # PROMPT: Stroga zabrana svijetlih/bež boja radi nepogrešive segmentacije na BiRefNet-u
     image_prompt = (
         f"A standalone flat 2D vector mascot illustration graphic for a t-shirt design. "
         f"Subject: A cute 2D cartoon {animal_name} {visual_scene}. "
+        f"Colors: The entire illustration MUST use STRICTLY BOLD, HIGHLY SATURATED, VIBRANT COLORS (such as deep orange, bright yellow, rich dark blue, vivid red, dark green). ABSOLUTELY NO BEIGE, NO PASTELS, NO LIGHT BLUE, NO CREAM, NO PALE PINK. "
         f"Outline: The entire illustration and character MUST have a thick, solid bold black outline (stroke). "
-        f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a horizontal ribbon banner or rectangle FILLED WITH A SOLID BRIGHT COLOR (BRIGHT YELLOW, CYAN, ORANGE, RED, OR GREEN - NEVER WHITE, NEVER TRANSPARENT) with a thick black outline, containing bold typography reading exactly '{text}'. "
+        f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a horizontal ribbon banner or rectangle FILLED WITH A SOLID HIGH-CONTRAST VIBRANT COLOR (BRIGHT YELLOW, CYAN, ORANGE, RED, OR GREEN - NEVER WHITE, NEVER PASTEL) with a thick black outline, containing bold typography reading exactly '{text}'. "
         f"Style: Flat 2D vector art, clean crisp sharp edges, solid vibrant colors, NO shading, NO drop shadows, NO 3D effects. "
         f"Composition: The artwork MUST be completely isolated on a PURE, SOLID FLAT WHITE BACKGROUND (#FFFFFF)."
     )
     
+    # NEGATIVNI PROMPT: Strogo filtriranje tonova koji liče na bijelu pozadinu
     negative_prompt = (
+        "beige, cream, light blue, pale blue, pastel colors, light pink, off-white, pale colors, washed out colors, "
         "white banner, white ribbon, transparent banner, white text box, monochrome banner, black background, dark background, "
         "sticker peel, die cut, drop shadow, 3d render, realistic, photograph, glow, blurry edges, brush strokes, "
         "gradient background, scenery, border, circular frame, watermark, messy edges, floating text outside banner"
@@ -162,7 +166,7 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     result_image_gen = response_image_gen.json()
     original_image_url = result_image_gen["images"][0]["url"]
     
-    # 2. KORAK: Prvo brisanje pozadine preko Fal.ai BiRefNet-a
+    # 2. KORAK: Skidanje pozadine preko Fal.ai BiRefNet-a
     url_birefnet = "https://fal.run/fal-ai/birefnet"
     payload_birefnet = {"image_url": original_image_url}
     
@@ -173,20 +177,19 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     result_birefnet = response_birefnet.json()
     transparent_image_url = result_birefnet["image"]["url"]
     
-    # 3. KORAK: Preuzimanje prozirne slike sa Fal.ai
+    # 3. KORAK: Preuzimanje transparentne slike sa Fal.ai
     img_response = requests.get(transparent_image_url)
     input_image = Image.open(BytesIO(img_response.content)).convert("RGBA")
     
-    # 4. KORAK: Drugo (lokalno) čišćenje preko rembg + erozija ivica
+    # 4. KORAK: Dodatno fino čišćenje lokalnim rembg-om i zaglađivanje rubnih piksela
     cleaned_image = remove(input_image)
     
-    # Sužavanje ivica (Alfa maska) da se eliminišu sitni rubni pikseli
     r, g, b, a = cleaned_image.split()
-    a = a.filter(ImageFilter.MinFilter(3)) # Erodira rub za 1-2 piksela ka unutra
-    a = a.point(lambda p: 255 if p > 180 else 0) # Pretvara polu-providne piksele u čistu providnost
+    a = a.filter(ImageFilter.MinFilter(3))
+    a = a.point(lambda p: 255 if p > 180 else 0)
     output_transparent = Image.merge("RGBA", (r, g, b, a))
     
-    # 5. KORAK: Skaliranje i postavljanje na 8000x8000 platno
+    # 5. KORAK: Skaliranje i postavljanje na platno 8000x8000
     bbox = output_transparent.getbbox()
     if bbox:
         output_transparent = output_transparent.crop(bbox)
