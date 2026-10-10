@@ -1,15 +1,10 @@
 axolotl
-bumblebee
 capybara
-corgi
 frog
 goose
 highland cow
-llama
 opossum
 otter
-quokka
 raccoon
 red panda
 sloth
-snail
