@@ -1,8 +1,13 @@
 axolotl
 capybara
+corgi
+duck
 frog
 goose
+hedgehog
 highland cow
+llama
+moth
 opossum
 otter
 raccoon
