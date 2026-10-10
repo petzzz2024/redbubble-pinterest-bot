@@ -130,7 +130,6 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     if not FAL_KEY:
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
-    # PROMPT: Bela pozadina + obavezni crni stroke + jarko obojena lenta na dnu sa tekstom
     image_prompt = (
         f"A standalone flat 2D vector mascot illustration graphic for a t-shirt design. "
         f"Subject: A cute 2D cartoon {animal_name} {visual_scene}. "
@@ -140,7 +139,6 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
         f"Composition: The artwork MUST be completely isolated on a PURE, SOLID FLAT WHITE BACKGROUND (#FFFFFF)."
     )
     
-    # NEGATIVNI PROMPT: Zabranjujemo bijelu lentu, crnu pozadinu, stiker efekte i sjenke
     negative_prompt = (
         "white banner, white ribbon, transparent banner, white text box, monochrome banner, black background, dark background, "
         "sticker peel, die cut, drop shadow, 3d render, realistic, photograph, glow, blurry edges, brush strokes, "
@@ -149,7 +147,7 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
     
-    # 1. Generisanje slike koristeći Z Image Turbo
+    # 1. KORAK: Generisanje slike koristeći Z Image Turbo
     url_image_gen = "https://fal.run/fal-ai/z-image/turbo"
     payload_image_gen = {
         "prompt": image_prompt, 
@@ -164,22 +162,31 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     result_image_gen = response_image_gen.json()
     original_image_url = result_image_gen["images"][0]["url"]
     
-    # Preuzimanje generisane slike
-    img_response = requests.get(original_image_url)
-    input_image = Image.open(BytesIO(img_response.content))
+    # 2. KORAK: Prvo brisanje pozadine preko Fal.ai BiRefNet-a
+    url_birefnet = "https://fal.run/fal-ai/birefnet"
+    payload_birefnet = {"image_url": original_image_url}
     
-    # 2. Skidanje bele pozadine preko REMBG alata sa Alpha Matting
-    # threshold 240 osigurava da unutrašnji bijeli dijelovi opstaju, a samo spoljašnjost briše
-    output_transparent = remove(
-        input_image, 
-        post_process_mask=True,
-        alpha_matting=True,
-        alpha_matting_foreground_threshold=240,
-        alpha_matting_background_threshold=10,
-        alpha_matting_erode_size=2
-    )
+    response_birefnet = requests.post(url_birefnet, headers=headers, json=payload_birefnet)
+    if response_birefnet.status_code != 200:
+        raise Exception(f"Fal.ai BiRefNet greška: {response_birefnet.text}")
+        
+    result_birefnet = response_birefnet.json()
+    transparent_image_url = result_birefnet["image"]["url"]
     
-    # 3. Skaliranje i čuvanje na platno 8000x8000
+    # 3. KORAK: Preuzimanje prozirne slike sa Fal.ai
+    img_response = requests.get(transparent_image_url)
+    input_image = Image.open(BytesIO(img_response.content)).convert("RGBA")
+    
+    # 4. KORAK: Drugo (lokalno) čišćenje preko rembg + erozija ivica
+    cleaned_image = remove(input_image)
+    
+    # Sužavanje ivica (Alfa maska) da se eliminišu sitni rubni pikseli
+    r, g, b, a = cleaned_image.split()
+    a = a.filter(ImageFilter.MinFilter(3)) # Erodira rub za 1-2 piksela ka unutra
+    a = a.point(lambda p: 255 if p > 180 else 0) # Pretvara polu-providne piksele u čistu providnost
+    output_transparent = Image.merge("RGBA", (r, g, b, a))
+    
+    # 5. KORAK: Skaliranje i postavljanje na 8000x8000 platno
     bbox = output_transparent.getbbox()
     if bbox:
         output_transparent = output_transparent.crop(bbox)
@@ -242,7 +249,6 @@ def send_telegram_chunks(files_to_zip):
             "caption": f"🚀 Redbubble Dizajni - Dio {zip_counter}/{len(all_chunks)} (8000x8000 px)"
         }
         
-        # Retry mechanism za Telegram
         max_retries = 3
         for attempt in range(max_retries):
             try:
