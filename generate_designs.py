@@ -5,7 +5,6 @@ import zipfile
 import time
 from io import BytesIO
 from PIL import Image, ImageFilter
-from rembg import remove
 import google.generativeai as genai
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -166,7 +165,7 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     result_image_gen = response_image_gen.json()
     original_image_url = result_image_gen["images"][0]["url"]
     
-    # 2. KORAK: Skidanje pozadine preko Fal.ai BiRefNet-a
+    # 2. KORAK: Skidanje pozadine direktno i isključivo preko Fal.ai BiRefNet-a
     url_birefnet = "https://fal.run/fal-ai/birefnet"
     payload_birefnet = {"image_url": original_image_url}
     
@@ -181,10 +180,8 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     img_response = requests.get(transparent_image_url)
     input_image = Image.open(BytesIO(img_response.content)).convert("RGBA")
     
-    # 4. KORAK: Dodatno fino čišćenje lokalnim rembg-om i zaglađivanje rubnih piksela
-    cleaned_image = remove(input_image)
-    
-    r, g, b, a = cleaned_image.split()
+    # 4. KORAK: Zaglađivanje i čišćenje rubnih piksela (samo PIL filtar)
+    r, g, b, a = input_image.split()
     a = a.filter(ImageFilter.MinFilter(3))
     a = a.point(lambda p: 255 if p > 180 else 0)
     output_transparent = Image.merge("RGBA", (r, g, b, a))
