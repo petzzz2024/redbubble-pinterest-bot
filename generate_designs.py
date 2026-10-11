@@ -142,7 +142,7 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     
     # NEGATIVNI PROMPT: Strogo filtriranje tonova koji liče na bijelu pozadinu
     negative_prompt = (
-        "beige, cream, light blue, pale blue, pastel colors, light pink, off-white, pale colors, washed out colors, "
+        "beige, cream, light blue, pale blue, pastel colors, light pink, off-white, pale colors, washed out colors, white "
         "white banner, white ribbon, transparent banner, white text box, monochrome banner, black background, dark background, "
         "sticker peel, die cut, drop shadow, 3d render, realistic, photograph, glow, blurry edges, brush strokes, "
         "gradient background, scenery, border, circular frame, watermark, messy edges, floating text outside banner"
