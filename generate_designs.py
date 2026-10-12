@@ -131,9 +131,9 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
         
     # PROMPT: Stroga zabrana svijetlih/bež boja radi nepogrešive segmentacije na BiRefNet-u
     image_prompt = (
-        f"A standalone flat 2D vector mascot illustration graphic for a t-shirt design. "
+        f"A standalone flat 2D vector illustration graphic design. "
         f"Subject: A cute 2D cartoon {animal_name} {visual_scene}. "
-        f"Colors: The entire illustration MUST use STRICTLY BOLD, HIGHLY SATURATED, VIBRANT COLORS (such as deep orange, bright yellow, rich dark blue, vivid red, dark green). ABSOLUTELY NO BEIGE, NO PASTELS, NO LIGHT BLUE, NO CREAM, NO PALE PINK, NO WHITE. "
+        f"Colors: The entire illustration MUST use STRICTLY BOLD, HIGHLY SATURATED, VIBRANT COLORS. ABSOLUTELY NO BEIGE, NO PASTELS, NO LIGHT BLUE, NO CREAM, NO PALE PINK, NO WHITE. "
         f"Outline: The entire illustration and character MUST have a thick, solid bold black outline (stroke). "
         f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a horizontal ribbon banner or rectangle FILLED WITH A SOLID HIGH-CONTRAST VIBRANT COLOR (BRIGHT YELLOW, CYAN, ORANGE, RED, OR GREEN - NEVER WHITE, NEVER PASTEL) with a thick black outline, containing bold typography reading exactly '{text}'. "
         f"Style: Flat 2D vector art, clean crisp sharp edges, solid vibrant colors, NO shading, NO drop shadows, NO 3D effects. "
