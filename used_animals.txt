@@ -1,9 +1,14 @@
+alpaca
 axolotl
 capybara
+corgi
 duck
+fox
 frog
 goose
+hedgehog
 highland cow
+luna moth
 opossum
 otter
 quokka
