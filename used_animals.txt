@@ -2,16 +2,21 @@ alpaca
 axolotl
 capybara
 corgi
+dachshund
 duck
+flamingo
 fox
+french bulldog
 frog
 goose
 hedgehog
 highland cow
+honey bee
 luna moth
 opossum
 otter
 quokka
 raccoon
 red panda
+sea turtle
 sloth
