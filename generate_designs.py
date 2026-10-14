@@ -36,9 +36,8 @@ def generate_with_fallback(prompt_text):
             return response.text
         except Exception as e:
             print(f"    [!] Model {model_name} nije uspio (Greška: {e}). Pokušavam sljedeći...")
-            time.sleep(2) # Kratka pauza prije pokušaja sa novim modelom
+            time.sleep(2)
             
-    # Ako su apsolutno svi modeli pukli
     raise Exception("Svi Gemini modeli su preopterećeni ili van funkcije!")
 
 def get_safe_name(text):
@@ -129,23 +128,35 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     if not FAL_KEY:
         raise Exception("Nedostaje FAL_KEY u GitHub Secrets!")
         
-    # PROMPT: Stroga zabrana svijetlih/bež boja radi nepogrešive segmentacije na BiRefNet-u
+    animal_lower = animal_name.lower()
+    
+    # Dinamička provjera kako Chroma Key nikada ne bi bio iste boje kao životinja
+    green_animals = ["frog", "toad", "turtle", "tortoise", "snake", "lizard", "crocodile", "alligator", "iguana", "chameleon", "gecko"]
+    warm_animals = ["lion", "tiger", "bear", "capybara", "dog", "puppy", "corgi", "cat", "kitten", "duck", "platypus", "bee", "fox", "monkey", "giraffe", "camel", "deer"]
+    
+    if any(item in animal_lower for item in green_animals):
+        chroma_bg = "PURE, SOLID HOT MAGENTA (#FF00FF) BACKGROUND"
+        chroma_exclude = "Do NOT use hot magenta or pink on the character or banner."
+    elif any(item in animal_lower for item in warm_animals):
+        chroma_bg = "PURE, SOLID NEON CYAN (#00FFFF) BACKGROUND"
+        chroma_exclude = "Do NOT use neon cyan or sky blue on the character or banner."
+    else:
+        chroma_bg = "PURE, SOLID NEON GREEN (CHROMA KEY GREEN #00FF00) BACKGROUND"
+        chroma_exclude = "Do NOT use neon green on the character or banner."
+
     image_prompt = (
         f"A standalone flat 2D vector illustration graphic design. "
         f"Subject: A cute 2D cartoon {animal_name} {visual_scene}. "
-        f"Colors: The entire illustration MUST use STRICTLY BOLD, HIGHLY SATURATED, VIBRANT COLORS. ABSOLUTELY NO BEIGE, NO PASTELS, NO LIGHT BLUE, NO CREAM, NO PALE PINK, NO WHITE. "
         f"Outline: The entire illustration and character MUST have a thick, solid bold black outline (stroke). "
-        f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a horizontal ribbon banner or rectangle FILLED WITH A SOLID HIGH-CONTRAST VIBRANT COLOR (BRIGHT YELLOW, CYAN, ORANGE, RED, OR GREEN - NEVER WHITE, NEVER PASTEL) with a thick black outline, containing bold typography reading exactly '{text}'. "
+        f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a horizontal ribbon banner or rectangle FILLED WITH A SOLID HIGH-CONTRAST VIBRANT COLOR (BRIGHT YELLOW, CYAN, ORANGE, RED, OR GREEN) with a thick black outline, containing bold typography reading exactly '{text}'. "
         f"Style: Flat 2D vector art, clean crisp sharp edges, solid vibrant colors, NO shading, NO drop shadows, NO 3D effects. "
-        f"Composition: The artwork MUST be completely isolated on a PURE, SOLID FLAT WHITE BACKGROUND (#FFFFFF)."
+        f"Composition: The artwork MUST be completely isolated on a {chroma_bg}. {chroma_exclude}"
     )
     
-    # NEGATIVNI PROMPT: Strogo filtriranje tonova koji liče na bijelu pozadinu
     negative_prompt = (
-        "beige, cream, light blue, pale blue, pastel colors, light pink, off-white, pale colors, washed out colors, white "
-        "white banner, white ribbon, transparent banner, white text box, monochrome banner, black background, dark background, "
+        "white background, black background, transparent background, gradient background, scenery, "
         "sticker peel, die cut, drop shadow, 3d render, realistic, photograph, glow, blurry edges, brush strokes, "
-        "gradient background, scenery, border, circular frame, watermark, messy edges, floating text outside banner"
+        "border, circular frame, watermark, messy edges, floating text outside banner"
     )
     
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
@@ -165,7 +176,7 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     result_image_gen = response_image_gen.json()
     original_image_url = result_image_gen["images"][0]["url"]
     
-    # 2. KORAK: Skidanje pozadine direktno i isključivo preko Fal.ai BiRefNet-a
+    # 2. KORAK: Skidanje pozadine direktno preko Fal.ai BiRefNet-a
     url_birefnet = "https://fal.run/fal-ai/birefnet"
     payload_birefnet = {"image_url": original_image_url}
     
@@ -180,7 +191,7 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
     img_response = requests.get(transparent_image_url)
     input_image = Image.open(BytesIO(img_response.content)).convert("RGBA")
     
-    # 4. KORAK: Zaglađivanje i čišćenje rubnih piksela (samo PIL filtar)
+    # 4. KORAK: Zaglađivanje i uklanjanje rubnih piksela
     r, g, b, a = input_image.split()
     a = a.filter(ImageFilter.MinFilter(3))
     a = a.point(lambda p: 255 if p > 180 else 0)
