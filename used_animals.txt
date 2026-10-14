@@ -12,11 +12,16 @@ goose
 hedgehog
 highland cow
 honey bee
+jellyfish
 luna moth
+manatee
 opossum
 otter
+platypus
 quokka
 raccoon
 red panda
 sea turtle
+shiba inu
 sloth
+whale shark
