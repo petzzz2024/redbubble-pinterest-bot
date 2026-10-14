@@ -130,33 +130,41 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
         
     animal_lower = animal_name.lower()
     
-    # Dinamička provjera kako Chroma Key nikada ne bi bio iste boje kao životinja
+    # DINAMIČKO ODABIRANJE CHROMA KEY POZADINE I STROGE ZABRANE TOG SPEKTRA NA LIKU
     green_animals = ["frog", "toad", "turtle", "tortoise", "snake", "lizard", "crocodile", "alligator", "iguana", "chameleon", "gecko"]
     warm_animals = ["lion", "tiger", "bear", "capybara", "dog", "puppy", "corgi", "cat", "kitten", "duck", "platypus", "bee", "fox", "monkey", "giraffe", "camel", "deer"]
     
     if any(item in animal_lower for item in green_animals):
+        # Ako je životinja zelena, bežimo u Hot Magentu (roze/ljubičastu) i zabranjujemo je na elementima
         chroma_bg = "PURE, SOLID HOT MAGENTA (#FF00FF) BACKGROUND"
-        chroma_exclude = "Do NOT use hot magenta or pink on the character or banner."
+        color_ban_prompt = "DO NOT use any hot magenta, pink, or purple colors for the character's clothing, hats, shoes, or accessories."
+        color_ban_negative = "magenta, pink, hot pink, purple, fuchsia,"
     elif any(item in animal_lower for item in warm_animals):
+        # Ako je životinja smeđa/žuta/narandžasta, idemo u Neon Cijan (svetloplavu) i zabranjujemo je na liku i elementima
         chroma_bg = "PURE, SOLID NEON CYAN (#00FFFF) BACKGROUND"
-        chroma_exclude = "Do NOT use neon cyan or sky blue on the character or banner."
+        color_ban_prompt = "DO NOT use any cyan, light blue, or teal colors for the character's clothing, hats, shoes, or accessories."
+        color_ban_negative = "cyan, light blue, sky blue, neon blue, teal,"
     else:
+        # Podrazumevano je Neon Zelena, sa zabranom te boje na liku i dodacima
         chroma_bg = "PURE, SOLID NEON GREEN (CHROMA KEY GREEN #00FF00) BACKGROUND"
-        chroma_exclude = "Do NOT use neon green on the character or banner."
+        color_ban_prompt = "DO NOT use any green colors for the character's clothing, hats, shoes, or accessories."
+        color_ban_negative = "green, neon green, lime, dark green,"
 
     image_prompt = (
         f"A standalone flat 2D vector illustration graphic design. "
         f"Subject: A cute 2D cartoon {animal_name} {visual_scene}. "
-        f"Outline: The entire illustration and character MUST have a thick, solid bold black outline (stroke). "
-        f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a horizontal ribbon banner or rectangle FILLED WITH A SOLID HIGH-CONTRAST VIBRANT COLOR (BRIGHT YELLOW, CYAN, ORANGE, RED, OR GREEN) with a thick black outline, containing bold typography reading exactly '{text}'. "
+        f"Colors: The entire illustration MUST use STRICTLY BOLD, HIGHLY SATURATED, VIBRANT COLORS. {color_ban_prompt} ABSOLUTELY NO BEIGE, NO PASTELS, NO LIGHT BLUE, NO CREAM, NO PALE PINK, NO WHITE. "
+        f"Outline: The entire illustration and character MUST have a thick, solid bold black outline (stroke) tightly enclosing every shape. "
+        f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a horizontal ribbon banner or rectangle FILLED WITH A SOLID HIGH-CONTRAST COLOR (ONLY BRIGHT YELLOW, ORANGE, OR VIVID RED) with a thick black outline, containing bold typography reading exactly '{text}'. "
         f"Style: Flat 2D vector art, clean crisp sharp edges, solid vibrant colors, NO shading, NO drop shadows, NO 3D effects. "
-        f"Composition: The artwork MUST be completely isolated on a {chroma_bg}. {chroma_exclude}"
+        f"Composition: The artwork MUST be completely isolated on a {chroma_bg}."
     )
     
     negative_prompt = (
-        "white background, black background, transparent background, gradient background, scenery, "
-        "sticker peel, die cut, drop shadow, 3d render, realistic, photograph, glow, blurry edges, brush strokes, "
-        "border, circular frame, watermark, messy edges, floating text outside banner"
+        f"{color_ban_negative} beige, cream, light blue, pale blue, pastel colors, light pink, off-white, pale colors, washed out colors, white, "
+        f"white banner, white ribbon, transparent banner, white text box, monochrome banner, black background, dark background, "
+        f"sticker peel, die cut, drop shadow, 3d render, realistic, photograph, glow, blurry edges, brush strokes, "
+        f"border, circular frame, watermark, messy edges, floating text outside banner"
     )
     
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
