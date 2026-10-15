@@ -1,7 +1,9 @@
 alpaca
 axolotl
+black cat
 capybara
 corgi
+crow
 dachshund
 duck
 flamingo
@@ -17,11 +19,14 @@ luna moth
 manatee
 opossum
 otter
+pigeon
 platypus
 quokka
 raccoon
 red panda
 sea turtle
+seal
 shiba inu
 sloth
+snail
 whale shark
