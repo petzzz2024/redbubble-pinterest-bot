@@ -1,5 +1,7 @@
 alpaca
 axolotl
+barn owl
+beaver
 black cat
 capybara
 corgi
@@ -10,13 +12,16 @@ flamingo
 fox
 french bulldog
 frog
+golden retriever
 goose
+hamster
 hedgehog
 highland cow
 honey bee
 jellyfish
 luna moth
 manatee
+octopus
 opossum
 otter
 pigeon
