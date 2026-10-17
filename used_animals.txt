@@ -1,6 +1,7 @@
 alpaca
 axolotl
 barn owl
+bat
 beaver
 black cat
 capybara
@@ -19,14 +20,17 @@ hedgehog
 highland cow
 honey bee
 jellyfish
+koala
 luna moth
 manatee
 octopus
 opossum
 otter
+penguin
 pigeon
 platypus
 quokka
+rabbit
 raccoon
 red panda
 sea turtle
@@ -34,4 +38,5 @@ seal
 shiba inu
 sloth
 snail
+tiger
 whale shark
