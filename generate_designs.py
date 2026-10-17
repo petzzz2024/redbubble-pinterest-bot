@@ -14,7 +14,6 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# LISTA MODELA: Skripta će ići redom. Ako jedan pukne zbog limita, prelazi na sljedeći.
 AVAILABLE_MODELS = [
     'gemini-3.8-flash',
     'gemini-3.5-flash-lite',
@@ -25,10 +24,6 @@ AVAILABLE_MODELS = [
 ]
 
 def generate_with_fallback(prompt_text):
-    """
-    Pokušava generisati sadržaj prolazeći kroz sve dostupne modele.
-    Ako jedan model baci grešku (npr. Rate Limit), automatski prelazi na sljedeći.
-    """
     for model_name in AVAILABLE_MODELS:
         try:
             model = genai.GenerativeModel(model_name)
@@ -56,9 +51,6 @@ def save_used_animals(animals, filename="used_animals.txt"):
                 f.write(f"{animal}\n")
 
 def get_unique_trending_animals(used_animals, target_count=5):
-    """
-    FAZA 1: Traži trendi životinje koristeći fallback sistem modela.
-    """
     fresh_animals = []
     banned_words = ['forbidden', 'wait', 'none', 'nema', 'zabranjeno', 'animal', 'unknown', 'here', 'are']
     
@@ -104,10 +96,12 @@ def get_unique_trending_animals(used_animals, target_count=5):
     return fresh_animals
 
 def get_designs_for_animal(animal):
-    """FAZA 2: Generiše 5 dizajna sa kratkom frazom za lentu na dnu."""
     prompt = f"""
     Ti si stručnjak za Print-on-Demand i Redbubble SEO, Google trend expert.
-    Osmisli 5 POTPUNO RAZLIČITIH dizajna za životinju: {animal.upper()}.
+    Osmisli 5 POTPUNO RAZLIČITIH dizajna sa kratkom frazom za lentu na dnu za životinju: {animal.upper()}.
+    
+    PRAVILO ZA OPIS SCENE (visual_scene):
+    Ako životinja nosi odeću, šešir, naočare ili drži rekvizit, OBAVEZNO eksplicitno navedi njihove boje koristeći isključivo: ORANGE, YELLOW, RED, NAVY BLUE ili WHITE (npr. 'wearing an orange t-shirt and sunglasses', 'holding a red coffee mug'). NIKADA nemoj ostaviti odeću bez navedene boje i NIKADA nemoj koristiti reč 'magenta' ili 'pink'!
     
     Vrati ISKLJUČIVO validan JSON NIZ (Array) koji sadrži tačno 5 objekata u ovom formatu:
     [
@@ -115,8 +109,8 @@ def get_designs_for_animal(animal):
         "title": "Kratak SEO naslov na engleskom (max 5-6 riječi). Bez reči 'sticker', 'design'.",
         "description": "SEO opis do 200 znakova na engleskom",
         "tags": "tag1, tag2, tag3... (Točno 15 tagova. Prvi tag je {animal})",
-        "visual_scene": "Kratak opis radnje/scene na engleskom, npr. 'wearing retro sunglasses and playing video games'. BEZ spominjanja teksta, pozadine ili kruga.",
-        "text": "Samo kratka, spretna fraza NA ENGLESKOM koja ide u lentu/pravougaonik na dnu (npr. 'GAMER VIBES'). STROGO ZABRANJENO je dodavanje instrukcija o boji ili prevoda!"
+        "visual_scene": "Kratak opis radnje/scene na engleskom sa eksplicitno navedenim bojama garderobe. BEZ spominjanja pozadine, okvira ili lente.",
+        "text": "Samo kratka, spretna fraza NA ENGLESKOM koja ide u lentu na dnu (npr. 'ALWAYS HUNGRY'). STROGO ZABRANJENO je dodavanje instrukcija o boji ili prevoda!"
       }}
     ]
     """
@@ -130,46 +124,35 @@ def generate_and_process_image(visual_scene, text, title, animal_name):
         
     animal_lower = animal_name.lower()
     
-    # DINAMIČKO ODABIRANJE CHROMA KEY POZADINE I STROGE ZABRANE TOG SPEKTRA NA LIKU
-    green_animals = ["frog", "toad", "turtle", "tortoise", "snake", "lizard", "crocodile", "alligator", "iguana", "chameleon", "gecko"]
-    warm_animals = ["lion", "tiger", "bear", "capybara", "dog", "puppy", "corgi", "cat", "kitten", "duck", "platypus", "bee", "fox", "monkey", "giraffe", "camel", "deer"]
-    
-    if any(item in animal_lower for item in green_animals):
-        # Ako je životinja zelena, bežimo u Hot Magentu (roze/ljubičastu) i zabranjujemo je na elementima
-        chroma_bg = "PURE, SOLID HOT MAGENTA (#FF00FF) BACKGROUND"
-        color_ban_prompt = "DO NOT use any hot magenta, pink, or purple colors for the character's clothing, hats, shoes, or accessories."
-        color_ban_negative = "magenta, pink, hot pink, purple, fuchsia,"
-    elif any(item in animal_lower for item in warm_animals):
-        # Ako je životinja smeđa/žuta/narandžasta, idemo u Neon Cijan (svetloplavu) i zabranjujemo je na liku i elementima
-        chroma_bg = "PURE, SOLID NEON CYAN (#00FFFF) BACKGROUND"
-        color_ban_prompt = "DO NOT use any cyan, light blue, or teal colors for the character's clothing, hats, shoes, or accessories."
-        color_ban_negative = "cyan, light blue, sky blue, neon blue, teal,"
+    # Ako je životinja prirodno roze (flamingo, prase, aksolotl), bežimo u Neon Blue, inače je Hot Magenta standard
+    pink_animals = ["flamingo", "pig", "piglet", "axolotl"]
+    if any(item in animal_lower for item in pink_animals):
+        chroma_bg = "PURE SOLID NEON BLUE (#0044FF) CHROMA KEY BACKGROUND"
+        color_ban_negative = "blue, neon blue, cyan, teal,"
     else:
-        # Podrazumevano je Neon Zelena, sa zabranom te boje na liku i dodacima
-        chroma_bg = "PURE, SOLID NEON GREEN (CHROMA KEY GREEN #00FF00) BACKGROUND"
-        color_ban_prompt = "DO NOT use any green colors for the character's clothing, hats, shoes, or accessories."
-        color_ban_negative = "green, neon green, lime, dark green,"
+        chroma_bg = "PURE SOLID HOT MAGENTA (#FF00FF) CHROMA KEY BACKGROUND"
+        color_ban_negative = "magenta, hot pink, pink, fuchsia, purple,"
 
+    # Pozitivan prompt - potpuno afirmativan bez zbunjujućih "DO NOT" i "NO" negacija
     image_prompt = (
-        f"A standalone flat 2D vector illustration graphic design. "
+        f"A standalone flat 2D vector mascot illustration graphic for a t-shirt design. "
         f"Subject: A cute 2D cartoon {animal_name} {visual_scene}. "
-        f"Colors: The entire illustration MUST use STRICTLY BOLD, HIGHLY SATURATED, VIBRANT COLORS. {color_ban_prompt} ABSOLUTELY NO BEIGE, NO PASTELS, NO LIGHT BLUE, NO CREAM, NO PALE PINK, NO WHITE. "
-        f"Outline: The entire illustration and character MUST have a thick, solid bold black outline (stroke) tightly enclosing every shape. "
-        f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a horizontal ribbon banner or rectangle FILLED WITH A SOLID HIGH-CONTRAST COLOR (ONLY BRIGHT YELLOW, ORANGE, OR VIVID RED) with a thick black outline, containing bold typography reading exactly '{text}'. "
-        f"Style: Flat 2D vector art, clean crisp sharp edges, solid vibrant colors, NO shading, NO drop shadows, NO 3D effects. "
-        f"Composition: The artwork MUST be completely isolated on a {chroma_bg}."
+        f"Style: Flat 2D vector art, clean crisp sharp edges, solid highly saturated vibrant colors. "
+        f"Outline: The entire illustration, character, props, and banner MUST have a thick solid bold black outline enclosing every single shape. "
+        f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a horizontal ribbon banner or rectangle filled with solid bright yellow, orange, or red with a thick black outline, containing bold black typography reading exactly '{text}'. "
+        f"Composition: The artwork is completely isolated on a {chroma_bg}."
     )
     
+    # Negativan prompt - sve zabranjene boje i neželjeni stilovi idu isključivo ovde
     negative_prompt = (
-        f"{color_ban_negative} beige, cream, light blue, pale blue, pastel colors, light pink, off-white, pale colors, washed out colors, white, "
-        f"white banner, white ribbon, transparent banner, white text box, monochrome banner, black background, dark background, "
+        f"{color_ban_negative} white background, black background, green background, transparent background, gradient background, scenery, "
         f"sticker peel, die cut, drop shadow, 3d render, realistic, photograph, glow, blurry edges, brush strokes, "
-        f"border, circular frame, watermark, messy edges, floating text outside banner"
+        f"border, circular frame, watermark, messy edges, floating text outside banner, beige, pastels, washed out colors"
     )
     
     headers = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
     
-    # 1. KORAK: Generisanje slike koristeći Z Image Turbo
+    # 1. KORAK: Generisanje slike preko Fal.ai Z Image Turbo
     url_image_gen = "https://fal.run/fal-ai/z-image/turbo"
     payload_image_gen = {
         "prompt": image_prompt, 
