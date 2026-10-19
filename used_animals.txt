@@ -3,8 +3,11 @@ axolotl
 barn owl
 bat
 beaver
+bison
 black cat
 capybara
+chameleon
+chinchilla
 corgi
 crow
 dachshund
@@ -23,6 +26,7 @@ jellyfish
 koala
 luna moth
 manatee
+narwhal
 octopus
 opossum
 otter
@@ -36,6 +40,7 @@ red panda
 sea turtle
 seal
 shiba inu
+shoebill
 sloth
 snail
 tiger
