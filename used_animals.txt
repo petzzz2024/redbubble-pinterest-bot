@@ -24,6 +24,7 @@ highland cow
 honey bee
 jellyfish
 koala
+llama
 luna moth
 manatee
 narwhal
@@ -33,10 +34,13 @@ otter
 penguin
 pigeon
 platypus
+poodle
+pug
 quokka
 rabbit
 raccoon
 red panda
+reindeer
 sea turtle
 seal
 shiba inu
@@ -44,4 +48,5 @@ shoebill
 sloth
 snail
 tiger
+turkey
 whale shark

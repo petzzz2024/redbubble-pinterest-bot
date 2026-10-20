@@ -1,0 +1,180 @@
+{
+ "animals": {
+  "pug": {
+   "date": "2026-10-20",
+   "designs": [
+    {
+     "title": "Pug Gifts For Adults Tired Nap Club",
+     "text": "CURRENTLY UNPLUGGED",
+     "primary_keyword": "pug gifts for adults",
+     "angle": "funny-relatable"
+    },
+    {
+     "title": "Pug Gifts For Teacher A Plus Pupil",
+     "text": "BEST TEACHER EVER",
+     "primary_keyword": "pug gifts for teacher",
+     "angle": "gift-for-person"
+    },
+    {
+     "title": "Thanksgiving Pug Pumpkin Pie Feast",
+     "text": "GRATEFUL FOR CRUMBS",
+     "primary_keyword": "thanksgiving pug",
+     "angle": "season-thanksgiving"
+    },
+    {
+     "title": "Pug Pizza Lover Slice Of Joy",
+     "text": "PIZZA MY HEART",
+     "primary_keyword": "pug pizza lover",
+     "angle": "foodie"
+    },
+    {
+     "title": "Pug With Headphones Lo-Fi Beats",
+     "text": "CHILL BEATS ONLY",
+     "primary_keyword": "pug with headphones",
+     "angle": "music-chill"
+    }
+   ]
+  },
+  "poodle": {
+   "date": "2026-10-20",
+   "designs": [
+    {
+     "title": "Poodle Dog Lovers Morning Mood Curls",
+     "text": "NEED COFFEE FIRST",
+     "primary_keyword": "poodle dog lovers",
+     "angle": "funny-relatable"
+    },
+    {
+     "title": "Poodle Mom Best Dog Mother Club",
+     "text": "PROUD POODLE MOM",
+     "primary_keyword": "poodle mom",
+     "angle": "gift-for-person"
+    },
+    {
+     "title": "Poodle Gifts Cozy Christmas Holiday Joy",
+     "text": "MERRY AND FLUFFY",
+     "primary_keyword": "poodle gifts",
+     "angle": "season-christmas"
+    },
+    {
+     "title": "Poodle Dog Running Club Champion",
+     "text": "STRIDE WITH PRIDE",
+     "primary_keyword": "poodle dog",
+     "angle": "fitness-sports"
+    },
+    {
+     "title": "Poodle Gifts For Ladies Stay True To You",
+     "text": "SHINE YOUR OWN WAY",
+     "primary_keyword": "poodle gifts for ladies",
+     "angle": "wholesome-affirmation"
+    }
+   ]
+  },
+  "llama": {
+   "date": "2026-10-20",
+   "designs": [
+    {
+     "title": "Llama Vs Alpaca Confusion Over Coffee",
+     "text": "NEED COFFEE FIRST",
+     "primary_keyword": "llama vs alpaca",
+     "angle": "funny-relatable"
+    },
+    {
+     "title": "Llama Gifts For Teachers Appreciation Day",
+     "text": "BEST TEACHER EVER",
+     "primary_keyword": "llama gifts for teachers",
+     "angle": "gift-for-person"
+    },
+    {
+     "title": "Llama Lover Gifts Autumn Feast",
+     "text": "PIE MY HEART",
+     "primary_keyword": "llama lover gifts",
+     "angle": "season-thanksgiving"
+    },
+    {
+     "title": "Llama Gifts For Adults Cozy Night In",
+     "text": "CURRENTLY UNPLUGGED",
+     "primary_keyword": "llama gifts for adults",
+     "angle": "introvert-selfcare"
+    },
+    {
+     "title": "Llama Lover Outfit Gym Workout",
+     "text": "STRIDE WITH PRIDE",
+     "primary_keyword": "llama lover outfit",
+     "angle": "fitness-sports"
+    }
+   ]
+  },
+  "turkey": {
+   "date": "2026-10-20",
+   "designs": [
+    {
+     "title": "Turkey Lover Currently Unplugged",
+     "text": "CURRENTLY UNPLUGGED",
+     "primary_keyword": "turkey lover",
+     "angle": "sarcastic"
+    },
+    {
+     "title": "Turkey Mom Best Bird Mother Ever",
+     "text": "BEST BIRD MOM",
+     "primary_keyword": "turkey mom",
+     "angle": "gift-for-person"
+    },
+    {
+     "title": "Turkey Gifts Merry And Bright Holiday",
+     "text": "MERRY AND BRIGHT",
+     "primary_keyword": "turkey gifts",
+     "angle": "season-christmas"
+    },
+    {
+     "title": "Turkey Trot Pizza Slice Of Joy",
+     "text": "PIZZA MY HEART",
+     "primary_keyword": "turkey trot",
+     "angle": "foodie"
+    },
+    {
+     "title": "Turkey Run State Park Need Coffee First",
+     "text": "NEED COFFEE FIRST",
+     "primary_keyword": "turkey run state park",
+     "angle": "funny-relatable"
+    }
+   ]
+  },
+  "reindeer": {
+   "date": "2026-10-20",
+   "designs": [
+    {
+     "title": "Reindeer Needoh Squeezing Away Stress",
+     "text": "NEED COFFEE FIRST",
+     "primary_keyword": "reindeer needoh",
+     "angle": "funny-relatable"
+    },
+    {
+     "title": "Reindeer Mom Proud Coffee Lover",
+     "text": "PROUD REINDEER MOM",
+     "primary_keyword": "reindeer mom",
+     "angle": "gift-for-person"
+    },
+    {
+     "title": "Reindeer Costume Festive Holiday Cheer",
+     "text": "MERRY AND FLUFFY",
+     "primary_keyword": "reindeer costume",
+     "angle": "season-christmas"
+    },
+    {
+     "title": "Reindeer Moss Cozy Night In",
+     "text": "CURRENTLY UNPLUGGED",
+     "primary_keyword": "reindeer moss",
+     "angle": "introvert-selfcare"
+    },
+    {
+     "title": "Reindeer Vs Deer Unimpressed Judge",
+     "text": "STRIDE WITH PRIDE",
+     "primary_keyword": "reindeer vs deer",
+     "angle": "sarcastic"
+    }
+   ]
+  }
+ },
+ "failed": {}
+}
