@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Redbubble bot v2
+Redbubble bot v3: formula iz tvojih stvarnih prodaja
 
 Tok:
-  1. Izbor životinja: Gemini + Google Search grounding (šta se traži sada) + Google autosuggest
-     (stvarne pretrage) kao procena potražnje + zaštita od ponavljanja.
-  2. Za svaku životinju: istraživanje ključnih reči (autosuggest), pa 5 dizajna, svaki za drugog kupca
-     (poklon za mamu, hobi, zanimanje, praznik, humor...). Naslov / opis / tagovi se proveravaju i
-     popravljaju u KODU (limiti, duplikati, zaštićeni pojmovi, prazni tagovi), ne samo u promptu.
-  3. Slika: Fal.ai Z-Image Turbo -> provera teksta na traci (Gemini vision) -> BiRefNet -> glatke ivice -> 8000x8000.
-  4. Izlaz: u folderu svake životinje je <životinja>_podaci.txt (Naslov / Opis / Tagovi za svaki dizajn,
-     spremno za copy-paste u Redbubble) + jedan zajednički podaci_<datum>.txt; sve ide na Telegram
-     (txt poseban, slike u ZIP paketima). Slike se zovu po naslovu (npr. "Pug Pizza Lover.png"). Nema CSV-a.
+  1. Bira 5 različitih životinja (Gemini + Google trend + autosuggest, bez ponavljanja), za svaku 5 dizajna:
+     - idiom (3):     poznat engleski idiom/fraza nacrtan DOSLOVNO sa tom životinjom + relatable humor (ADHD, introverti, umor, kafa...)
+     - character (2): ta životinja sa jakim karakterom/radnjom u upečatljivim bojama, tekst opcion
+  2. Stvarne pretrage (Google autosuggest) za teme i životinje -> Gemini piše koncept, frazu, naslov "Fraza - opis",
+     15 tagova i kratak opis. Sve se proverava u KODU (dužine, duplikati, prezasićene i zaštićene fraze, nevezani tagovi).
+  3. Slika: Fal.ai Z-Image Turbo (die-cut ili retro bedž, debele konture, ravne jake boje) -> Gemini vision čita tekst
+     -> BiRefNet -> provera da je JEDAN oblik (sitne mrlje se brišu) -> 8000x8000 transparentan PNG.
+  4. Izlaz: folder po životinji sa <životinja>_podaci.txt (Naslov / Opis / Tagovi / Slika / Tip / Koncept)
+     + zajednički podaci_<datum>.txt; sve na Telegram.
 
 Opcije (environment promenljive, sve su opcione):
-  ANIMALS_PER_RUN=5   DESIGNS_PER_ANIMAL=5   IMAGE_ATTEMPTS=3   TARGET_SIZE=8000
-  METADATA_ONLY=1        -> samo ideje/naslovi/tagovi, bez slika i Telegrama (jeftin test)
+  ANIMALS_PER_RUN=5   DESIGNS_PER_ANIMAL=5   IDIOMS_PER_ANIMAL=3   IMAGE_ATTEMPTS=3   TARGET_SIZE=8000
+  METADATA_ONLY=1        -> samo koncepti/naslovi/tagovi, bez slika i Telegrama (jeftin test)
   VERIFY_IMAGE_TEXT=0    -> isključi proveru teksta na slici
   USE_SEARCH_GROUNDING=0 -> isključi Google Search u Gemini-ju
   USE_AUTOSUGGEST=0      -> isključi Google autosuggest
@@ -54,9 +54,6 @@ def env_int(name, default):
         return default
 
 
-ANIMALS_PER_RUN = env_int("ANIMALS_PER_RUN", 5)
-DESIGNS_PER_ANIMAL = env_int("DESIGNS_PER_ANIMAL", 5)
-MIN_DESIGNS_PER_ANIMAL = min(3, DESIGNS_PER_ANIMAL)
 IMAGE_ATTEMPTS = max(1, env_int("IMAGE_ATTEMPTS", 3))
 TARGET_SIZE = env_int("TARGET_SIZE", 8000)
 VERIFY_IMAGE_TEXT = os.getenv("VERIFY_IMAGE_TEXT", "1") != "0"
@@ -70,7 +67,7 @@ BLOCKED_FILE = "blocked_terms.txt"      # opciono: dodatni zaštićeni pojmovi, 
 OUTPUT_DIR = "output_images"
 
 # Ograničenja polja na Redbubble-u (prema vodičima trećih strana; proveri u svom nalogu)
-TITLE_MAX = 60
+TITLE_MAX = 70                # tvoj bestseler ima 67 znakova, pa Redbubble prima i duže od 60
 DESC_MAX = 500
 TAGS_COUNT = 15
 TAG_MAX_LEN = 30
@@ -128,7 +125,7 @@ NON_MERCH_WORDS = {
     "tattoo", "cake", "pattern", "crochet", "knitting", "amigurumi", "plush", "plushie", "stuffed", "toy",
     "toys", "free", "amazon", "etsy", "walmart", "target", "ebay", "near", "price", "prices", "for sale",
     "adopt", "adoption", "buy", "diy", "template", "templates", "vector", "emoji", "font", "keyboard",
-    "recipe", "recipes", "facts", "habitat", "diet", "lifespan", "pet", "vet", "care", "meme", "memes",
+    "recipe", "recipes", "facts", "habitat", "diet", "lifespan", "pet", "vet", "care",
     "video", "videos", "song", "movie", "game", "games", "app", "download", "stock", "photo", "photos",
     "image", "images", "picture", "pictures", "pics", "gif", "sound", "sounds", "noise", "noises",
     # druga značenja iste reči (iz pravog izlaza: poodle skirt, turkey tail mushroom, reindeer moss, turkey trot...)
@@ -148,6 +145,10 @@ holiday holidays present presents themed theme style aesthetic vibe vibes quote 
 jokes pun puns and with the a an of to in on s clothing apparel outfit outfits decor owner owners parent parents
 people person lady ladies stuff things dog dogs cat cats puppy puppies kitten kittens bird birds animal animals
 wildlife farm secret santa stocking stuffer stuffers party college student students work office day baby babies
+adhd anxiety anxious introvert introverted extrovert mental health chaos chaotic meme memes sarcastic sarcasm coffee
+caffeine monday mondays tired sleepy lazy nap naps grumpy angry overthinker overthinking procrastination procrastinator
+neurodivergent social battery awkward weird unhinged aesthetic neon retro vintage kawaii cartoon sticker stickers laptop
+water bottle humor humour relatable saying sayings idiom quote quotes mood vibe club squad crew
 """
 
 GENERIC_TAGS = {
@@ -193,21 +194,6 @@ PINK_ANIMAL_RE = re.compile(r"\b(flamingos?|pigs?|piglets?|axolotls?|spoonbills?
 # UGLOVI (kome je dizajn namenjen) I SEZONE
 # Svaki dizajn iste životinje dobija drugi ugao -> drugačija pretraga, drugačiji kupac, bez kanibalizacije.
 # ---------------------------------------------------------------------------
-ANGLES = {
-    "funny-relatable": "a relatable everyday joke (coffee, naps, Mondays, snacks, procrastination, social battery) told through this animal's real traits",
-    "sarcastic": "dry, sarcastic or deadpan humor with a grumpy or unimpressed pose (never offensive, no politics, no profanity)",
-    "wholesome-affirmation": "a warm positive message (be kind, you've got this, soft but strong) that works as a comfort or encouragement gift",
-    "gift-for-person": "a gift design for ONE specific buyer identity: {animal} mom, dad, grandma, aunt, teacher, nurse, best friend or 'proud {animal} person'. Make that identity part of the title keyword",
-    "hobby-lifestyle": "the animal doing a popular hobby (gaming, reading, gardening, hiking, camping, baking, yoga, cycling, fishing, coding) so fans of that hobby find it",
-    "work-life": "the animal in a recognisable job (nurse, teacher, chef, farmer, firefighter, mechanic, barista, librarian) with a job-related pun",
-    "introvert-selfcare": "introvert, self-care and cozy-night-in humor (recharging, cancelled plans, anxious but trying)",
-    "cozy-cottagecore": "cozy cottagecore / nature aesthetic: mushrooms, flowers, tea, moon, books, plants; gentle text",
-    "foodie": "the animal with a favourite food (pizza, tacos, ramen, donuts, coffee, bubble tea, sushi) and a snack-themed pun",
-    "nerdy-bookish": "nerdy, science or bookish humor (reading, space, chemistry, math, gaming)",
-    "fitness-sports": "gym, running, yoga or team-sport energy with a motivational or funny line",
-    "music-chill": "music, headphones and chill-vibes energy",
-}
-
 # (id, opis, početak (mesec, dan), kraj). Objavljuj 6-10 nedelja ranije jer indeksiranje traje.
 SEASONS = [
     ("halloween", "Halloween (spooky-cute: pumpkins, bats, witch hats)", (8, 15), (10, 5)),
@@ -473,7 +459,7 @@ def valid_animal(name):
         return None
     if find_blocked(name):
         return None
-    return name
+    return " ".join(singular(w) for w in name.split())      # "red pandas" -> "red panda" (isti folder i ista provera ponavljanja)
 
 
 def parse_animal_candidates(text):
@@ -637,80 +623,143 @@ def research_keywords(animal):
 
 
 # ---------------------------------------------------------------------------
-# 3) DIZAJNI: PROMPT, ČIŠĆENJE I VALIDACIJA
+# 3) KONCEPTI PO FORMULI IZ TVOJIH PRODAJA
+#    - "idiom":     poznat engleski idiom nacrtan DOSLOVNO sa izabranom životinjom + relatable humor (ADHD, introverti, umor...)
+#    - "character": životinja sa jakim karakterom/radnjom u upečatljivim bojama, tekst opcion
 # ---------------------------------------------------------------------------
-def choose_angles(today, n):
+BEST_SELLERS = """- "My Ducks Are Not In A Row - Funny Chaos ADHD Mental Health Meme" (41 sales, best seller): a well-known idiom drawn LITERALLY with animals + relatable ADHD / chaos humor
+- "Danger Candy Neon Poison Dart Frog Aesthetic" (16 sales): no phrase, strong neon colors
+- "Lazy Turtle", "Winter Assassin White Stoat Hiding", "Majestic Running Basset Hound Flying Ears": animals with strong character and action"""
+
+CONCEPT_TYPES = {
+    "idiom": ("IDIOM DOSLOVNO",
+              "a well-known English idiom, saying or pun drawn LITERALLY with the {animal} (like the best seller where ducks are "
+              "literally not in a row: an idiom acted out by the animal, or a saying built on the animal's name or trait) + "
+              "relatable humor about the BUYER: ADHD, introverts, tiredness, chaos, coffee, anxiety, Mondays, procrastination, "
+              "social battery. The buyer must think 'this is so me'. The animal is {animal}."),
+    "character": ("ZIVOTINJA SA KARAKTEROM",
+                  "the animal {animal} with a strong character or action (lazy, grumpy, hiding, sneaking, running fast, "
+                  "dramatic, chaotic) in bold eye-catching or neon colors. Text is optional: none, or a 2-4 word label."),
+}
+ANIMALS_PER_RUN = env_int("ANIMALS_PER_RUN", 5)
+DESIGNS_PER_ANIMAL = env_int("DESIGNS_PER_ANIMAL", 5)
+IDIOMS_PER_ANIMAL = min(DESIGNS_PER_ANIMAL, env_int("IDIOMS_PER_ANIMAL", 3))   # ostatak su "karakter" dizajni
+MIN_DESIGNS_PER_ANIMAL = min(3, DESIGNS_PER_ANIMAL)
+# Tvoji postojeći hitovi: bot ih nikad ne pravi ponovo, samo varijacije
+OWN_BESTSELLER_TITLES = ["My Ducks Are Not In A Row - Funny Chaos ADHD Mental Health Meme",
+                         "Danger Candy Neon Poison Dart Frog Aesthetic", "Lazy Turtle", "Winter Assassin White Stoat Hiding",
+                         "Majestic Running Basset Hound Flying Ears"]
+OWN_BESTSELLER_TEXTS = ["MY DUCKS ARE NOT IN A ROW", "DANGER CANDY", "WINTER ASSASSIN"]
+
+# Prezasićene ili zaštićene fraze (dopuni preko blocked_terms.txt)
+SATURATED_RE = re.compile(
+    r"(?i)\b(not my circus|not my monkeys|keep calm|live laugh love|this is fine|good vibes only|but first coffee|"
+    r"i do what i want|nope not today|resting [a-z]+ face|hangry|wine o.?clock|what the duck|duck it|"
+    r"cute but psycho|i('?m| am) just here for|my therapist)\b")
+
+TYPE_PADDING = {
+    "idiom": ["funny meme", "relatable humor", "funny saying", "sarcastic", "laptop sticker", "water bottle sticker"],
+    "character": ["funny animal", "cute animal", "neon aesthetic", "animal lover gift", "laptop sticker"],
+}
+
+
+def research_theme_keywords():
+    """Stvarne pretrage za teme koje ti prodaju (ADHD, introvert, anksioznost...). Vraća [] ako autosuggest ne radi."""
+    if not USE_AUTOSUGGEST:
+        return []
+    seeds = ["adhd sticker", "funny adhd", "introvert sticker", "anxiety sticker", "mental health sticker",
+             "funny coffee sticker", "chaos sticker", "funny idiom", "funny animal sticker", "sarcastic sticker"]
+    found, seen = [], set()
+    for seed in seeds:
+        for s in google_suggest(seed):
+            k = re.sub(r"\s+", " ", re.sub(r"[^a-z0-9\s'-]", " ", s.lower())).strip()
+            if not (2 <= len(k.split()) <= 5) or set(k.split()) & NON_MERCH_WORDS or find_blocked(k):
+                continue
+            if phrase_key(k) not in seen:
+                seen.add(phrase_key(k))
+                found.append(k)
+        time.sleep(0.3)
+    print(f"  -> Pronađeno {len(found)} stvarnih pretraga za teme (ADHD, introvert...).")
+    return found[:30]
+
+
+def build_concept_prompt(slots, theme_kw, animal_kw, avoid_titles, avoid_texts, feedback, today):
+    slot_lines = []
+    for s in slots:
+        label = CONCEPT_TYPES[s["type"]][1].replace("{animal}", s.get("animal") or "")
+        fixed = f' (animal = "{s["animal"]}")' if s.get("animal") else ""
+        slot_lines.append(f'- slot "{s["id"]}" type={s["type"]}{fixed}: {label}')
+    kw_lines = "\n".join(f"- {k}" for k in theme_kw[:25]) or "- (live data unavailable)"
+    for a, kws in animal_kw.items():
+        if kws:
+            kw_lines += f"\nSearches for {a}: " + ", ".join(kws[:12])
     seasons = active_seasons(today)
-    chosen = [{"id": random.choice(["funny-relatable", "sarcastic"])}, {"id": "gift-for-person"}]
-    if seasons:
-        s = random.choice(seasons)
-        chosen.append({"id": "season-" + s["id"], "brief": f"a seasonal design for {s['brief']}; the holiday must be obvious from the scene and the title", "season": s["id"]})
-    else:
-        chosen.append({"id": "wholesome-affirmation"})
-    taken = {c["id"] for c in chosen}
-    rest = [a for a in ANGLES if a not in taken]
-    random.shuffle(rest)
-    while len(chosen) < n and rest:
-        chosen.append({"id": rest.pop()})
-    for c in chosen:
-        c.setdefault("brief", ANGLES.get(c["id"], ""))
-    return chosen[:n]
+    season_line = ("Upcoming season: " + "; ".join(s["brief"] for s in seasons) +
+                   ". At most 1-2 idiom concepts may fit it, the rest must be evergreen.\n") if seasons else ""
+    titles_block = "\n".join(f"- {t}" for t in avoid_titles[-60:]) or "- (none)"
+    texts_block = ", ".join(avoid_texts[-150:]) or "(none)"
+    fix_block = ("\nFIX THESE PROBLEMS FROM YOUR PREVIOUS ANSWER:\n" + "\n".join(f"- {f}" for f in feedback[:15]) + "\n") if feedback else ""
+    return f"""You are the creative director and SEO expert of a Redbubble sticker and t-shirt shop with animals. Today is {today.strftime('%B %d, %Y')}.
 
+WHAT ACTUALLY SELLS IN THIS SHOP (real sales data):
+{BEST_SELLERS}
+People buy stickers that say something about THEM, not just a picture of an animal.
 
-def build_design_prompt(animal, keywords, angles, avoid_titles, avoid_texts, feedback, today):
-    kw_block = "\n".join(f"- {k}" for k in keywords[:30]) or "- (live data unavailable; rely on how real buyers search)"
-    angle_lines = "\n".join(f"{i}. {a['id']}: {a['brief'].replace('{animal}', animal)}" for i, a in enumerate(angles, 1))
-    titles_block = "\n".join(f"- {t}" for t in avoid_titles[-40:]) or "- (none)"
-    texts_block = ", ".join(avoid_texts[-100:]) or "(none)"
-    fix_block = ""
-    if feedback:
-        fix_block = "\nFIX THESE PROBLEMS FROM YOUR PREVIOUS ANSWER (do not repeat them):\n" + "\n".join(f"- {f}" for f in feedback[:12]) + "\n"
-    n = len(angles)
-    return f"""You are an experienced Redbubble seller and print-on-demand SEO specialist. Today is {today.strftime('%B %d, %Y')}.
+REAL GOOGLE SEARCHES (use for tags and wording when they fit; ignore anything off-topic):
+{kw_lines}
+{season_line}
+CREATE ONE CONCEPT FOR EACH SLOT:
+{chr(10).join(slot_lines)}
 
-ANIMAL: {animal}
-
-REAL GOOGLE SEARCHES for buying or giving items with this animal (already filtered for shopping intent). Use them for keywords when they fit the artwork. If a search is about anything other than the artwork's audience, occasion or theme (a place, event, food, plant, brand, product, definition or another meaning of the word), IGNORE it:
-{kw_block}
-
-TASK: create {n} COMPLETELY DIFFERENT sticker / t-shirt artworks. Each artwork must follow its own ANGLE and must be aimed at a different buyer and a different search:
-ANGLES:
-{angle_lines}
-
-Think like a buyer, not like an artist: shoppers search "capybara gifts for mom", not "cool capybara art".
-
-ALREADY USED, do NOT repeat or paraphrase these titles:
+ALREADY USED, never repeat or paraphrase these titles:
 {titles_block}
-ALREADY USED banner phrases (a new banner phrase must NOT repeat or closely resemble any of them): {texts_block}
+ALREADY USED phrases (never reuse or closely imitate): {texts_block}
 {fix_block}
-FIELDS FOR EVERY ARTWORK
-- angle: copy the angle id exactly.
-- primary_keyword: ONE phrase a buyer would type (2-4 words, lowercase, contains "{animal}"). Different for every artwork. It must be about THIS artwork's audience, occasion or theme. NEVER a place, event, plant, food, brand, product or definition (bad examples: "turkey trot", "poodle skirt", "reindeer moss", "llama vs alpaca").
-- title: 3-6 words, max 55 characters. It must read like a natural product title written by a human (grammatical, NOT a chain of keywords) with the main keyword near the start. GOOD: "Sleepy Pug Nap Club Gift for Adults". BAD: "Pug Gifts For Adults Tired Nap Club". It names the ARTWORK, so NEVER use the words sticker, design, shirt, t-shirt, hoodie, poster or Redbubble. No quotation marks.
-- description: 250-450 characters, 2-3 sentences that sound like a person, not a keyword list. Work the primary keyword in naturally (do NOT simply start the sentence with it). Say what the artwork shows (must match visual_scene) and name the species ("pug", "llama"), never just "animal" or "pup". Then say who it is for or which occasion it suits (gift idea). No prices, shipping, quality or sales claims, no URLs, no hashtags, no emojis.
-- tags: JSON array of EXACTLY 15 distinct lowercase tags, 1-3 words, max 30 characters each:
-    tag 1 = "{animal}"; then 3-4 phrases with the animal that buyers search (from the real searches above);
-    3-4 buyer/occasion tags (e.g. "gift for mom", "animal lover gift", "birthday gift", "christmas gift");
-    3-4 tags about the actual scene or phrase (hobby, food, mood, job);
-    2 style tags (e.g. "cute cartoon", "kawaii");
-    1-2 broad category tags (e.g. "wildlife", "funny animal").
-  Only 6-7 tags may contain the animal's name. Every tag must describe THIS artwork or its buyer: never use a tag with another meaning (places, events, foods, other products, definitions, e.g. "poodle skirt", "turkey tail mushroom", "reindeer moss"). Never use filler tags (art, design, cool, new, awesome, trending, best, sale, gift) and never use brand, franchise, character, celebrity or meme names.
-- visual_scene: max 25 words, English: the animal's pose, expression, outfit and props only. NO background, frame, banner or text. It must visibly match the angle and the banner phrase.
-  COLOR RULE: if the animal wears clothes, a hat or glasses or holds a prop, state each item's color using ONLY ORANGE, YELLOW, RED, NAVY BLUE or WHITE (e.g. "wearing an orange t-shirt and sunglasses", "holding a red coffee mug"). Never leave clothing without a color. Never use the words magenta, pink, purple or fuchsia.
-- text: the banner phrase, ENGLISH, UPPERCASE, 1-4 words, max 22 characters, letters/numbers/space/apostrophe/!/? only. Original wordplay, no famous quotes or brand slogans, no color instructions, no translations. Short words render best. It must be NEW: never reuse any phrase from the ALREADY USED list, never repeat a phrase inside your answer, and avoid the overused clichés NEED COFFEE FIRST, CURRENTLY UNPLUGGED, STRIDE WITH PRIDE, PIZZA MY HEART, MERRY AND FLUFFY.
+DESIGN RULES: die-cut sticker = ONE compact connected shape with no small separate pieces (or a retro round badge with the animal in the
+middle and the text arched). Thick outlines, few details, strong contrasting flat colors, no thin lines, no gradients. Text 2-6 words,
+big and readable, it must work at thumbnail size (3-4 cm). The animal has a clear facial expression or action.
+FORBIDDEN: brands, characters from movies/cartoons/games, celebrity names, trademarked or overused phrases (e.g. "Not my circus,
+not my monkeys", "Keep calm", "Live laugh love", "This is fine"), copying other people's designs.
 
-Return ONLY a JSON array of exactly {n} objects with the keys: angle, primary_keyword, title, description, tags, visual_scene, text."""
+FIELDS FOR EVERY CONCEPT
+- slot: copy the slot id exactly. type: copy the type.
+- animal: copy the given animal.
+- concept: one sentence: what is seen and why it is funny.
+- text: the exact phrase on the design, ENGLISH, 2-6 words, max 32 characters, only letters, numbers, spaces, apostrophes, ! and ?.
+  REQUIRED for idiom. For character: "" (no text) or 2-4 words.
+- style: "die-cut" or "retro-badge" (about 1 in 3 should be retro-badge).
+- visual_scene: max 35 words, English: exactly what is drawn: the animal(s), the LITERAL depiction of the phrase, poses, facial
+  expressions, props and their colors. No background. One compact composition.
+- title: max 70 characters, format "<Phrase or character> - <3-6 words a buyer searches>", modeled on
+  "My Ducks Are Not In A Row - Funny Chaos ADHD Mental Health Meme". Never the words sticker, design, shirt, t-shirt, hoodie, poster, Redbubble.
+- primary_keyword: main search phrase, 2-4 words, lowercase (e.g. "adhd duck", "introvert cat").
+- tags: exactly 15 lowercase tags (1-3 words) that a buyer would type: the phrase and its short parts, the animal, the theme
+  (adhd, introvert, anxiety, mental health, coffee lover...), humor words (funny, sarcastic, meme), who it is for. No filler words
+  (art, design, cool, new, awesome, trending, best), no brands.
+- description: 1-2 natural sentences, 120-300 characters: who it is for and where to stick or wear it (laptop, water bottle,
+  notebook, planner, tee). No prices, shipping, quality claims, hashtags, emojis or URLs.
+
+Return ONLY a JSON array with exactly {len(slots)} objects with the keys: slot, type, animal, concept, text, style, visual_scene, title, primary_keyword, tags, description."""
 
 
 def clean_title(raw, animal):
     t = re.sub(r"[\"“”`]", "", str(raw))
     t = TITLE_BANNED_RE.sub(" ", t)
+    t = re.sub(r"\s+[-–—|]\s+|:\s+", " - ", t, count=1)          # "Fraza: opis" / "Fraza | opis" -> "Fraza - opis"
     t = re.sub(r"\s+", " ", t).strip(" -–—:|,.;!")
     t = smart_title(t)
     if not t:
-        t = f"{smart_title(animal)} Lover"
+        t = f"Funny {smart_title(animal)}"
     if not mentions_animal(t, animal):
-        t = f"{smart_title(animal)} {t}"
+        if " - " in t:
+            head, tail = t.split(" - ", 1)
+            t = f"{head} - {smart_title(animal)} {tail}"
+        else:
+            t = f"{t} - Funny {smart_title(animal)}"
+    if len(t) > TITLE_MAX and " - " in t:
+        head, tail = t.split(" - ", 1)
+        tail = shorten(tail, max(8, TITLE_MAX - len(head) - 3))
+        t = f"{head} - {tail}" if tail else head
     return shorten(t, TITLE_MAX)
 
 
@@ -727,14 +776,14 @@ def shorten(text, limit):
     return " ".join(words).strip(" -–—:|,.")
 
 
-def fallback_description(animal, title, scene):
-    scene = scene.strip().rstrip(".")
-    scene = re.sub(rf"(?i)^(an?|the)?\s*{re.escape(animal)}s?\s+", "", scene)   # "a hare wearing..." -> "wearing..."
-    scene = scene[:1].lower() + scene[1:] if scene else "looking adorable"
-    return f"{title}. A cute cartoon {animal} {scene}. A fun gift idea for {animal} lovers, birthdays and everyday fans."
+def fallback_description(animal, title, concept):
+    head = title.split(" - ")[0]
+    concept = concept.strip().rstrip(".") or f"a funny cartoon {animal}"
+    return (f"{head}: {concept[:1].lower() + concept[1:]}. A funny {animal} sticker for anyone who feels this every day, "
+            f"great on a laptop, water bottle or notebook.")
 
 
-def clean_description(raw, animal, title, scene):
+def clean_description(raw, animal, title, concept):
     d = re.sub(r"<[^>]+>", " ", str(raw))
     d = re.sub(r"https?://\S+|www\.\S+", " ", d)
     d = re.sub(r"#\w+", " ", d)
@@ -746,13 +795,14 @@ def clean_description(raw, animal, title, scene):
         cut = d[:DESC_MAX]
         end = max(cut.rfind(". "), cut.rfind("! "), cut.rfind("? "), cut.rfind(".") if cut.endswith(".") else -1)
         d = cut[:end + 1] if end > 120 else cut[:cut.rfind(" ")].rstrip(" ,;:-") + "."
-    if len(d) < 80 or not mentions_animal(d, animal):
-        d = fallback_description(animal, title, scene)
+    if len(d) < 80:
+        d = fallback_description(animal, title, concept)
     return d[:DESC_MAX]
 
 
 def clean_banner_text(raw):
     t = unicodedata.normalize("NFKD", str(raw)).encode("ascii", "ignore").decode()
+    t = t.replace("’", "'")
     t = re.sub(r"[^A-Za-z0-9 '!?&-]", " ", t)
     return re.sub(r"\s+", " ", t).strip().upper()
 
@@ -770,10 +820,10 @@ def normalize_tag(tag, title_key=None):
     return t
 
 
-def clean_tags(raw, animal, title, keywords, season=None, allowed_extra=None):
-    """Tačno 15 različitih, relevantnih tagova; prvi je životinja.
-    Tag koji sadrži životinju mora da se oslanja SAMO na reči kupca/prilike/proizvoda (INTENT_WORDS) ili na reči iz
-    ovog dizajna (scena, natpis, naslov): tako otpadaju 'pug skull', 'poodle skirt', 'llama vs alpaca', 'turkey run state park'."""
+def clean_tags(raw, animal, title, keywords, extra_pools=(), allowed_extra=None):
+    """Tačno 15 različitih tagova; životinja je uvek među njima.
+    Tag sa imenom životinje mora da se oslanja SAMO na reči kupca/teme (INTENT_WORDS) ili na reči iz ovog dizajna
+    (scena, fraza, koncept): tako otpadaju 'pug skull', 'poodle skirt', 'llama vs alpaca'."""
     if isinstance(raw, str):
         raw = raw.split(",")
     if not isinstance(raw, list):
@@ -797,10 +847,10 @@ def clean_tags(raw, animal, title, keywords, season=None, allowed_extra=None):
         has_animal = mentions_animal(t, animal)
         if has_animal and not force:
             extra = set(tokens(t)) - animal_tokens
-            if not extra <= allowed or extra == {"animal"}:       # nevezano značenje ili prazan tag ("llama animal")
+            if not extra <= allowed or extra == {"animal"}:
                 return False
-        if has_animal and animal_tags >= MAX_ANIMAL_TAGS and not force:
-            return False
+            if animal_tags >= MAX_ANIMAL_TAGS:
+                return False
         seen.add(key)
         out.append(t)
         animal_tags += 1 if has_animal else 0
@@ -809,13 +859,7 @@ def clean_tags(raw, animal, title, keywords, season=None, allowed_extra=None):
     add(animal, force=True)
     for t in raw:
         add(t)
-    pools = []
-    if season:
-        pools.append(SEASON_TAGS.get(season, []))
-    pools.append(keywords)
-    pools.append([tpl.format(a=animal) for tpl in ANIMAL_TAG_TEMPLATES])
-    pools.append(PADDING_TAGS)
-    for pool in pools:
+    for pool in [keywords, *extra_pools, [tpl.format(a=animal) for tpl in ANIMAL_TAG_TEMPLATES], PADDING_TAGS]:
         for t in pool:
             if len(out) >= TAGS_COUNT:
                 break
@@ -823,128 +867,126 @@ def clean_tags(raw, animal, title, keywords, season=None, allowed_extra=None):
     return out[:TAGS_COUNT]
 
 
-def clean_design(raw, animal, ctx):
+def clean_concept(raw, slot, ctx):
     """Vraća (design, []) ili (None, [problemi]). Sve što se može popraviti popravlja se u kodu."""
     if not isinstance(raw, dict):
         return None, ["objekat nije validan JSON objekat"]
     issues = []
+    ctype = slot["type"]
 
-    title = clean_title(raw.get("title", ""), animal)
-    pk = re.sub(r"[^a-z0-9\s'-]", " ", str(raw.get("primary_keyword", "")).lower())
-    pk = re.sub(r"\s+", " ", pk).strip()
-    # Reči koje dizajn zaista prikazuje (scena + natpis). Naslov se NE računa: model ume da prepiše nevezanu pretragu u naslov
-    # ("Turkey Run State Park ..."), pa bi tagovi onda "opravdali" isti promašaj.
-    shown_tokens = set(tokens(str(raw.get("visual_scene", "")))) | set(tokens(raw.get("text", "")))
-    if (not pk or not mentions_animal(pk, animal) or len(pk.split()) > 5
-            or not (set(tokens(pk)) - set(tokens(animal))) <= (INTENT_WORDS | shown_tokens)):
-        pk = " ".join(title.lower().split()[:4])          # ključna reč mora biti o OVOM dizajnu, ne o drugom značenju reči
-    if len(title) < 20:
-        # posle skidanja reči poput "sticker design" naslov ume da ostane kratak: dopuni ga ključnom rečju
-        longer = clean_title(smart_title(pk), animal)
-        if len(longer) > len(title):
-            title = longer
-    if len(title.split()) < 2 or len(title) < 12:
-        issues.append(f"title '{title}' je prekratak")
-    off = TITLE_OFFTOPIC_RE.search(title)
-    if off:
-        issues.append(f"title '{title}' sadrži '{off.group(1)}': to je drugo značenje reči ili poređenje, ne tema dizajna")
-    if phrase_key(title) in ctx["titles"]:
-        issues.append(f"title '{title}' je duplikat ili previše sličan postojećem")
-    if phrase_key(pk) in ctx["keywords_used"]:
-        alt = " ".join(title.lower().split()[:4])
-        if phrase_key(alt) in ctx["keywords_used"]:
-            issues.append(f"primary_keyword '{pk}' već koristi drugi dizajn")
-        else:
-            pk = alt
+    if slot.get("animal"):
+        animal = slot["animal"]
+    else:
+        animal = valid_animal(raw.get("animal", ""))
+        if not animal:
+            return None, [f"animal '{raw.get('animal', '')}' nije validno ime životinje"]
+        animal = " ".join(singular(w) for w in animal.split())
 
-    scene = re.sub(r"\s+", " ", str(raw.get("visual_scene", ""))).strip().rstrip(".")
-    scene = re.sub(r"(?i)\b(magenta|pink|fuchsia|purple)\b", "red", scene)
-    if len(scene) < 20:
-        issues.append("visual_scene je prekratak ili ga nema")
-
+    concept = re.sub(r"\s+", " ", str(raw.get("concept", ""))).strip()
     text = clean_banner_text(raw.get("text", ""))
     words = text.split()
-    if not (1 <= len(words) <= 4) or not (3 <= len(text) <= 24):
-        issues.append(f"text '{text}' mora imati 1-4 reči i najviše 22-24 karaktera")
-    elif canon(text) in ctx["texts"]:
+    if ctype == "idiom":
+        if not (2 <= len(words) <= 6) or not (5 <= len(text) <= 32):
+            issues.append(f"text '{text}' mora imati 2-6 reči i najviše 32 karaktera")
+    elif text and (not (1 <= len(words) <= 4) or len(text) > 26):
+        issues.append(f"text '{text}' za character mora biti prazan ili 2-4 reči")
+    if text and canon(text) in ctx["texts"]:
         issues.append(f"text '{text}' je već korišćen")
 
-    description = clean_description(raw.get("description", ""), animal, title, scene)
-    tags = clean_tags(raw.get("tags", []), animal, title, ctx["keywords"], ctx.get("season_hint"), allowed_extra=shown_tokens)
+    style = "retro-badge" if "badge" in str(raw.get("style", "")).lower() else "die-cut"
 
-    blocked = find_blocked(" ".join([title, description, text, scene, pk]))
+    scene = re.sub(r"\s+", " ", str(raw.get("visual_scene", ""))).strip().rstrip(".")
+    if len(scene) < 25:
+        issues.append("visual_scene je prekratak ili ga nema")
+    elif not mentions_animal(scene, animal):
+        scene = f"a cartoon {animal}: {scene}"
+
+    title = clean_title(raw.get("title", ""), animal)
+    if len(title.split()) < 3 or len(title) < 15:
+        issues.append(f"title '{title}' je prekratak")
+    if phrase_key(title) in ctx["titles"]:
+        issues.append(f"title '{title}' je duplikat ili previše sličan postojećem")
+    off = TITLE_OFFTOPIC_RE.search(title)
+    if off:
+        issues.append(f"title '{title}' sadrži '{off.group(1)}': to nije tema dizajna")
+    sat = SATURATED_RE.search(f"{text} {title}")
+    if sat:
+        issues.append(f"fraza '{sat.group(1)}' je prezasićena ili zaštićena, smisli drugu")
+
+    pk = re.sub(r"\s+", " ", re.sub(r"[^a-z0-9\s'-]", " ", str(raw.get("primary_keyword", "")).lower())).strip()
+    if not (2 <= len(pk.split()) <= 5):
+        pk = " ".join(title.split(" - ")[0].lower().split()[:4])
+
+    description = clean_description(raw.get("description", ""), animal, title, concept or scene)
+    shown = set(tokens(scene)) | set(tokens(text)) | set(tokens(concept))
+    tags = clean_tags(raw.get("tags", []), animal, title, ctx["keywords"].get(animal, []) + ctx["theme_keywords"],
+                      extra_pools=[TYPE_PADDING.get(ctype, [])], allowed_extra=shown)
+
+    blocked = find_blocked(" ".join([title, description, text, scene, concept, pk]))
     if blocked:
         issues.append(f"sadrži zaštićeni/brend pojam: {', '.join(blocked)}")
 
     if issues:
         return None, issues
     return {
-        "title": title, "primary_keyword": pk, "description": description, "tags": tags,
-        "visual_scene": scene, "text": text,
+        "type": ctype, "animal": animal, "concept": concept or scene, "text": text, "style": style,
+        "visual_scene": scene, "title": title, "primary_keyword": pk, "description": description, "tags": tags,
     }, []
 
 
-def generate_designs(animal, keywords, today, history):
-    wanted = choose_angles(today, DESIGNS_PER_ANIMAL)
-    print(f"  -> Uglovi: {', '.join(a['id'] for a in wanted)}")
-    avoid_titles = [d["title"] for rec in history["animals"].values() for d in rec.get("designs", [])]
-    # Natpisi se tvrdo proveravaju protiv poslednjih 100 (isti spisak vidi i model u promptu): pravi izlaz je pokazao da
-    # model sam ponavlja iste ("CURRENTLY UNPLUGGED" kod 4 životinje, "NEED COFFEE FIRST" kod 4), pa sam savet nije dovoljan.
-    avoid_texts = [d["text"] for rec in history["animals"].values() for d in rec.get("designs", [])][-100:]
+def generate_concepts(slots, theme_kw, animal_kw, today, history):
+    old = [d for rec in history["animals"].values() for d in rec.get("designs", [])] + history.get("designs", [])
+    avoid_titles = OWN_BESTSELLER_TITLES + [d["title"] for d in old if d.get("title")]
+    # Fraze se tvrdo proveravaju protiv poslednjih 150: model ume sam da ponavlja iste.
+    avoid_texts = OWN_BESTSELLER_TEXTS + [d["text"] for d in old if d.get("text")][-150:]
     ctx = {
         "titles": {phrase_key(t) for t in avoid_titles},
         "texts": {canon(t) for t in avoid_texts},
-        "keywords_used": set(),
-        "keywords": keywords,
+        "keywords": animal_kw,
+        "theme_keywords": theme_kw,
     }
-    accepted, feedback = [], []
-
-    for attempt in range(1, 4):
-        todo = [a for a in wanted if a["id"] not in {d["angle"] for d in accepted}]
-        if not todo:
-            break
-        prompt = build_design_prompt(animal, keywords, todo, avoid_titles, avoid_texts, feedback, today)
+    accepted = {}
+    for start in range(0, len(slots), 8):                      # najviše 8 koncepata po pozivu: kraći, pouzdaniji JSON
+        group = slots[start:start + 8]
         feedback = []
-        try:
-            txt = gemini(prompt, json_mode=True, label="dizajni",
-                         validator=lambda t: isinstance(extract_json(t), (list, dict)))
-            data = extract_json(txt)
-            if isinstance(data, dict):
-                data = next((v for v in data.values() if isinstance(v, list)), [data])
-        except Exception as e:
-            print(f"  -> Pokušaj {attempt}: generisanje dizajna nije uspelo: {redact(e)[:150]}")
-            continue
-
-        for i, raw in enumerate(data):
-            if not isinstance(raw, dict):
-                continue
-            ids = {a["id"] for a in todo}
-            echoed = raw.get("angle")
-            angle = next((a for a in todo if a["id"] == echoed), None) or (todo[i] if i < len(todo) else None)
-            if angle is None or angle["id"] in {d["angle"] for d in accepted}:
-                continue
-            ctx["season_hint"] = angle.get("season")
-            design, issues = clean_design(raw, animal, ctx)
-            if design is None:
-                label = raw.get("title", "?")
-                print(f"     ✗ '{str(label)[:50]}' odbijen: {'; '.join(issues)}")
-                feedback.append(f"[{angle['id']}] {'; '.join(issues)}")
-                continue
-            design["angle"] = angle["id"]
-            design["season"] = angle.get("season")
-            accepted.append(design)
-            ctx["titles"].add(phrase_key(design["title"]))
-            ctx["texts"].add(canon(design["text"]))
-            ctx["keywords_used"].add(phrase_key(design["primary_keyword"]))
-            if len(accepted) >= DESIGNS_PER_ANIMAL:
+        for attempt in range(1, 4):
+            todo = [s for s in group if s["id"] not in accepted]
+            if not todo:
                 break
-        print(f"  -> Pokušaj {attempt}: prihvaćeno {len(accepted)}/{DESIGNS_PER_ANIMAL} dizajna.")
-        if len(accepted) >= DESIGNS_PER_ANIMAL:
-            break
-
-    order = {a["id"]: i for i, a in enumerate(wanted)}
-    accepted.sort(key=lambda d: order.get(d["angle"], 99))
-    return accepted
+            prompt = build_concept_prompt(todo, theme_kw, {a: k for a, k in animal_kw.items()
+                                                            if any(s.get("animal") == a for s in todo)},
+                                          avoid_titles, avoid_texts, feedback, today)
+            feedback = []
+            try:
+                txt = gemini(prompt, json_mode=True, label="koncepti",
+                             validator=lambda t: isinstance(extract_json(t), (list, dict)))
+                data = extract_json(txt)
+                if isinstance(data, dict):
+                    data = next((v for v in data.values() if isinstance(v, list)), [data])
+            except Exception as e:
+                print(f"  -> Pokušaj {attempt}: generisanje koncepata nije uspelo: {redact(e)[:150]}")
+                continue
+            for i, raw in enumerate(data):
+                if not isinstance(raw, dict):
+                    continue
+                slot = next((s for s in todo if s["id"] == str(raw.get("slot", "")).strip()), None)
+                if slot is None and i < len(todo):
+                    slot = todo[i]
+                if slot is None or slot["id"] in accepted:
+                    continue
+                design, issues = clean_concept(raw, slot, ctx)
+                if design is None:
+                    print(f"     ✗ [{slot['type']}] '{str(raw.get('title', '?'))[:55]}' odbijen: {'; '.join(issues)}")
+                    feedback.append(f"[slot {slot['id']}] {'; '.join(issues)}")
+                    continue
+                accepted[slot["id"]] = design
+                ctx["titles"].add(phrase_key(design["title"]))
+                if design["text"]:
+                    ctx["texts"].add(canon(design["text"]))
+                    avoid_texts.append(design["text"])
+                avoid_titles.append(design["title"])
+            print(f"  -> Pokušaj {attempt}: prihvaćeno {sum(s['id'] in accepted for s in group)}/{len(group)} koncepata.")
+    return [accepted[s["id"]] for s in slots if s["id"] in accepted]
 
 
 # ---------------------------------------------------------------------------
@@ -954,28 +996,54 @@ def fal_headers():
     return {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
 
 
-def fal_text_to_image(design, animal):
-    """Z-Image Turbo. Prompt ostaje tvoj, proveren: ravni vektor, crna kontura, traka sa tekstom na dnu."""
-    if PINK_ANIMAL_RE.search(animal):
-        chroma_bg = "PURE SOLID NEON BLUE (#0044FF) CHROMA KEY BACKGROUND"
-        color_ban_negative = "blue, neon blue, cyan, teal,"
-    else:
-        chroma_bg = "PURE SOLID HOT MAGENTA (#FF00FF) CHROMA KEY BACKGROUND"
-        color_ban_negative = "magenta, hot pink, pink, fuchsia, purple,"
+CHROMA_KEYS = [
+    # (opis za prompt, šta zabraniti u negativnom promptu, boje koje se "bore" sa ovom pozadinom)
+    ("PURE SOLID HOT MAGENTA (#FF00FF) CHROMA KEY BACKGROUND", "magenta, hot pink, fuchsia,",
+     {"pink", "magenta", "purple", "fuchsia", "violet", "lilac", "lavender", "rose"}),
+    ("PURE SOLID NEON BLUE (#0044FF) CHROMA KEY BACKGROUND", "blue background,",
+     {"blue", "cyan", "teal", "turquoise", "navy", "aqua", "sky"}),
+    ("PURE SOLID CHROMA GREEN (#00FF00) CHROMA KEY BACKGROUND", "green background,",
+     {"green", "lime", "emerald", "mint", "olive"}),
+]
 
-    q = '"' if "'" in design["text"] else "'"        # natpis sa apostrofom (WORLD'S) ne sme da lomi navodnike u promptu
+
+def pick_chroma(design):
+    """Pozadina se bira tako da se NE poklapa sa bojama dizajna (neon žaba, roze flamingo...), da je BiRefNet lako skine."""
+    words = set(tokens(f"{design['visual_scene']} {design['animal']}"))
+    if PINK_ANIMAL_RE.search(design["animal"]):
+        words.add("pink")
+    for key in CHROMA_KEYS:
+        if not (words & key[2]):
+            return key
+    return CHROMA_KEYS[0]
+
+
+def fal_text_to_image(design):
+    """Z-Image Turbo: die-cut nalepnica (jedan kompaktan oblik) ili retro okrugli bedž, debele konture, ravne jake boje."""
+    chroma_bg, color_negative, _ = pick_chroma(design)
+    text = design["text"]
+    q = '"' if "'" in text else "'"
+    if design["style"] == "retro-badge":
+        style = ("Style: retro round badge: one solid filled circle with a thick black outline, the animal in the center, "
+                 + (f"big bold text {q}{text}{q} arched along the top inside the circle. " if text else "no text. "))
+    else:
+        style = ("Style: die-cut sticker: the animal(s), props "
+                 + (f"and a thick bold banner with the text {q}{text}{q} " if text else "")
+                 + "all touch and overlap so the whole artwork is ONE compact connected silhouette with no separate small pieces. ")
+    text_rule = (f"The ONLY text in the image is exactly {q}{text}{q} in big chunky readable cartoon letters (max 2 fonts). "
+                 if text else "There is NO text, letters or numbers anywhere. ")
     image_prompt = (
-        f"A standalone flat 2D vector mascot illustration graphic for a t-shirt design. "
-        f"Subject: A cute 2D cartoon {animal} {design['visual_scene']}. "
-        f"Style: Flat 2D vector art, clean crisp sharp edges, solid highly saturated vibrant colors. "
-        f"Outline: The entire illustration, character, props, and banner MUST have a thick solid bold black outline enclosing every single shape. "
-        f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a horizontal ribbon banner or rectangle filled with solid bright yellow, orange, or red with a thick black outline, containing bold black typography reading exactly {q}{design['text']}{q}. "
-        f"Composition: The artwork is completely isolated on a {chroma_bg}."
+        "Die-cut sticker design, bold thick black outlines, flat vibrant colors, simple shapes, minimal detail, "
+        "no thin lines, no gradients, strong contrast, readable at small thumbnail size. "
+        f"Subject: {design['visual_scene']}. The animal has a clear funny facial expression. "
+        f"{style}{text_rule}"
+        f"Composition: centered, fully visible, isolated on a {chroma_bg}, no extra text."
     )
     negative_prompt = (
-        f"{color_ban_negative} white background, black background, green background, transparent background, gradient background, scenery, "
-        f"sticker peel, die cut, drop shadow, 3d render, realistic, photograph, glow, blurry edges, brush strokes, "
-        f"border, circular frame, watermark, messy edges, floating text outside banner, beige, pastels, washed out colors"
+        f"{color_negative} white background, black background, transparent background, gradient background, scenery, "
+        "small separate pieces, scattered elements, floating objects, thin lines, gradients, 3d render, realistic, photograph, "
+        "glow, blurry edges, brush strokes, watermark, signature, extra words, misspelled text, cropped, cut off, "
+        "drop shadow, washed out colors, pastels"
     )
     r = http_request("POST", "https://fal.run/fal-ai/z-image/turbo", headers=fal_headers(),
                      json={"prompt": image_prompt, "negative_prompt": negative_prompt, "image_size": "square_hd"})
@@ -990,41 +1058,77 @@ def fal_remove_background(image_url):
     return http_request("GET", transparent_url).content
 
 
-def check_banner_text(img_bytes, expected):
-    """Gemini vision proverava da li traka piše TAČNO traženi tekst. Greška API-ja = prolazi (ne blokira posao)."""
+def check_design_text(img_bytes, expected):
+    """Gemini vision čita SAV tekst na slici: mora biti tačno traženi (ili nikakav, ako dizajn nema tekst).
+    Greška API-ja = prolazi (ne blokira posao)."""
     try:
         fmt = (Image.open(BytesIO(img_bytes)).format or "PNG").upper()
         mime = "image/jpeg" if fmt in ("JPEG", "JPG") else "image/png"
-        prompt = ('Look at this t-shirt/sticker illustration. Read the text on the ribbon banner exactly as written.\n'
-                  'Return ONLY JSON: {"banner_text": "<exact text you read>", "extra_text": true/false (any other readable '
-                  'text outside the banner), "major_defect": true/false (extra heads or limbs, merged bodies, cropped subject, '
-                  'banner cut off, banner missing), "defect": "<short description or empty>"}')
+        prompt = ('Look at this sticker illustration. Read ALL text visible in the image exactly as written.\n'
+                  'Return ONLY JSON: {"text": "<all text you read, or empty>", "major_defect": true/false (extra heads or '
+                  'limbs, merged bodies, cropped subject, unreadable letters), "defect": "<short description or empty>"}')
         txt = gemini(prompt, json_mode=True, image=(img_bytes, mime),
                      validator=lambda t: isinstance(extract_json(t), dict), label="provera slike")
         data = extract_json(txt)
-        read = canon(data.get("banner_text", ""))
-        ratio = difflib.SequenceMatcher(None, read, canon(expected)).ratio()
-        if ratio < 0.92 or data.get("extra_text") is True or data.get("major_defect") is True:
-            return False, f"očekivano '{expected}', pročitano '{data.get('banner_text', '')}' {data.get('defect', '')}".strip()
+        read = canon(data.get("text", data.get("banner_text", "")))
+        if expected:
+            ok = difflib.SequenceMatcher(None, read, canon(expected)).ratio() >= 0.9
+        else:
+            ok = len(read) <= 2
+        if not ok or data.get("major_defect") is True:
+            return False, f"očekivano '{expected or '(bez teksta)'}', pročitano '{data.get('text', '')}' {data.get('defect', '')}".strip()
         return True, ""
     except Exception as e:
         print(f"    (provera teksta preskočena: {redact(e)[:100]})")
         return True, ""
 
 
+def split_pieces(img, size=384):
+    """Die-cut nalepnica mora biti JEDAN oblik. Briše sitne mrlje (<0,4% površine) i vraća (slika, broj_većih_delova)."""
+    alpha = img.getchannel("A")
+    small = alpha.resize((size, size), Image.Resampling.BILINEAR).point(lambda p: 255 if p > 100 else 0)
+    px = small.load()
+    w, h = small.size
+    seen = bytearray(w * h)
+    comps = []
+    for y in range(h):
+        for x in range(w):
+            if seen[y * w + x] or not px[x, y]:
+                continue
+            seen[y * w + x] = 1
+            stack, pts = [(x, y)], []
+            while stack:
+                cx, cy = stack.pop()
+                pts.append((cx, cy))
+                for nx, ny in ((cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)):
+                    if 0 <= nx < w and 0 <= ny < h and not seen[ny * w + nx] and px[nx, ny]:
+                        seen[ny * w + nx] = 1
+                        stack.append((nx, ny))
+            comps.append(pts)
+    total = sum(len(c) for c in comps) or 1
+    specks = [c for c in comps if len(c) < 0.004 * total]
+    pieces = sum(1 for c in comps if len(c) >= 0.004 * total)
+    if specks:
+        mask = Image.new("L", (w, h), 255)
+        mp = mask.load()
+        for c in specks:
+            for x, y in c:
+                mp[x, y] = 0
+        mask = mask.resize(img.size, Image.Resampling.NEAREST)
+        img = img.copy()
+        img.putalpha(Image.composite(alpha, Image.new("L", img.size, 0), mask))
+    return img, pieces
+
+
 # LUT: alpha < 100 -> 0, > 155 -> 255, između glatki prelaz (antialiasing umesto tvrdog praga)
 _ALPHA_LUT = [0] * 100 + [round((i - 100) * 255 / 55) for i in range(100, 155)] + [255] * 101
 
 
-def to_canvas(transparent_bytes, size):
-    """Transparentni PNG -> centrirano na platno size x size.
-    Razlike u odnosu na staru verziju: ivice se glačaju PRILIKOM uvećanja (a ne tvrdim pragom na 1024px, što je
-    posle 8x uvećanja davalo stepenaste ivice), a boja ispod providnih piksela se crni da nema magenta oboda."""
-    img = Image.open(BytesIO(transparent_bytes)).convert("RGBA")
+def to_canvas(img, size):
+    """Transparentna RGBA slika -> centrirano na platno size x size, glatke ivice, bez obojenog oboda od pozadine."""
+    img = img.convert("RGBA")
     r, g, b, a = img.split()
     a = a.filter(ImageFilter.MinFilter(3))                       # 1px erozija: skida ostatak pozadine
-    # Boja se zadržava samo ispod (skoro) neprozirnih piksela; polu-providni obod postaje crn. Tvoj prompt traži crnu
-    # konturu oko svega, pa je obod crn i ne vidi se, a nestaje magenta/plavi oreol koji ostane od hroma pozadine.
     black = Image.new("RGB", img.size, (0, 0, 0))
     rgb = Image.composite(Image.merge("RGB", (r, g, b)), black, a.point(lambda p: 255 if p >= 250 else 0))
     bbox = a.point(lambda p: 255 if p > 40 else 0).getbbox()
@@ -1039,25 +1143,32 @@ def to_canvas(transparent_bytes, size):
     del rgb, a
 
     canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    canvas.paste(art, ((size - new_w) // 2, (size - new_h) // 2))   # bez maske: alfa se kopira tačno
+    canvas.paste(art, ((size - new_w) // 2, (size - new_h) // 2))
     return canvas
 
 
-def make_design_image(design, animal, out_path):
+def make_design_image(design, out_path):
     note = ""
     for attempt in range(1, IMAGE_ATTEMPTS + 1):
         try:
-            url, original = fal_text_to_image(design, animal)
+            url, original = fal_text_to_image(design)
             ok, note = (True, "")
             if VERIFY_IMAGE_TEXT:
-                ok, note = check_banner_text(original, design["text"])
+                ok, note = check_design_text(original, design["text"])
                 if not ok and attempt < IMAGE_ATTEMPTS:
-                    print(f"    ⟳ Tekst/anatomija na slici nisu u redu ({note}). Pokušaj {attempt + 1}/{IMAGE_ATTEMPTS}...")
+                    print(f"    ⟳ Tekst/anatomija nisu u redu ({note}). Pokušaj {attempt + 1}/{IMAGE_ATTEMPTS}...")
                     continue
-            transparent = fal_remove_background(url)
+            transparent = Image.open(BytesIO(fal_remove_background(url))).convert("RGBA")
+            transparent, pieces = split_pieces(transparent)
+            if pieces > 1 and design["style"] == "die-cut":
+                piece_note = f"{pieces} odvojena dela (nije jedan die-cut oblik)"
+                if attempt < IMAGE_ATTEMPTS:
+                    print(f"    ⟳ Slika ima {piece_note}. Pokušaj {attempt + 1}/{IMAGE_ATTEMPTS}...")
+                    continue
+                ok, note = False, (note + "; " if note else "") + piece_note
             canvas = to_canvas(transparent, TARGET_SIZE)
             canvas.save(out_path, "PNG", compress_level=6)
-            del canvas
+            del canvas, transparent
             size_mb = os.path.getsize(out_path) / 1024 / 1024
             if size_mb > 45:
                 print(f"    ⚠ Fajl je {size_mb:.0f} MB; Telegram limit je 50 MB.")
@@ -1081,6 +1192,8 @@ def format_design_block(index, it):
         f"Opis: {it['description']}",
         f"Tagovi: {', '.join(it['tags'])}",
         f"Slika (Ime fajla): {it['file_name']}",
+        f"Tip: {CONCEPT_TYPES[it['type']][0]} | Stil: {it['style']} | Tekst na dizajnu: {it['text'] or '(bez teksta)'}",
+        f"Koncept: {it['concept']}",
         "",
     ]
     return "\n".join(lines) + "\n"
@@ -1199,73 +1312,82 @@ def main():
 
     used = load_used_animals()
     history = load_history()
-
-    print("🤖 [FAZA 1] Biram životinje (trend + evergreen + stvarna potražnja)...")
+    history.setdefault("designs", [])
+    print(f"🤖 [FAZA 1] Biram {ANIMALS_PER_RUN} životinja (trend + evergreen + stvarna potražnja)...")
     animals = pick_animals(used, history, today, ANIMALS_PER_RUN)
-    print(f"🎯 Lista za danas: {', '.join(a.upper() for a in animals)}")
+    print(f"🎯 Lista za danas: {', '.join(a.upper() for a in animals)}  "
+          f"(po životinji: {IDIOMS_PER_ANIMAL} idiom + {DESIGNS_PER_ANIMAL - IDIOMS_PER_ANIMAL} karakter)")
+    print("🔎 Istražujem stvarne pretrage za teme (ADHD, introvert...)...")
+    theme_kw = research_theme_keywords()
 
     results = []
-    for i, animal in enumerate(animals, 1):
-        print(f"\n--- Životinja {i}/{len(animals)}: {animal.upper()} ---")
+    for n, animal in enumerate(animals, 1):
+        print(f"\n--- Životinja {n}/{len(animals)}: {animal.upper()} ---")
         try:
-            keywords = research_keywords(animal)
-            designs = generate_designs(animal, keywords, today, history)
+            animal_kw = {animal: research_keywords(animal)}
+            slots = ([{"type": "idiom", "animal": animal} for _ in range(IDIOMS_PER_ANIMAL)]
+                     + [{"type": "character", "animal": animal} for _ in range(DESIGNS_PER_ANIMAL - IDIOMS_PER_ANIMAL)])
+            for i, s_ in enumerate(slots, 1):
+                s_["id"] = f"s{i}"
+            designs = generate_concepts(slots, theme_kw, animal_kw, today, history)
             if len(designs) < MIN_DESIGNS_PER_ANIMAL:
-                raise RuntimeError(f"samo {len(designs)} validnih dizajna (minimum {MIN_DESIGNS_PER_ANIMAL})")
+                raise RuntimeError(f"samo {len(designs)} validnih koncepata (minimum {MIN_DESIGNS_PER_ANIMAL})")
 
             folder = safe_name(animal)
             folder_path = os.path.join(OUTPUT_DIR, folder)
             os.makedirs(folder_path, exist_ok=True)
-            made, taken_names = [], set()
+            made, taken = [], set()
             for j, d in enumerate(designs, 1):
-                print(f"  -> Dizajn {j}/{len(designs)} [{d['angle']}]: {d['title']}  |  traka: {d['text']}")
-                file_name = unique_name(folder_path, safe_name(d["title"]), ".png", taken_names)
-                item = dict(d, animal=animal, folder=folder, file_name=file_name,
-                            file_path=os.path.join(OUTPUT_DIR, folder, file_name), needs_review=False, review_note="")
+                print(f"  -> Dizajn {j}/{len(designs)} [{CONCEPT_TYPES[d['type']][0]}] {d['title']}  |  "
+                      f"tekst: {d['text'] or '(bez teksta)'}  |  {d['style']}")
+                file_name = unique_name(folder_path, safe_name(d["title"].split(" - ")[0]), ".png", taken)
+                item = dict(d, folder=folder, file_name=file_name, file_path=os.path.join(folder_path, file_name),
+                            needs_review=False, review_note="")
                 if METADATA_ONLY:
                     item["file_name"] = "(slika nije generisana: METADATA_ONLY)"
                 else:
                     try:
-                        item.update(make_design_image(d, animal, item["file_path"]))
+                        item.update(make_design_image(d, item["file_path"]))
                     except Exception as e:
                         print(f"  ✗ Dizajn preskočen: {redact(e)[:150]}")
                         continue
                     time.sleep(2)
                 made.append(item)
 
-            if len(made) >= MIN_DESIGNS_PER_ANIMAL:
-                results.extend(made)
-                if not METADATA_ONLY:        # METADATA_ONLY je suvi test: životinje se ne troše
-                    used.append(animal)
-                    save_used_animals(used)
-                    history["animals"][animal] = {
-                        "date": today.isoformat(),
-                        "designs": [{"title": m["title"], "text": m["text"], "primary_keyword": m["primary_keyword"], "angle": m["angle"]} for m in made],
-                    }
-                    save_history(history)
-            else:
+            if len(made) < MIN_DESIGNS_PER_ANIMAL:
                 raise RuntimeError(f"uspelo samo {len(made)} slika")
+            results.extend(made)
+            if not METADATA_ONLY:        # METADATA_ONLY je suvi test: životinje se ne troše
+                used.append(animal)
+                save_used_animals(used)
+                for m in made:
+                    history["designs"].append({"date": today.isoformat(), "type": m["type"], "animal": animal,
+                                               "title": m["title"], "text": m["text"], "primary_keyword": m["primary_keyword"]})
+                save_history(history)
         except Exception as e:
             print(f"❌ Greška na životinji {animal}: {redact(e)[:200]}")
             if not METADATA_ONLY:
                 history["failed"][animal] = history["failed"].get(animal, 0) + 1
                 save_history(history)
-        time.sleep(5)
+        time.sleep(3)
 
     if not results:
         sys.exit("Nijedan dizajn nije napravljen. Pogledaj greške iznad.")
 
     txt_paths, combined_txt = write_listings(results, today)
     review = [r for r in results if r.get("needs_review")]
-    summary = (f"✅ Redbubble bot {today.isoformat()}: {len(results)} dizajna, {len(txt_paths)} životinja "
-               f"({', '.join(txt_paths)}).\n"
+    counts = {t: sum(r["type"] == t for r in results) for t in CONCEPT_TYPES}
+    summary = (f"✅ Redbubble bot {today.isoformat()}: {len(results)} dizajna "
+               f"({counts['idiom']} idiom, {counts['character']} karakter), "
+               f"{len(txt_paths)} životinja ({', '.join(txt_paths)}).\n"
                + (f"⚠ {len(review)} slika za ručnu proveru (u *_podaci.txt piše !!! PROVERI SLIKU).\n" if review else "")
                + "U folderu svake životinje je <životinja>_podaci.txt sa naslovom, opisom i tagovima za svaki dizajn.")
     print("\n" + summary)
 
     if METADATA_ONLY:
         for it in results:
-            print(f"\n[{it['animal']}] {it['title']}\n  tagovi: {', '.join(it['tags'])}\n  opis: {it['description']}\n  traka: {it['text']}")
+            print(f"\n[{CONCEPT_TYPES[it['type']][0]}] {it['title']}\n  tekst: {it['text'] or '(bez teksta)'} | {it['style']}"
+                  f"\n  koncept: {it['concept']}\n  tagovi: {', '.join(it['tags'])}\n  opis: {it['description']}")
         return
 
     files_by_folder = {}
