@@ -10,7 +10,9 @@ Tok:
      (poklon za mamu, hobi, zanimanje, praznik, humor...). Naslov / opis / tagovi se proveravaju i
      popravljaju u KODU (limiti, duplikati, zaštićeni pojmovi, prazni tagovi), ne samo u promptu.
   3. Slika: Fal.ai Z-Image Turbo -> provera teksta na traci (Gemini vision) -> BiRefNet -> glatke ivice -> 8000x8000.
-  4. Izlaz: listings.csv + podaci.txt spremni za copy-paste u Redbubble, ZIP paketi na Telegram.
+  4. Izlaz: u folderu svake životinje je <životinja>_podaci.txt (Naslov / Opis / Tagovi za svaki dizajn,
+     spremno za copy-paste u Redbubble) + jedan zajednički podaci_<datum>.txt; sve ide na Telegram
+     (txt poseban, slike u ZIP paketima). Slike se zovu po naslovu (npr. "Pug Pizza Lover.png"). Nema CSV-a.
 
 Opcije (environment promenljive, sve su opcione):
   ANIMALS_PER_RUN=5   DESIGNS_PER_ANIMAL=5   IMAGE_ATTEMPTS=3   TARGET_SIZE=8000
@@ -22,7 +24,6 @@ Opcije (environment promenljive, sve su opcione):
 import os
 import re
 import sys
-import csv
 import json
 import time
 import random
@@ -110,6 +111,8 @@ BLOCKED_TERMS = [
     "tom and jerry", "scooby doo", "sesame street", "muppets", "kung fu panda", "madagascar", "zootopia",
     "stranger things", "game of thrones", "squid game", "baby shark", "cocomelon", "wednesday addams",
     "fortnite", "minecraft", "roblox", "among us", "angry birds", "lego", "barbie", "hot wheels",
+    # igračke i trend-brendovi koji se pojavljuju u pretragama
+    "needoh", "nee doh", "nee-doh", "squishmallow", "squishmallows", "labubu", "stanley cup",
     # memovi i poznate životinje (prava na lik)
     "grumpy cat", "nyan cat", "keyboard cat", "doge", "cheems", "harambe", "moo deng",
     # brendovi
@@ -128,7 +131,24 @@ NON_MERCH_WORDS = {
     "recipe", "recipes", "facts", "habitat", "diet", "lifespan", "pet", "vet", "care", "meme", "memes",
     "video", "videos", "song", "movie", "game", "games", "app", "download", "stock", "photo", "photos",
     "image", "images", "picture", "pictures", "pics", "gif", "sound", "sounds", "noise", "noises",
+    # druga značenja iste reči (iz pravog izlaza: poodle skirt, turkey tail mushroom, reindeer moss, turkey trot...)
+    "meaning", "names", "name", "skirt", "skirts", "mushroom", "mushrooms", "shuttle", "trot", "vulture",
+    "moss", "cuts",
 }
+
+# Fraza iz autosuggest-a se koristi samo ako je ostatak (posle imena životinje) SAMO ove reči: kupac/prilika/proizvod.
+# Time otpadaju nevezane pretrage ("turkey run state park", "poodle skirt", "reindeer needoh").
+_INTENT_RAW = """
+gift gifts idea ideas for him her his hers men man women woman kid kids boy boys girl girls adult adults teen teens
+mom moms mother mothers dad dads father fathers mama papa mommy daddy grandma grandpa grandmother grandfather aunt
+uncle sister brother wife husband girlfriend boyfriend friend friends teacher teachers nurse nurses coworker
+coworkers boss lover lovers love fan fans funny cute adorable kawaii shirt shirts tshirt t tee tees sticker stickers
+hoodie hoodies mug mugs christmas birthday halloween thanksgiving valentine valentines easter anniversary graduation
+holiday holidays present presents themed theme style aesthetic vibe vibes quote quotes saying sayings humor joke
+jokes pun puns and with the a an of to in on s clothing apparel outfit outfits decor owner owners parent parents
+people person lady ladies stuff things dog dogs cat cats puppy puppies kitten kittens bird birds animal animals
+wildlife farm secret santa stocking stuffer stuffers party college student students work office day baby babies
+"""
 
 GENERIC_TAGS = {
     "art", "design", "cool", "new", "awesome", "trending", "best", "sale", "nice", "great", "good", "amazing",
@@ -138,6 +158,9 @@ GENERIC_TAGS = {
 
 TITLE_BANNED_RE = re.compile(
     r"(?i)\b(stickers?|designs?|t-?shirts?|tshirts?|shirts?|hoodies?|posters?|redbubble)\b")
+
+# Druga značenja reči iz pravog izlaza (poodle skirt, turkey tail mushroom, reindeer moss, turkey trot, llama vs alpaca...)
+TITLE_OFFTOPIC_RE = re.compile(r"(?i)\b(skirts?|mushrooms?|shuttle|trot|vultures?|moss|meaning|state park|vs\.?|versus)\b")
 
 CLAIM_RE = re.compile(
     r"(?i)(free shipping|best[- ]?sell|limited (time|edition)|guarantee|\d+\s?% off|\bsale\b|\$\s?\d|"
@@ -230,10 +253,24 @@ def redact(text):
     return text
 
 
-def slug_name(text, limit=60):
-    text = unicodedata.normalize("NFKD", str(text)).encode("ascii", "ignore").decode()
-    text = re.sub(r"[^A-Za-z0-9]+", "_", text).strip("_")
-    return (text[:limit].strip("_")) or "design"
+def safe_name(text, limit=80):
+    """Ime fajla/foldera kao u starom botu: obične reči sa razmacima ("Pug Pizza Lover.png"), bez brojeva i donjih crta."""
+    text = unicodedata.normalize("NFKD", str(text)).encode("ascii", "ignore").decode().replace("'", "")
+    text = re.sub(r"[^A-Za-z0-9 \-]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip(" -")
+    if len(text) > limit:
+        text = text[:limit].rsplit(" ", 1)[0] if " " in text[:limit] else text[:limit]
+    return text.strip(" -") or "design"
+
+
+def unique_name(folder_path, base, ext, taken):
+    """Ako dva dizajna dobiju isto ime, drugi postaje 'Ime 2.png' (ne prepisuje prvi)."""
+    name, n = f"{base}{ext}", 2
+    while name.lower() in taken or os.path.exists(os.path.join(folder_path, name)):
+        name = f"{base} {n}{ext}"
+        n += 1
+    taken.add(name.lower())
+    return name
 
 
 def singular(w):
@@ -289,6 +326,7 @@ def load_blocked_terms():
 
 
 BLOCKED_RE = load_blocked_terms()
+INTENT_WORDS = {singular(w) for w in _INTENT_RAW.split()}     # isti oblik (jednina) kao tokens(): "christmas" -> "christma" na obe strane
 
 
 def find_blocked(text):
@@ -574,6 +612,8 @@ def usable_keyword(phrase, animal):
         return None
     if not mentions_animal(k, animal) or set(k.split()) & NON_MERCH_WORDS or find_blocked(k):
         return None
+    if not (set(tokens(k)) - set(tokens(animal))) <= INTENT_WORDS:      # nešto što nije kupac/prilika/proizvod
+        return None
     return k
 
 
@@ -621,7 +661,7 @@ def build_design_prompt(animal, keywords, angles, avoid_titles, avoid_texts, fee
     kw_block = "\n".join(f"- {k}" for k in keywords[:30]) or "- (live data unavailable; rely on how real buyers search)"
     angle_lines = "\n".join(f"{i}. {a['id']}: {a['brief'].replace('{animal}', animal)}" for i, a in enumerate(angles, 1))
     titles_block = "\n".join(f"- {t}" for t in avoid_titles[-40:]) or "- (none)"
-    texts_block = ", ".join(avoid_texts[-60:]) or "(none)"
+    texts_block = ", ".join(avoid_texts[-100:]) or "(none)"
     fix_block = ""
     if feedback:
         fix_block = "\nFIX THESE PROBLEMS FROM YOUR PREVIOUS ANSWER (do not repeat them):\n" + "\n".join(f"- {f}" for f in feedback[:12]) + "\n"
@@ -630,7 +670,7 @@ def build_design_prompt(animal, keywords, angles, avoid_titles, avoid_texts, fee
 
 ANIMAL: {animal}
 
-REAL GOOGLE SEARCHES related to this animal (what buyers actually type). Base keywords on these when they fit:
+REAL GOOGLE SEARCHES for buying or giving items with this animal (already filtered for shopping intent). Use them for keywords when they fit the artwork. If a search is about anything other than the artwork's audience, occasion or theme (a place, event, food, plant, brand, product, definition or another meaning of the word), IGNORE it:
 {kw_block}
 
 TASK: create {n} COMPLETELY DIFFERENT sticker / t-shirt artworks. Each artwork must follow its own ANGLE and must be aimed at a different buyer and a different search:
@@ -641,23 +681,23 @@ Think like a buyer, not like an artist: shoppers search "capybara gifts for mom"
 
 ALREADY USED, do NOT repeat or paraphrase these titles:
 {titles_block}
-ALREADY USED banner phrases: {texts_block}
+ALREADY USED banner phrases (a new banner phrase must NOT repeat or closely resemble any of them): {texts_block}
 {fix_block}
 FIELDS FOR EVERY ARTWORK
 - angle: copy the angle id exactly.
-- primary_keyword: ONE phrase a buyer would type (2-4 words, lowercase, contains "{animal}"). Different for every artwork.
-- title: max 55 characters. Start with the primary keyword in Title Case, then an optional short hook. It names the ARTWORK, so NEVER use the words sticker, design, shirt, t-shirt, hoodie, poster or Redbubble. No quotation marks.
-- description: 250-450 characters, 2-3 natural sentences. First sentence includes the primary keyword and states what the artwork shows (must match visual_scene). Next sentence says who it is for or which occasion it suits (gift idea). No prices, shipping, quality or sales claims, no URLs, no hashtags, no emojis.
+- primary_keyword: ONE phrase a buyer would type (2-4 words, lowercase, contains "{animal}"). Different for every artwork. It must be about THIS artwork's audience, occasion or theme. NEVER a place, event, plant, food, brand, product or definition (bad examples: "turkey trot", "poodle skirt", "reindeer moss", "llama vs alpaca").
+- title: 3-6 words, max 55 characters. It must read like a natural product title written by a human (grammatical, NOT a chain of keywords) with the main keyword near the start. GOOD: "Sleepy Pug Nap Club Gift for Adults". BAD: "Pug Gifts For Adults Tired Nap Club". It names the ARTWORK, so NEVER use the words sticker, design, shirt, t-shirt, hoodie, poster or Redbubble. No quotation marks.
+- description: 250-450 characters, 2-3 sentences that sound like a person, not a keyword list. Work the primary keyword in naturally (do NOT simply start the sentence with it). Say what the artwork shows (must match visual_scene) and name the species ("pug", "llama"), never just "animal" or "pup". Then say who it is for or which occasion it suits (gift idea). No prices, shipping, quality or sales claims, no URLs, no hashtags, no emojis.
 - tags: JSON array of EXACTLY 15 distinct lowercase tags, 1-3 words, max 30 characters each:
     tag 1 = "{animal}"; then 3-4 phrases with the animal that buyers search (from the real searches above);
     3-4 buyer/occasion tags (e.g. "gift for mom", "animal lover gift", "birthday gift", "christmas gift");
     3-4 tags about the actual scene or phrase (hobby, food, mood, job);
     2 style tags (e.g. "cute cartoon", "kawaii");
     1-2 broad category tags (e.g. "wildlife", "funny animal").
-  Only 6-7 tags may contain the animal's name. Never use filler tags (art, design, cool, new, awesome, trending, best, sale, gift) and never use brand, franchise, character, celebrity or meme names.
+  Only 6-7 tags may contain the animal's name. Every tag must describe THIS artwork or its buyer: never use a tag with another meaning (places, events, foods, other products, definitions, e.g. "poodle skirt", "turkey tail mushroom", "reindeer moss"). Never use filler tags (art, design, cool, new, awesome, trending, best, sale, gift) and never use brand, franchise, character, celebrity or meme names.
 - visual_scene: max 25 words, English: the animal's pose, expression, outfit and props only. NO background, frame, banner or text. It must visibly match the angle and the banner phrase.
   COLOR RULE: if the animal wears clothes, a hat or glasses or holds a prop, state each item's color using ONLY ORANGE, YELLOW, RED, NAVY BLUE or WHITE (e.g. "wearing an orange t-shirt and sunglasses", "holding a red coffee mug"). Never leave clothing without a color. Never use the words magenta, pink, purple or fuchsia.
-- text: the banner phrase, ENGLISH, UPPERCASE, 1-4 words, max 22 characters, letters/numbers/space/apostrophe/!/? only. Original wordplay, no famous quotes or brand slogans, no color instructions, no translations. Short words render best.
+- text: the banner phrase, ENGLISH, UPPERCASE, 1-4 words, max 22 characters, letters/numbers/space/apostrophe/!/? only. Original wordplay, no famous quotes or brand slogans, no color instructions, no translations. Short words render best. It must be NEW: never reuse any phrase from the ALREADY USED list, never repeat a phrase inside your answer, and avoid the overused clichés NEED COFFEE FIRST, CURRENTLY UNPLUGGED, STRIDE WITH PRIDE, PIZZA MY HEART, MERRY AND FLUFFY.
 
 Return ONLY a JSON array of exactly {n} objects with the keys: angle, primary_keyword, title, description, tags, visual_scene, text."""
 
@@ -723,15 +763,17 @@ def normalize_tag(tag, title_key=None):
     t = re.sub(r"\s+", " ", t).strip(" -'")
     if not t or len(t) > TAG_MAX_LEN or len(t.split()) > 4 or len(t) < 3:
         return None
-    if t in GENERIC_TAGS or set(t.split()) & NON_MERCH_WORDS or find_blocked(t):
+    if t in GENERIC_TAGS or set(t.split()) & (NON_MERCH_WORDS | {"vs", "versus"}) or find_blocked(t):
         return None
     if title_key and phrase_key(t) == title_key:
         return None
     return t
 
 
-def clean_tags(raw, animal, title, keywords, season=None):
-    """Tačno 15 različitih, relevantnih tagova; prvi je životinja."""
+def clean_tags(raw, animal, title, keywords, season=None, allowed_extra=None):
+    """Tačno 15 različitih, relevantnih tagova; prvi je životinja.
+    Tag koji sadrži životinju mora da se oslanja SAMO na reči kupca/prilike/proizvoda (INTENT_WORDS) ili na reči iz
+    ovog dizajna (scena, natpis, naslov): tako otpadaju 'pug skull', 'poodle skirt', 'llama vs alpaca', 'turkey run state park'."""
     if isinstance(raw, str):
         raw = raw.split(",")
     if not isinstance(raw, list):
@@ -739,6 +781,8 @@ def clean_tags(raw, animal, title, keywords, season=None):
     title_key = phrase_key(title)
     out, seen = [], set()
     animal_tags = 0
+    animal_tokens = set(tokens(animal))
+    allowed = INTENT_WORDS | set(allowed_extra or ())
 
     def add(tag, force=False):
         nonlocal animal_tags
@@ -751,6 +795,10 @@ def clean_tags(raw, animal, title, keywords, season=None):
         if key in seen:
             return False
         has_animal = mentions_animal(t, animal)
+        if has_animal and not force:
+            extra = set(tokens(t)) - animal_tokens
+            if not extra <= allowed or extra == {"animal"}:       # nevezano značenje ili prazan tag ("llama animal")
+                return False
         if has_animal and animal_tags >= MAX_ANIMAL_TAGS and not force:
             return False
         seen.add(key)
@@ -784,8 +832,12 @@ def clean_design(raw, animal, ctx):
     title = clean_title(raw.get("title", ""), animal)
     pk = re.sub(r"[^a-z0-9\s'-]", " ", str(raw.get("primary_keyword", "")).lower())
     pk = re.sub(r"\s+", " ", pk).strip()
-    if not pk or not mentions_animal(pk, animal) or len(pk.split()) > 5:
-        pk = " ".join(title.lower().split()[:4])
+    # Reči koje dizajn zaista prikazuje (scena + natpis). Naslov se NE računa: model ume da prepiše nevezanu pretragu u naslov
+    # ("Turkey Run State Park ..."), pa bi tagovi onda "opravdali" isti promašaj.
+    shown_tokens = set(tokens(str(raw.get("visual_scene", "")))) | set(tokens(raw.get("text", "")))
+    if (not pk or not mentions_animal(pk, animal) or len(pk.split()) > 5
+            or not (set(tokens(pk)) - set(tokens(animal))) <= (INTENT_WORDS | shown_tokens)):
+        pk = " ".join(title.lower().split()[:4])          # ključna reč mora biti o OVOM dizajnu, ne o drugom značenju reči
     if len(title) < 20:
         # posle skidanja reči poput "sticker design" naslov ume da ostane kratak: dopuni ga ključnom rečju
         longer = clean_title(smart_title(pk), animal)
@@ -793,6 +845,9 @@ def clean_design(raw, animal, ctx):
             title = longer
     if len(title.split()) < 2 or len(title) < 12:
         issues.append(f"title '{title}' je prekratak")
+    off = TITLE_OFFTOPIC_RE.search(title)
+    if off:
+        issues.append(f"title '{title}' sadrži '{off.group(1)}': to je drugo značenje reči ili poređenje, ne tema dizajna")
     if phrase_key(title) in ctx["titles"]:
         issues.append(f"title '{title}' je duplikat ili previše sličan postojećem")
     if phrase_key(pk) in ctx["keywords_used"]:
@@ -815,7 +870,7 @@ def clean_design(raw, animal, ctx):
         issues.append(f"text '{text}' je već korišćen")
 
     description = clean_description(raw.get("description", ""), animal, title, scene)
-    tags = clean_tags(raw.get("tags", []), animal, title, ctx["keywords"], ctx.get("season_hint"))
+    tags = clean_tags(raw.get("tags", []), animal, title, ctx["keywords"], ctx.get("season_hint"), allowed_extra=shown_tokens)
 
     blocked = find_blocked(" ".join([title, description, text, scene, pk]))
     if blocked:
@@ -833,12 +888,12 @@ def generate_designs(animal, keywords, today, history):
     wanted = choose_angles(today, DESIGNS_PER_ANIMAL)
     print(f"  -> Uglovi: {', '.join(a['id'] for a in wanted)}")
     avoid_titles = [d["title"] for rec in history["animals"].values() for d in rec.get("designs", [])]
-    # Natpisi se tvrdo proveravaju samo unutar iste životinje (isti kratak natpis na drugoj životinji je u redu);
-    # raniji natpisi idu u prompt samo kao savet za raznovrsnost.
-    avoid_texts = [d["text"] for rec in history["animals"].values() for d in rec.get("designs", [])]
+    # Natpisi se tvrdo proveravaju protiv poslednjih 100 (isti spisak vidi i model u promptu): pravi izlaz je pokazao da
+    # model sam ponavlja iste ("CURRENTLY UNPLUGGED" kod 4 životinje, "NEED COFFEE FIRST" kod 4), pa sam savet nije dovoljan.
+    avoid_texts = [d["text"] for rec in history["animals"].values() for d in rec.get("designs", [])][-100:]
     ctx = {
         "titles": {phrase_key(t) for t in avoid_titles},
-        "texts": set(),
+        "texts": {canon(t) for t in avoid_texts},
         "keywords_used": set(),
         "keywords": keywords,
     }
@@ -1016,37 +1071,42 @@ def make_design_image(design, animal, out_path):
 # ---------------------------------------------------------------------------
 # 5) IZLAZ: LISTING FAJLOVI
 # ---------------------------------------------------------------------------
-def write_listings(results):
-    """podaci.txt po životinji (copy-paste) + jedan listings.csv."""
+def format_design_block(index, it):
+    """Isti oblik kao u starom botu, da se naslov / opis / tagovi lako kopiraju u Redbubble."""
+    lines = [f"--- DIZAJN {index} ---"]
+    if it.get("needs_review"):
+        lines.append(f"!!! PROVERI SLIKU PRE UPLOADA: {it.get('review_note', '')}".rstrip())
+    lines += [
+        f"Naslov: {it['title']}",
+        f"Opis: {it['description']}",
+        f"Tagovi: {', '.join(it['tags'])}",
+        f"Slika (Ime fajla): {it['file_name']}",
+        "",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def write_listings(results, today):
+    """Za svaku životinju: <životinja>_podaci.txt u NJENOM folderu + jedan zajednički podaci_<datum>.txt za Telegram.
+    Bez CSV-a. Vraća ({folder: putanja}, putanja_zajedničkog_fajla)."""
     by_animal = {}
     for item in results:
         by_animal.setdefault(item["folder"], []).append(item)
 
-    txt_paths = {}
+    txt_paths, combined = {}, []
     for folder, items in by_animal.items():
         path = os.path.join(OUTPUT_DIR, folder, f"{folder}_podaci.txt")
         os.makedirs(os.path.dirname(path), exist_ok=True)
+        blocks = [format_design_block(index, it) for index, it in enumerate(items, 1)]
         with open(path, "w", encoding="utf-8") as f:
-            for i, it in enumerate(items, 1):
-                f.write(f"=== DIZAJN {i} | ugao: {it['angle']} | fajl: {it['file_name']} ===\n")
-                if it.get("needs_review"):
-                    f.write(f"!!! PROVERI SLIKU PRE UPLOADA: {it.get('review_note', '')}\n")
-                f.write(f"NASLOV ({len(it['title'])}/{TITLE_MAX}):\n{it['title']}\n\n")
-                f.write(f"TAGOVI ({len(it['tags'])}/{TAGS_COUNT}), nalepi odjednom:\n{', '.join(it['tags'])}\n\n")
-                f.write(f"OPIS ({len(it['description'])}/{DESC_MAX}):\n{it['description']}\n\n")
-                f.write(f"Tekst na traci: {it['text']}\n")
-                f.write(f"Glavna ključna reč: {it['primary_keyword']}\n\n")
+            f.write("".join(blocks))
         txt_paths[folder] = path
+        combined.append(f"==================== {folder.upper()} ====================\n\n" + "".join(blocks))
 
-    csv_path = os.path.join(OUTPUT_DIR, "listings.csv")
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    with open(csv_path, "w", encoding="utf-8-sig", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["animal", "file", "angle", "title", "primary_keyword", "tags", "description", "banner_text", "needs_review", "note"])
-        for it in results:
-            w.writerow([it["animal"], it["file_name"], it["angle"], it["title"], it["primary_keyword"],
-                        ", ".join(it["tags"]), it["description"], it["text"], "DA" if it.get("needs_review") else "", it.get("review_note", "")])
-    return txt_paths, csv_path
+    combined_path = f"podaci_{today.isoformat()}.txt"
+    with open(combined_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(combined))
+    return txt_paths, combined_path
 
 
 # ---------------------------------------------------------------------------
@@ -1078,35 +1138,51 @@ def tg_send_document(path, caption, retries=3):
     return False
 
 
-def send_telegram(files_to_zip, csv_path, summary):
+def build_chunks(files_by_folder, max_bytes):
+    """Pakuje po životinjama: u jedan ZIP idu cele životinje (ceo folder) dok staje u limit;
+    tek ako jedna životinja sama prelazi limit, deli se na više ZIP-ova."""
+    chunks, current, size = [], {}, 0
+    for folder, files in files_by_folder.items():
+        total = sum(os.path.getsize(local) for local, _ in files)
+        if current and size + total > max_bytes:
+            chunks.append(current)
+            current, size = {}, 0
+        for local, arc in files:
+            fsize = os.path.getsize(local)
+            if fsize > max_bytes:
+                print(f"⚠ {arc} ima {fsize / 1024 / 1024:.0f} MB i ne može preko Telegrama (limit 50 MB); ostaje u {OUTPUT_DIR}/.")
+                continue
+            if current and size + fsize > max_bytes:
+                chunks.append(current)
+                current, size = {}, 0
+            current[local] = arc
+            size += fsize
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def send_telegram(files_by_folder, txt_paths, summary, combined_txt, today):
+    """files_by_folder: {folder: [(putanja_slike, ime_u_zip-u), ...]}; txt_paths: {folder: putanja do *_podaci.txt};
+    combined_txt: zajednički txt sa svim naslovima, opisima i tagovima (šalje se kao poseban fajl, pre ZIP-ova)."""
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print("Telegram podaci nedostaju u GitHub Secrets.")
         return
-    max_zip = 48 * 1024 * 1024
-    chunks, current, size = [], {}, 0
-    for local, arc in files_to_zip.items():
-        fsize = os.path.getsize(local)
-        if fsize > max_zip:
-            print(f"⚠ {arc} ima {fsize / 1024 / 1024:.0f} MB i ne može preko Telegrama (limit 50 MB); ostaje u {OUTPUT_DIR}/.")
-            continue
-        if current and size + fsize > max_zip:
-            chunks.append(current)
-            current, size = {}, 0
-        current[local] = arc
-        size += fsize
-    if current:
-        chunks.append(current)
+    chunks = build_chunks(files_by_folder, 48 * 1024 * 1024)
 
     tg_send_message(summary)
-    if csv_path and os.path.exists(csv_path):
-        tg_send_document(csv_path, "📋 listings.csv: naslovi, tagovi i opisi za sve dizajne (otvori u Excel/Sheets)")
-
-    today = datetime.date.today().isoformat()
+    ok_txt = tg_send_document(combined_txt, "📋 Naslovi, opisi i tagovi za sve dizajne (txt)")
+    print(f"{'✅' if ok_txt else '🚨'} Telegram txt {'poslan' if ok_txt else 'NIJE poslan'}")
+    today = today.isoformat()
     for i, chunk in enumerate(chunks, 1):
         zip_name = f"redbubble_{today}_deo_{i}.zip"
         with zipfile.ZipFile(zip_name, "w", zipfile.ZIP_DEFLATED) as z:
             for local, arc in chunk.items():
                 z.write(local, arcname=arc)
+            # svaki folder u ZIP-u dobija svoj *_podaci.txt (naslov, opis, tagovi), čak i kad je životinja podeljena na više ZIP-ova
+            for folder in sorted({arc.split("/")[0] for arc in chunk.values()}):
+                if folder in txt_paths:
+                    z.write(txt_paths[folder], arcname=f"{folder}/{os.path.basename(txt_paths[folder])}")
         ok = tg_send_document(zip_name, f"🚀 Redbubble dizajni, deo {i}/{len(chunks)} ({TARGET_SIZE}x{TARGET_SIZE} px)")
         print(f"{'✅' if ok else '🚨'} Telegram paket {i}/{len(chunks)} {'poslan' if ok else 'NIJE poslan'}")
 
@@ -1137,12 +1213,13 @@ def main():
             if len(designs) < MIN_DESIGNS_PER_ANIMAL:
                 raise RuntimeError(f"samo {len(designs)} validnih dizajna (minimum {MIN_DESIGNS_PER_ANIMAL})")
 
-            folder = slug_name(animal)
-            os.makedirs(os.path.join(OUTPUT_DIR, folder), exist_ok=True)
-            made = []
+            folder = safe_name(animal)
+            folder_path = os.path.join(OUTPUT_DIR, folder)
+            os.makedirs(folder_path, exist_ok=True)
+            made, taken_names = [], set()
             for j, d in enumerate(designs, 1):
                 print(f"  -> Dizajn {j}/{len(designs)} [{d['angle']}]: {d['title']}  |  traka: {d['text']}")
-                file_name = f"{j:02d}_{slug_name(d['title'])}.png"
+                file_name = unique_name(folder_path, safe_name(d["title"]), ".png", taken_names)
                 item = dict(d, animal=animal, folder=folder, file_name=file_name,
                             file_path=os.path.join(OUTPUT_DIR, folder, file_name), needs_review=False, review_note="")
                 if METADATA_ONLY:
@@ -1178,12 +1255,12 @@ def main():
     if not results:
         sys.exit("Nijedan dizajn nije napravljen. Pogledaj greške iznad.")
 
-    txt_paths, csv_path = write_listings(results)
+    txt_paths, combined_txt = write_listings(results, today)
     review = [r for r in results if r.get("needs_review")]
     summary = (f"✅ Redbubble bot {today.isoformat()}: {len(results)} dizajna, {len(txt_paths)} životinja "
                f"({', '.join(txt_paths)}).\n"
-               + (f"⚠ {len(review)} slika za ručnu proveru (piše u podaci.txt i listings.csv).\n" if review else "")
-               + "Naslovi, tagovi i opisi su u listings.csv i u *_podaci.txt.")
+               + (f"⚠ {len(review)} slika za ručnu proveru (u *_podaci.txt piše !!! PROVERI SLIKU).\n" if review else "")
+               + "U folderu svake životinje je <životinja>_podaci.txt sa naslovom, opisom i tagovima za svaki dizajn.")
     print("\n" + summary)
 
     if METADATA_ONLY:
@@ -1191,12 +1268,10 @@ def main():
             print(f"\n[{it['animal']}] {it['title']}\n  tagovi: {', '.join(it['tags'])}\n  opis: {it['description']}\n  traka: {it['text']}")
         return
 
-    files = {}
+    files_by_folder = {}
     for it in results:
-        files[it["file_path"]] = f"{it['folder']}/{it['file_name']}"
-    for folder, path in txt_paths.items():
-        files[path] = f"{folder}/{os.path.basename(path)}"
-    send_telegram(files, csv_path, summary)
+        files_by_folder.setdefault(it["folder"], []).append((it["file_path"], f"{it['folder']}/{it['file_name']}"))
+    send_telegram(files_by_folder, txt_paths, summary, combined_txt, today)
 
 
 if __name__ == "__main__":
