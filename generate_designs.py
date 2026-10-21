@@ -725,7 +725,8 @@ ALREADY USED, never repeat or paraphrase these titles:
 {titles_block}
 ALREADY USED phrases (never reuse or closely imitate): {texts_block}
 {fix_block}
-DESIGN RULES: flat cartoon illustration with a thick black outline around everything; the text ALWAYS sits in a ribbon banner or
+DESIGN RULES: semi-realistic cartoon illustration (real proportions, real coat colors and markings of the species, fur texture)
+with a thick black outline around everything; the text ALWAYS sits in a ribbon banner or
 rectangle with a thick black outline at the bottom. Few details, strong contrasting flat colors, no thin lines, no gradients.
 Text 2-6 words, big and readable, it must work at thumbnail size (3-4 cm). The animal has a clear facial expression or action.
 FORBIDDEN: brands, characters from movies/cartoons/games, celebrity names, trademarked or overused phrases (e.g. "Not my circus,
@@ -1041,7 +1042,7 @@ def pick_chroma(design):
 
 
 def fal_text_to_image(design):
-    """Z-Image Turbo, tvoja proverena postavka: ravna 2D vektor ilustracija, debela CRNA kontura oko svega,
+    """Z-Image Turbo: polu-realistična ilustracija (prave proporcije, prave šare vrste, tekstura krzna), debela CRNA kontura oko svega,
     tekst UVEK u lenti/pravougaoniku sa crnom ivicom, izolovano na jednobojnoj pozadini koju BiRefNet lako skine.
     Bez reči 'sticker'/'die-cut': zbog njih je generator crtao beli okvir nalepnice koji posle ostane oko dizajna."""
     chroma_bg, color_negative, _ = pick_chroma(design)
@@ -1055,9 +1056,11 @@ def fal_text_to_image(design):
     else:
         banner = "There is NO text, letters, numbers or banner anywhere. "
     image_prompt = (
-        "A standalone flat 2D vector mascot illustration graphic for a t-shirt design. "
-        f"Subject: A cute 2D cartoon {design['animal']}: {design['visual_scene']}. The animal has a clear funny facial expression. "
-        "Style: Flat 2D vector art, clean crisp sharp edges, solid highly saturated vibrant colors, simple shapes, minimal detail, no thin lines. "
+        "A standalone semi-realistic cartoon illustration graphic for a t-shirt design. "
+        f"Subject: A {design['animal']} drawn with true-to-life proportions, anatomy and the real natural coat colors and markings "
+        f"of the species: {design['visual_scene']}. Small natural eyes and a subtle funny expression, still recognisable as the real animal. "
+        "Style: semi-realistic cel-shaded illustration, detailed fur or feather texture drawn with crisp jagged strokes, "
+        "2-3 tone shading, solid saturated colors, clean crisp sharp edges, no blur. "
         + ("Outline: The entire illustration, character, props, and banner MUST have a thick solid bold black outline enclosing every single shape. "
            if text else "Outline: The entire illustration, character and props MUST have a thick solid bold black outline enclosing every single shape. ")
         + banner
@@ -1066,7 +1069,8 @@ def fal_text_to_image(design):
     negative_prompt = (
         f"{color_negative} white background, black background, transparent background, gradient background, "
         "scenery, sticker, sticker peel, die cut, white border, white outline, white edge, sticker border, badge, circle frame, "
-        "circular frame, round emblem, border, frame, drop shadow, 3d render, realistic, photograph, glow, blurry edges, "
+        "circular frame, round emblem, border, frame, drop shadow, 3d render, photorealistic, photograph, glow, blurry edges, "
+        "chibi, kawaii, big anime eyes, oversized head, mascot proportions, "
         "brush strokes, watermark, signature, messy edges, floating text outside banner, curved text, arched text, "
         "misspelled text, extra words, cropped, cut off, beige, pastels, washed out colors"
     )
