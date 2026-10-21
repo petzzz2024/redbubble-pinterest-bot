@@ -2,9 +2,11 @@ alpaca
 axolotl
 barn owl
 bat
+beagle
 beaver
 bison
 black cat
+calico cat
 capybara
 chameleon
 chinchilla
@@ -16,6 +18,7 @@ flamingo
 fox
 french bulldog
 frog
+german shepherd
 golden retriever
 goose
 guinea pig
@@ -50,8 +53,10 @@ sea turtle
 seal
 shiba inu
 shoebill
+siamese cat
 sloth
 snail
+snow leopard
 tiger
 turkey
 whale shark
