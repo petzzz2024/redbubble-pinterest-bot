@@ -157,6 +157,16 @@ GENERIC_TAGS = {
     "graphic", "graphics", "image", "picture", "gift", "gifts", "present", "shirt", "tshirt", "t-shirt",
 }
 
+# Nazivi proizvoda ne idu u tagove: Redbubble ih sam dodaje po proizvodu, a kod tebe troše mesto za prave pretrage
+PRODUCT_WORDS = {
+    "sticker", "stickers", "decal", "decals", "shirt", "shirts", "tshirt", "tshirts", "t-shirt", "t-shirts", "tee", "tees",
+    "hoodie", "hoodies", "sweatshirt", "sweatshirts", "mug", "mugs", "poster", "posters", "tote", "apparel", "merch",
+    "leggings",
+}
+
+PRODUCT_RE = re.compile(r"(?i)\b(" + "|".join(sorted((re.escape(w) for w in PRODUCT_WORDS), key=len, reverse=True))
+                        + r"|stick it|stick on|wear it|laptop|water bottle|planner|tumbler)\b")
+
 TITLE_BANNED_RE = re.compile(
     r"(?i)\b(stickers?|designs?|t-?shirts?|tshirts?|shirts?|hoodies?|posters?|redbubble)\b")
 
@@ -658,8 +668,8 @@ SATURATED_RE = re.compile(
     r"cute but psycho|i('?m| am) just here for|my therapist)\b")
 
 TYPE_PADDING = {
-    "idiom": ["funny meme", "relatable humor", "funny saying", "sarcastic", "laptop sticker", "water bottle sticker"],
-    "character": ["funny animal", "cute animal", "neon aesthetic", "animal lover gift", "laptop sticker"],
+    "idiom": ["funny meme", "relatable humor", "funny saying", "sarcastic", "mental health", "introvert"],
+    "character": ["funny animal", "cute animal", "bold colors", "animal lover gift", "cartoon animal"],
 }
 
 
@@ -729,14 +739,21 @@ FIELDS FOR EVERY CONCEPT
   REQUIRED for idiom. For character: "" (no text) or 2-4 words.
 - visual_scene: max 35 words, English: exactly what is drawn: the animal(s), the LITERAL depiction of the phrase, poses, facial
   expressions, props and their colors (state every color). No background, no frame, no text in the scene.
+  COLOR RULE: never use magenta, pink, fuchsia, purple or violet anywhere (the background is magenta and would erase them);
+  use orange, yellow, red, navy blue, white, green, teal, brown or grey instead.
 - title: max 70 characters, format "<Phrase or character> - <3-6 words a buyer searches>", modeled on
   "My Ducks Are Not In A Row - Funny Chaos ADHD Mental Health Meme". Never the words sticker, design, shirt, t-shirt, hoodie, poster, Redbubble.
 - primary_keyword: main search phrase, 2-4 words, lowercase (e.g. "adhd duck", "introvert cat").
 - tags: exactly 15 lowercase tags (1-3 words) that a buyer would type: the phrase and its short parts, the animal, the theme
   (adhd, introvert, anxiety, mental health, coffee lover...), humor words (funny, sarcastic, meme), who it is for. No filler words
-  (art, design, cool, new, awesome, trending, best), no brands.
-- description: 1-2 natural sentences, 120-300 characters: who it is for and where to stick or wear it (laptop, water bottle,
-  notebook, planner, tee). No prices, shipping, quality claims, hashtags, emojis or URLs.
+  (art, design, cool, new, awesome, trending, best), no brands, and NO product names (sticker, shirt, t-shirt, tee, hoodie, mug,
+  poster, case, bag, apparel...).
+- description: SEO description for Google, 2-3 natural sentences, 220-420 characters. The FIRST sentence (within the first 150
+  characters) must contain the exact phrase from "text" (if there is one), the animal name and the primary_keyword, written
+  naturally (Google shows only the start). Then say what the artwork shows and who will relate to it, and naturally work in 2-3
+  related phrases people search (e.g. "adhd humor", "introvert gift", "funny mental health meme", "gift for coworker", "<animal>
+  lover"). Readable for humans, not a keyword list, no repeated words. NEVER name products or where to put it (no sticker, shirt,
+  tee, hoodie, mug, poster, laptop, water bottle, notebook...). No prices, shipping, quality claims, hashtags, emojis or URLs.
 
 Return ONLY a JSON array with exactly {len(slots)} objects with the keys: slot, type, animal, concept, text, visual_scene, title, primary_keyword, tags, description."""
 
@@ -778,8 +795,8 @@ def shorten(text, limit):
 def fallback_description(animal, title, concept):
     head = title.split(" - ")[0]
     concept = concept.strip().rstrip(".") or f"a funny cartoon {animal}"
-    return (f"{head}: {concept[:1].lower() + concept[1:]}. A funny {animal} sticker for anyone who feels this every day, "
-            f"great on a laptop, water bottle or notebook.")
+    return (f"{head}: {concept[:1].lower() + concept[1:]}. A funny {animal} illustration for anyone who feels this "
+            f"every day, and a fun gift idea for friends, coworkers and {animal} lovers.")
 
 
 def clean_description(raw, animal, title, concept):
@@ -789,13 +806,16 @@ def clean_description(raw, animal, title, concept):
     d = re.sub(r"[\U00010000-\U0010ffff☀-➿]", "", d)
     d = re.sub(r"\s+", " ", d).strip()
     sentences = re.split(r"(?<=[.!?])\s+", d)
-    d = " ".join(s for s in sentences if s and not CLAIM_RE.search(s) and "redbubble" not in s.lower()).strip()
+    d = " ".join(s for s in sentences if s and not CLAIM_RE.search(s) and "redbubble" not in s.lower()
+                 and not PRODUCT_RE.search(s)).strip()          # bez naziva proizvoda (sticker, hoodie, mug...)
     if len(d) > DESC_MAX:
         cut = d[:DESC_MAX]
         end = max(cut.rfind(". "), cut.rfind("! "), cut.rfind("? "), cut.rfind(".") if cut.endswith(".") else -1)
         d = cut[:end + 1] if end > 120 else cut[:cut.rfind(" ")].rstrip(" ,;:-") + "."
     if len(d) < 80:
         d = fallback_description(animal, title, concept)
+        if PRODUCT_RE.search(d):                                 # koncept sam pominje proizvod
+            d = PRODUCT_RE.sub("design", d)
     return d[:DESC_MAX]
 
 
@@ -812,7 +832,7 @@ def normalize_tag(tag, title_key=None):
     t = re.sub(r"\s+", " ", t).strip(" -'")
     if not t or len(t) > TAG_MAX_LEN or len(t.split()) > 4 or len(t) < 3:
         return None
-    if t in GENERIC_TAGS or set(t.split()) & (NON_MERCH_WORDS | {"vs", "versus"}) or find_blocked(t):
+    if t in GENERIC_TAGS or set(re.split(r"[ -]", t)) & (NON_MERCH_WORDS | PRODUCT_WORDS | {"vs", "versus", "t"}) or find_blocked(t):
         return None
     if title_key and phrase_key(t) == title_key:
         return None
@@ -899,6 +919,8 @@ def clean_concept(raw, slot, ctx):
         issues.append("visual_scene je prekratak ili ga nema")
     elif not mentions_animal(scene, animal):
         scene = f"a cartoon {animal}: {scene}"
+    if not PINK_ANIMAL_RE.search(animal) or "guinea" in animal:     # magenta pozadina: roze delovi bi nestali sa njom
+        scene = re.sub(r"(?i)\b(neon |hot |bright |pastel )?(magenta|pink|fuchsia|purple|violet|lilac|lavender)\b", "red", scene)
 
     title = clean_title(raw.get("title", ""), animal)
     if len(title.split()) < 3 or len(title) < 15:
@@ -917,6 +939,20 @@ def clean_concept(raw, slot, ctx):
         pk = " ".join(title.split(" - ")[0].lower().split()[:4])
 
     description = clean_description(raw.get("description", ""), animal, title, concept or scene)
+    # SEO: Google u rezultatu prikazuje ~150 prvih znakova, pa fraza (ono što ljudi kucaju) i životinja moraju biti na početku.
+    head = description[:170]
+    seo_missing = []
+    if text and canon(text) not in canon(head):
+        seo_missing.append(f"tačnu frazu '{text.title()}'")
+    if not mentions_animal(head, animal):
+        seo_missing.append(f"reč '{animal}'")
+    if seo_missing:
+        if not ctx.get("last_attempt"):
+            issues.append(f"description mora u PRVOJ rečenici (prvih 150 znakova) da sadrži {' i '.join(seo_missing)}")
+        else:                                       # poslednji pokušaj: popravi u kodu umesto da se dizajn izgubi
+            kw = pk if mentions_animal(pk, animal) else f"{animal} {pk}"
+            lead = f"{text.title() if text else title.split(' - ')[0]}: a funny {kw} illustration"
+            description = shorten(f"{lead}. {description}", DESC_MAX)
     shown = set(tokens(scene)) | set(tokens(text)) | set(tokens(concept))
     tags = clean_tags(raw.get("tags", []), animal, title, ctx["keywords"].get(animal, []) + ctx["theme_keywords"],
                       extra_pools=[TYPE_PADDING.get(ctype, [])], allowed_extra=shown)
@@ -949,6 +985,7 @@ def generate_concepts(slots, theme_kw, animal_kw, today, history):
         group = slots[start:start + 8]
         feedback = []
         for attempt in range(1, 4):
+            ctx["last_attempt"] = attempt == 3
             todo = [s for s in group if s["id"] not in accepted]
             if not todo:
                 break
@@ -995,26 +1032,12 @@ def fal_headers():
     return {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
 
 
-CHROMA_KEYS = [
-    # (pozadina za prompt, šta zabraniti u negativnom promptu, boje dizajna koje se "bore" sa tom pozadinom)
-    ("PURE SOLID HOT MAGENTA (#FF00FF) CHROMA KEY BACKGROUND", "magenta, hot pink, pink, fuchsia, purple, violet,",
-     {"pink", "magenta", "purple", "fuchsia", "violet", "lilac", "lavender", "rose"}),
-    ("PURE SOLID NEON BLUE (#0044FF) CHROMA KEY BACKGROUND", "blue, neon blue, cyan, teal, turquoise,",
-     {"blue", "cyan", "teal", "turquoise", "navy", "aqua", "sky"}),
-    ("PURE SOLID CHROMA GREEN (#00FF00) CHROMA KEY BACKGROUND", "green, neon green, lime,",
-     {"green", "lime", "emerald", "mint", "olive"}),
-]
-
-
 def pick_chroma(design):
-    """Pozadina se bira tako da se NE poklapa sa bojama dizajna (neon žaba, roze flamingo...), da je BiRefNet lako skine."""
-    words = set(tokens(f"{design['visual_scene']} {design['animal']}"))
+    """Kao ranije: uvek MAGENTA pozadina; NEON PLAVA samo za prirodno roze životinje (flamingo, svinja, aksolotl...).
+    Zato dizajn ne sme da ima roze/ljubičaste delove (scena ih menja u crveno, negativni prompt ih zabranjuje)."""
     if PINK_ANIMAL_RE.search(design["animal"]) and "guinea" not in design["animal"]:
-        words.add("pink")
-    for key in CHROMA_KEYS:
-        if not (words & key[2]):
-            return key
-    return CHROMA_KEYS[0]
+        return ("PURE SOLID NEON BLUE (#0044FF) CHROMA KEY BACKGROUND", "blue, neon blue, cyan, teal,", None)
+    return ("PURE SOLID HOT MAGENTA (#FF00FF) CHROMA KEY BACKGROUND", "magenta, hot pink, pink, fuchsia, purple,", None)
 
 
 def fal_text_to_image(design):
