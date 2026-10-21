@@ -18,9 +18,12 @@ french bulldog
 frog
 golden retriever
 goose
+guinea pig
 hamster
+harbor seal
 hedgehog
 highland cow
+hippo
 honey bee
 jellyfish
 koala
@@ -34,7 +37,9 @@ otter
 penguin
 pigeon
 platypus
+polar bear
 poodle
+possum
 pug
 quokka
 rabbit
