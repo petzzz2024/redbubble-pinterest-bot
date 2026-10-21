@@ -9,7 +9,7 @@ Tok:
      - character (2): ta životinja sa jakim karakterom/radnjom u upečatljivim bojama, tekst opcion
   2. Stvarne pretrage (Google autosuggest) za teme i životinje -> Gemini piše koncept, frazu, naslov "Fraza - opis",
      15 tagova i kratak opis. Sve se proverava u KODU (dužine, duplikati, prezasićene i zaštićene fraze, nevezani tagovi).
-  3. Slika: Fal.ai Z-Image Turbo (die-cut ili retro bedž, debele konture, ravne jake boje) -> Gemini vision čita tekst
+  3. Slika: Fal.ai Z-Image Turbo (ravna ilustracija, debela crna kontura, tekst u lenti sa crnom ivicom) -> Gemini vision čita tekst
      -> BiRefNet -> provera da je JEDAN oblik (sitne mrlje se brišu) -> 8000x8000 transparentan PNG.
   4. Izlaz: folder po životinji sa <životinja>_podaci.txt (Naslov / Opis / Tagovi / Slika / Tip / Koncept)
      + zajednički podaci_<datum>.txt; sve na Telegram.
@@ -715,9 +715,9 @@ ALREADY USED, never repeat or paraphrase these titles:
 {titles_block}
 ALREADY USED phrases (never reuse or closely imitate): {texts_block}
 {fix_block}
-DESIGN RULES: die-cut sticker = ONE compact connected shape with no small separate pieces (or a retro round badge with the animal in the
-middle and the text arched). Thick outlines, few details, strong contrasting flat colors, no thin lines, no gradients. Text 2-6 words,
-big and readable, it must work at thumbnail size (3-4 cm). The animal has a clear facial expression or action.
+DESIGN RULES: flat cartoon illustration with a thick black outline around everything; the text ALWAYS sits in a ribbon banner or
+rectangle with a thick black outline at the bottom. Few details, strong contrasting flat colors, no thin lines, no gradients.
+Text 2-6 words, big and readable, it must work at thumbnail size (3-4 cm). The animal has a clear facial expression or action.
 FORBIDDEN: brands, characters from movies/cartoons/games, celebrity names, trademarked or overused phrases (e.g. "Not my circus,
 not my monkeys", "Keep calm", "Live laugh love", "This is fine"), copying other people's designs.
 
@@ -727,9 +727,8 @@ FIELDS FOR EVERY CONCEPT
 - concept: one sentence: what is seen and why it is funny.
 - text: the exact phrase on the design, ENGLISH, 2-6 words, max 32 characters, only letters, numbers, spaces, apostrophes, ! and ?.
   REQUIRED for idiom. For character: "" (no text) or 2-4 words.
-- style: "die-cut" or "retro-badge" (about 1 in 3 should be retro-badge).
 - visual_scene: max 35 words, English: exactly what is drawn: the animal(s), the LITERAL depiction of the phrase, poses, facial
-  expressions, props and their colors. No background. One compact composition.
+  expressions, props and their colors (state every color). No background, no frame, no text in the scene.
 - title: max 70 characters, format "<Phrase or character> - <3-6 words a buyer searches>", modeled on
   "My Ducks Are Not In A Row - Funny Chaos ADHD Mental Health Meme". Never the words sticker, design, shirt, t-shirt, hoodie, poster, Redbubble.
 - primary_keyword: main search phrase, 2-4 words, lowercase (e.g. "adhd duck", "introvert cat").
@@ -739,7 +738,7 @@ FIELDS FOR EVERY CONCEPT
 - description: 1-2 natural sentences, 120-300 characters: who it is for and where to stick or wear it (laptop, water bottle,
   notebook, planner, tee). No prices, shipping, quality claims, hashtags, emojis or URLs.
 
-Return ONLY a JSON array with exactly {len(slots)} objects with the keys: slot, type, animal, concept, text, style, visual_scene, title, primary_keyword, tags, description."""
+Return ONLY a JSON array with exactly {len(slots)} objects with the keys: slot, type, animal, concept, text, visual_scene, title, primary_keyword, tags, description."""
 
 
 def clean_title(raw, animal):
@@ -893,7 +892,7 @@ def clean_concept(raw, slot, ctx):
     if text and canon(text) in ctx["texts"]:
         issues.append(f"text '{text}' je već korišćen")
 
-    style = "retro-badge" if "badge" in str(raw.get("style", "")).lower() else "die-cut"
+    style = "lenta"
 
     scene = re.sub(r"\s+", " ", str(raw.get("visual_scene", ""))).strip().rstrip(".")
     if len(scene) < 25:
@@ -997,12 +996,12 @@ def fal_headers():
 
 
 CHROMA_KEYS = [
-    # (opis za prompt, šta zabraniti u negativnom promptu, boje koje se "bore" sa ovom pozadinom)
-    ("PURE SOLID HOT MAGENTA (#FF00FF) CHROMA KEY BACKGROUND", "magenta, hot pink, fuchsia,",
+    # (pozadina za prompt, šta zabraniti u negativnom promptu, boje dizajna koje se "bore" sa tom pozadinom)
+    ("PURE SOLID HOT MAGENTA (#FF00FF) CHROMA KEY BACKGROUND", "magenta, hot pink, pink, fuchsia, purple, violet,",
      {"pink", "magenta", "purple", "fuchsia", "violet", "lilac", "lavender", "rose"}),
-    ("PURE SOLID NEON BLUE (#0044FF) CHROMA KEY BACKGROUND", "blue background,",
+    ("PURE SOLID NEON BLUE (#0044FF) CHROMA KEY BACKGROUND", "blue, neon blue, cyan, teal, turquoise,",
      {"blue", "cyan", "teal", "turquoise", "navy", "aqua", "sky"}),
-    ("PURE SOLID CHROMA GREEN (#00FF00) CHROMA KEY BACKGROUND", "green background,",
+    ("PURE SOLID CHROMA GREEN (#00FF00) CHROMA KEY BACKGROUND", "green, neon green, lime,",
      {"green", "lime", "emerald", "mint", "olive"}),
 ]
 
@@ -1010,7 +1009,7 @@ CHROMA_KEYS = [
 def pick_chroma(design):
     """Pozadina se bira tako da se NE poklapa sa bojama dizajna (neon žaba, roze flamingo...), da je BiRefNet lako skine."""
     words = set(tokens(f"{design['visual_scene']} {design['animal']}"))
-    if PINK_ANIMAL_RE.search(design["animal"]):
+    if PINK_ANIMAL_RE.search(design["animal"]) and "guinea" not in design["animal"]:
         words.add("pink")
     for key in CHROMA_KEYS:
         if not (words & key[2]):
@@ -1019,31 +1018,34 @@ def pick_chroma(design):
 
 
 def fal_text_to_image(design):
-    """Z-Image Turbo: die-cut nalepnica (jedan kompaktan oblik) ili retro okrugli bedž, debele konture, ravne jake boje."""
+    """Z-Image Turbo, tvoja proverena postavka: ravna 2D vektor ilustracija, debela CRNA kontura oko svega,
+    tekst UVEK u lenti/pravougaoniku sa crnom ivicom, izolovano na jednobojnoj pozadini koju BiRefNet lako skine.
+    Bez reči 'sticker'/'die-cut': zbog njih je generator crtao beli okvir nalepnice koji posle ostane oko dizajna."""
     chroma_bg, color_negative, _ = pick_chroma(design)
     text = design["text"]
     q = '"' if "'" in text else "'"
-    if design["style"] == "retro-badge":
-        style = ("Style: retro round badge: one solid filled circle with a thick black outline, the animal in the center, "
-                 + (f"big bold text {q}{text}{q} arched along the top inside the circle. " if text else "no text. "))
+    if text:
+        banner = (f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a horizontal ribbon banner "
+                  f"or rectangle filled with solid bright yellow, orange, white or red with a thick black outline, containing bold "
+                  f"black typography reading exactly {q}{text}{q}. This is the ONLY text in the image, spelled exactly like that, "
+                  f"all letters inside the banner. ")
     else:
-        style = ("Style: die-cut sticker: the animal(s), props "
-                 + (f"and a thick bold banner with the text {q}{text}{q} " if text else "")
-                 + "all touch and overlap so the whole artwork is ONE compact connected silhouette with no separate small pieces. ")
-    text_rule = (f"The ONLY text in the image is exactly {q}{text}{q} in big chunky readable cartoon letters (max 2 fonts). "
-                 if text else "There is NO text, letters or numbers anywhere. ")
+        banner = "There is NO text, letters, numbers or banner anywhere. "
     image_prompt = (
-        "Die-cut sticker design, bold thick black outlines, flat vibrant colors, simple shapes, minimal detail, "
-        "no thin lines, no gradients, strong contrast, readable at small thumbnail size. "
-        f"Subject: {design['visual_scene']}. The animal has a clear funny facial expression. "
-        f"{style}{text_rule}"
-        f"Composition: centered, fully visible, isolated on a {chroma_bg}, no extra text."
+        "A standalone flat 2D vector mascot illustration graphic for a t-shirt design. "
+        f"Subject: A cute 2D cartoon {design['animal']}: {design['visual_scene']}. The animal has a clear funny facial expression. "
+        "Style: Flat 2D vector art, clean crisp sharp edges, solid highly saturated vibrant colors, simple shapes, minimal detail, no thin lines. "
+        + ("Outline: The entire illustration, character, props, and banner MUST have a thick solid bold black outline enclosing every single shape. "
+           if text else "Outline: The entire illustration, character and props MUST have a thick solid bold black outline enclosing every single shape. ")
+        + banner
+        + f"Composition: centered, fully visible, the artwork is completely isolated on a {chroma_bg}."
     )
     negative_prompt = (
-        f"{color_negative} white background, black background, transparent background, gradient background, scenery, "
-        "small separate pieces, scattered elements, floating objects, thin lines, gradients, 3d render, realistic, photograph, "
-        "glow, blurry edges, brush strokes, watermark, signature, extra words, misspelled text, cropped, cut off, "
-        "drop shadow, washed out colors, pastels"
+        f"{color_negative} white background, black background, transparent background, gradient background, "
+        "scenery, sticker, sticker peel, die cut, white border, white outline, white edge, sticker border, badge, circle frame, "
+        "circular frame, round emblem, border, frame, drop shadow, 3d render, realistic, photograph, glow, blurry edges, "
+        "brush strokes, watermark, signature, messy edges, floating text outside banner, curved text, arched text, "
+        "misspelled text, extra words, cropped, cut off, beige, pastels, washed out colors"
     )
     r = http_request("POST", "https://fal.run/fal-ai/z-image/turbo", headers=fal_headers(),
                      json={"prompt": image_prompt, "negative_prompt": negative_prompt, "image_size": "square_hd"})
@@ -1072,7 +1074,7 @@ def check_design_text(img_bytes, expected):
         data = extract_json(txt)
         read = canon(data.get("text", data.get("banner_text", "")))
         if expected:
-            ok = difflib.SequenceMatcher(None, read, canon(expected)).ratio() >= 0.9
+            ok = read == canon(expected)        # tačno slovo po slovo: "BRAAN" umesto "BRAIN" mora da padne
         else:
             ok = len(read) <= 2
         if not ok or data.get("major_defect") is True:
@@ -1160,12 +1162,6 @@ def make_design_image(design, out_path):
                     continue
             transparent = Image.open(BytesIO(fal_remove_background(url))).convert("RGBA")
             transparent, pieces = split_pieces(transparent)
-            if pieces > 1 and design["style"] == "die-cut":
-                piece_note = f"{pieces} odvojena dela (nije jedan die-cut oblik)"
-                if attempt < IMAGE_ATTEMPTS:
-                    print(f"    ⟳ Slika ima {piece_note}. Pokušaj {attempt + 1}/{IMAGE_ATTEMPTS}...")
-                    continue
-                ok, note = False, (note + "; " if note else "") + piece_note
             canvas = to_canvas(transparent, TARGET_SIZE)
             canvas.save(out_path, "PNG", compress_level=6)
             del canvas, transparent
