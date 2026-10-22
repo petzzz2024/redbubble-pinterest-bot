@@ -6,6 +6,7 @@ beagle
 beaver
 bison
 black cat
+bunny
 calico cat
 capybara
 chameleon
@@ -14,6 +15,7 @@ corgi
 crow
 dachshund
 duck
+ferret
 flamingo
 fox
 french bulldog
@@ -28,11 +30,14 @@ hedgehog
 highland cow
 hippo
 honey bee
+husky
 jellyfish
 koala
+lemur
 llama
 luna moth
 manatee
+meerkat
 narwhal
 octopus
 opossum
