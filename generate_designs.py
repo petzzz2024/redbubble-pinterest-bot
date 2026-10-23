@@ -9,7 +9,8 @@ Tok:
      - character (2): ta životinja sa jakim karakterom/radnjom u upečatljivim bojama, tekst opcion
   2. Stvarne pretrage (Google autosuggest) za teme i životinje -> Gemini piše koncept, frazu, naslov "Fraza - opis",
      15 tagova i kratak opis. Sve se proverava u KODU (dužine, duplikati, prezasićene i zaštićene fraze, nevezani tagovi).
-  3. Slika: Fal.ai Z-Image Turbo (ravna ilustracija, debela crna kontura, tekst u lenti sa crnom ivicom) -> Gemini vision čita tekst
+  3. Slika: Fal.ai Z-Image Turbo (polu-realistična životinja, crna kontura, tekst u lenti) -> Gemini vision čita tekst
+     -> pozadina se skida PO BOJI (BiRefNet samo kao rezerva) -> Gemini ponovo čita tekst da lenta nije odsečena
      -> BiRefNet -> provera da je JEDAN oblik (sitne mrlje se brišu) -> 8000x8000 transparentan PNG.
   4. Izlaz: folder po životinji sa <životinja>_podaci.txt (Naslov / Opis / Tagovi / Slika / Tip / Koncept)
      + zajednički podaci_<datum>.txt; sve na Telegram.
@@ -34,7 +35,11 @@ import unicodedata
 from io import BytesIO
 
 import requests
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageChops
+try:
+    import numpy as np          # dolazi uz onnxruntime/rembg iz requirements.txt
+except ImportError:             # bez numpy-ja bot radi kao ranije (samo BiRefNet)
+    np = None
 from google import genai
 from google.genai import types
 
@@ -1112,6 +1117,41 @@ def check_design_text(img_bytes, expected):
         return True, ""
 
 
+def chroma_alpha(rgb_img):
+    """Skida jednobojnu pozadinu PO BOJI (magenta/plava koju je generator nacrtao). Za razliku od BiRefNet-a ne "misli"
+    šta je glavni objekat, pa ne briše lentu sa tekstom ispod životinje. Vraća (alpha, pozadina_je_jednobojna)."""
+    a = np.asarray(rgb_img.convert("RGB")).astype(np.int32)
+    h, w, _ = a.shape
+    b = max(2, min(h, w) // 100)
+    border = np.concatenate([a[:b].reshape(-1, 3), a[-b:].reshape(-1, 3), a[:, :b].reshape(-1, 3), a[:, -b:].reshape(-1, 3)])
+    bg = np.median(border, axis=0)
+    spread = float(np.percentile(np.sqrt(((border - bg) ** 2).sum(1)), 90))
+    t1 = min(90.0, max(40.0, spread + 15))                       # do ove udaljenosti od boje pozadine: providno
+    t2 = t1 + 45                                                 # od ove: potpuno vidljivo; između: glatka ivica
+    d = np.sqrt(((a - bg) ** 2).sum(2))
+    alpha = (np.clip((d - t1) / (t2 - t1), 0, 1) * 255).astype(np.uint8)
+    return Image.fromarray(alpha, "L"), spread < 60
+
+
+def remove_background(original_bytes, url):
+    """1) skidanje po boji (glavno); 2) BiRefNet samo ako pozadina nije čista (onda se dva rezultata SPAJAJU,
+    pa nijedan ne može da obriše deo dizajna koji je drugi zadržao)."""
+    original = Image.open(BytesIO(original_bytes)).convert("RGB")
+    if np is not None:
+        alpha, clean = chroma_alpha(original)
+        if clean:
+            out = original.convert("RGBA")
+            out.putalpha(alpha)
+            return out, "boja"
+    birefnet = Image.open(BytesIO(fal_remove_background(url))).convert("RGBA")
+    if np is None:
+        return birefnet, "birefnet"
+    b_alpha = birefnet.getchannel("A").resize(original.size, Image.Resampling.LANCZOS)
+    out = original.convert("RGBA")
+    out.putalpha(ImageChops.lighter(alpha, b_alpha))
+    return out, "boja+birefnet"
+
+
 def split_pieces(img, size=384):
     """Die-cut nalepnica mora biti JEDAN oblik. Briše sitne mrlje (<0,4% površine) i vraća (slika, broj_većih_delova)."""
     alpha = img.getchannel("A")
@@ -1187,8 +1227,20 @@ def make_design_image(design, out_path):
                 if not ok and attempt < IMAGE_ATTEMPTS:
                     print(f"    ⟳ Tekst/anatomija nisu u redu ({note}). Pokušaj {attempt + 1}/{IMAGE_ATTEMPTS}...")
                     continue
-            transparent = Image.open(BytesIO(fal_remove_background(url))).convert("RGBA")
+            transparent, method = remove_background(original, url)
             transparent, pieces = split_pieces(transparent)
+            if VERIFY_IMAGE_TEXT and design["text"]:
+                # Druga provera, POSLE skidanja pozadine: tekst u lenti mora i dalje da bude ceo
+                preview = Image.new("RGB", transparent.size, (60, 60, 60))
+                preview.paste(transparent, (0, 0), transparent)
+                buf = BytesIO()
+                preview.save(buf, "PNG")
+                ok2, note2 = check_design_text(buf.getvalue(), design["text"])
+                if not ok2:
+                    if attempt < IMAGE_ATTEMPTS:
+                        print(f"    ⟳ Posle skidanja pozadine ({method}) tekst nije ceo ({note2}). Pokušaj {attempt + 1}/{IMAGE_ATTEMPTS}...")
+                        continue
+                    ok, note = False, f"posle skidanja pozadine: {note2}"
             canvas = to_canvas(transparent, TARGET_SIZE)
             canvas.save(out_path, "PNG", compress_level=6)
             del canvas, transparent
