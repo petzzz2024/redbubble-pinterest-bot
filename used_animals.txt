@@ -1,10 +1,13 @@
 alpaca
+arctic fox
 axolotl
+bald eagle
 barn owl
 bat
 beagle
 beaver
 bison
+black bear
 black cat
 bunny
 calico cat
@@ -58,6 +61,7 @@ rabbit
 raccoon
 red panda
 reindeer
+sea otter
 sea turtle
 seal
 shiba inu
@@ -67,6 +71,7 @@ skunk
 sloth
 snail
 snow leopard
+tabby cat
 tiger
 turkey
 whale shark
