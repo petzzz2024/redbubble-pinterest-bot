@@ -35,7 +35,7 @@ import unicodedata
 from io import BytesIO
 
 import requests
-from PIL import Image, ImageFilter, ImageChops
+from PIL import Image, ImageFilter, ImageChops, ImageDraw
 try:
     import numpy as np          # dolazi uz onnxruntime/rembg iz requirements.txt
 except ImportError:             # bez numpy-ja bot radi kao ranije (samo BiRefNet)
@@ -1077,6 +1077,7 @@ def fal_text_to_image(design):
         "circular frame, round emblem, border, frame, drop shadow, 3d render, photorealistic, photograph, glow, blurry edges, "
         "chibi, kawaii, big anime eyes, oversized head, mascot proportions, "
         "brush strokes, watermark, signature, messy edges, floating text outside banner, curved text, arched text, "
+        "ground, floor, ground shadow, cast shadow, puddle, dust cloud, "
         "misspelled text, extra words, cropped, cut off, beige, pastels, washed out colors"
     )
     r = http_request("POST", "https://fal.run/fal-ai/z-image/turbo", headers=fal_headers(),
@@ -1119,18 +1120,34 @@ def check_design_text(img_bytes, expected):
 
 def chroma_alpha(rgb_img):
     """Skida jednobojnu pozadinu PO BOJI (magenta/plava koju je generator nacrtao). Za razliku od BiRefNet-a ne "misli"
-    šta je glavni objekat, pa ne briše lentu sa tekstom ispod životinje. Vraća (alpha, pozadina_je_jednobojna)."""
-    a = np.asarray(rgb_img.convert("RGB")).astype(np.int32)
+    šta je glavni objekat, pa ne briše lentu sa tekstom ispod životinje.
+    Briše se SAMO pozadina povezana sa ivicom slike (+ zatvoreni džepovi čiste pozadinske boje, npr. između ručki),
+    a sve unutar dizajna ostaje 100% neprozirno: tamno crveno/braon krzno više ne postaje providno ni crne tačke.
+    Vraća (alpha, pozadina_je_jednobojna)."""
+    rgb = rgb_img.convert("RGB")
+    a = np.asarray(rgb).astype(np.int32)
     h, w, _ = a.shape
     b = max(2, min(h, w) // 100)
     border = np.concatenate([a[:b].reshape(-1, 3), a[-b:].reshape(-1, 3), a[:, :b].reshape(-1, 3), a[:, -b:].reshape(-1, 3)])
     bg = np.median(border, axis=0)
     spread = float(np.percentile(np.sqrt(((border - bg) ** 2).sum(1)), 90))
-    t1 = min(90.0, max(40.0, spread + 15))                       # do ove udaljenosti od boje pozadine: providno
-    t2 = t1 + 45                                                 # od ove: potpuno vidljivo; između: glatka ivica
+    t1 = min(70.0, max(35.0, spread + 15))        # do ove udaljenosti od boje pozadine piksel MOŽE biti pozadina
+    t_strict = min(45.0, max(20.0, spread + 8))   # skoro tačno boja pozadine (zatvoreni džepovi pozadine)
     d = np.sqrt(((a - bg) ** 2).sum(2))
-    alpha = (np.clip((d - t1) / (t2 - t1), 0, 1) * 255).astype(np.uint8)
-    return Image.fromarray(alpha, "L"), spread < 60
+
+    cand = Image.fromarray(((d < t1) * 255).astype(np.uint8), "L")
+    for x, y in ([(x, 0) for x in range(0, w, 4)] + [(x, h - 1) for x in range(0, w, 4)]
+                 + [(0, y) for y in range(0, h, 4)] + [(w - 1, y) for y in range(0, h, 4)]):
+        if cand.getpixel((x, y)) == 255:
+            ImageDraw.floodfill(cand, (x, y), 128)                # pozadina povezana sa ivicom slike
+    bgmask = (np.asarray(cand) == 128) | (d < t_strict)
+
+    alpha = np.where(bgmask, 0, 255).astype(np.float32)
+    # glatka ivica samo u uskom pojasu oko pozadine (2-3 px), unutrašnjost dizajna ostaje puna
+    near = np.asarray(Image.fromarray((bgmask * 255).astype(np.uint8), "L").filter(ImageFilter.MaxFilter(5))) > 0
+    edge = near & ~bgmask
+    alpha[edge] = np.clip((d[edge] - t_strict) / (t1 + 40 - t_strict), 0, 1) * 255
+    return Image.fromarray(alpha.astype(np.uint8), "L"), spread < 60
 
 
 def remove_background(original_bytes, url):
@@ -1389,15 +1406,18 @@ def main():
     history = load_history()
     history.setdefault("designs", [])
     print(f"🤖 [FAZA 1] Biram {ANIMALS_PER_RUN} životinja (trend + evergreen + stvarna potražnja)...")
-    animals = pick_animals(used, history, today, ANIMALS_PER_RUN)
-    print(f"🎯 Lista za danas: {', '.join(a.upper() for a in animals)}  "
+    animals = pick_animals(used, history, today, ANIMALS_PER_RUN + 3)     # +3 rezerve: ako neka životinja padne, uskače sledeća
+    print(f"🎯 Lista za danas: {', '.join(a.upper() for a in animals[:ANIMALS_PER_RUN])}  "
+          f"(rezerve: {', '.join(animals[ANIMALS_PER_RUN:]) or 'nema'})  "
           f"(po životinji: {IDIOMS_PER_ANIMAL} idiom + {DESIGNS_PER_ANIMAL - IDIOMS_PER_ANIMAL} karakter)")
     print("🔎 Istražujem stvarne pretrage za teme (ADHD, introvert...)...")
     theme_kw = research_theme_keywords()
 
-    results = []
-    for n, animal in enumerate(animals, 1):
-        print(f"\n--- Životinja {n}/{len(animals)}: {animal.upper()} ---")
+    results, done, failures = [], 0, []
+    for animal in animals:
+        if done >= ANIMALS_PER_RUN:
+            break
+        print(f"\n--- Životinja {done + 1}/{ANIMALS_PER_RUN}: {animal.upper()} ---")
         try:
             animal_kw = {animal: research_keywords(animal)}
             slots = ([{"type": "idiom", "animal": animal} for _ in range(IDIOMS_PER_ANIMAL)]
@@ -1405,6 +1425,8 @@ def main():
             for i, s_ in enumerate(slots, 1):
                 s_["id"] = f"s{i}"
             designs = generate_concepts(slots, theme_kw, animal_kw, today, history)
+            if len(designs) < len(slots):
+                failures.append(f"{animal}: Gemini dao {len(designs)}/{len(slots)} ispravnih koncepata")
             if len(designs) < MIN_DESIGNS_PER_ANIMAL:
                 raise RuntimeError(f"samo {len(designs)} validnih koncepata (minimum {MIN_DESIGNS_PER_ANIMAL})")
 
@@ -1432,6 +1454,9 @@ def main():
             if len(made) < MIN_DESIGNS_PER_ANIMAL:
                 raise RuntimeError(f"uspelo samo {len(made)} slika")
             results.extend(made)
+            done += 1
+            if len(made) < len(designs):
+                failures.append(f"{animal}: {len(designs) - len(made)} slika nije uspelo (Fal greška)")
             if not METADATA_ONLY:        # METADATA_ONLY je suvi test: životinje se ne troše
                 used.append(animal)
                 save_used_animals(used)
@@ -1440,7 +1465,8 @@ def main():
                                                "title": m["title"], "text": m["text"], "primary_keyword": m["primary_keyword"]})
                 save_history(history)
         except Exception as e:
-            print(f"❌ Greška na životinji {animal}: {redact(e)[:200]}")
+            print(f"❌ Greška na životinji {animal}: {redact(e)[:200]} -> uskače rezervna životinja")
+            failures.append(f"{animal} preskočena: {redact(e)[:120]}")
             if not METADATA_ONLY:
                 history["failed"][animal] = history["failed"].get(animal, 0) + 1
                 save_history(history)
@@ -1456,6 +1482,7 @@ def main():
                f"({counts['idiom']} idiom, {counts['character']} karakter), "
                f"{len(txt_paths)} životinja ({', '.join(txt_paths)}).\n"
                + (f"⚠ {len(review)} slika za ručnu proveru (u *_podaci.txt piše !!! PROVERI SLIKU).\n" if review else "")
+               + ("ℹ " + "; ".join(failures) + "\n" if failures else "")
                + "U folderu svake životinje je <životinja>_podaci.txt sa naslovom, opisom i tagovima za svaki dizajn.")
     print("\n" + summary)
 
