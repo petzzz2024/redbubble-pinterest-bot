@@ -14,6 +14,7 @@ calico cat
 capybara
 chameleon
 chinchilla
+chipmunk
 corgi
 crow
 dachshund
@@ -53,14 +54,17 @@ penguin
 pigeon
 platypus
 polar bear
+pomeranian
 poodle
 possum
+pufferfish
 pug
 quokka
 rabbit
 raccoon
 red panda
 reindeer
+samoyed
 sea otter
 sea turtle
 seal
@@ -75,3 +79,4 @@ tabby cat
 tiger
 turkey
 whale shark
+wombat
