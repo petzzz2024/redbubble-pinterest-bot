@@ -1,10 +1,12 @@
 alpaca
 arctic fox
+australian shepherd
 axolotl
 bald eagle
 barn owl
 bat
 beagle
+bearded dragon
 beaver
 bison
 black bear
@@ -45,11 +47,13 @@ manatee
 manta ray
 meerkat
 moose
+moth
 narwhal
 octopus
 opossum
 orca
 otter
+owl
 penguin
 pigeon
 platypus
@@ -79,4 +83,5 @@ tabby cat
 tiger
 turkey
 whale shark
+wolf
 wombat
