@@ -11,6 +11,7 @@ beaver
 bison
 black bear
 black cat
+border collie
 bunny
 calico cat
 capybara
@@ -30,6 +31,7 @@ frog
 german shepherd
 golden retriever
 goose
+great dane
 guinea pig
 hamster
 harbor seal
@@ -37,8 +39,10 @@ hedgehog
 highland cow
 hippo
 honey bee
+hummingbird
 husky
 jellyfish
+kiwi
 koala
 lemur
 llama
@@ -79,6 +83,7 @@ skunk
 sloth
 snail
 snow leopard
+spider
 tabby cat
 tiger
 turkey
