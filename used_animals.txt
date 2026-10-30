@@ -16,18 +16,21 @@ bunny
 calico cat
 capybara
 chameleon
+chihuahua
 chinchilla
 chipmunk
 corgi
 crow
 dachshund
 dalmatian
+dolphin
 duck
 ferret
 flamingo
 fox
 french bulldog
 frog
+gecko
 german shepherd
 golden retriever
 goose
@@ -72,11 +75,13 @@ rabbit
 raccoon
 red panda
 reindeer
+rottweiler
 samoyed
 sea otter
 sea turtle
 seal
 shiba inu
+shih tzu
 shoebill
 siamese cat
 skunk
