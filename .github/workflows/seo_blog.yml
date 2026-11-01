@@ -22,12 +22,14 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install --upgrade requests google-genai
+          pip install --upgrade requests google-genai pillow numpy
 
       - name: Run Blog Generator Script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           FAL_KEY: ${{ secrets.FAL_KEY }}
+          # MAX_POSTS_PER_DAY: 1      # koliko postova dnevno najviše (cron-job može da okida i češće)
+          # USE_STORE_IMAGES: 0       # 0 = ne čitaj Redbubble shop, slike uvek pravi Fal.ai
         run: python generate_blog.py
 
       - name: Commit and Push Updated Blog, Sitemap and RSS
