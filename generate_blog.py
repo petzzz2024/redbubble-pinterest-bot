@@ -1416,6 +1416,54 @@ def update_blog_index(posts):
         f.write(page)
 
 
+def optimize_blog_images(limit_kb=260, side=1200):
+    """Smanjuje velike slike u blog/images (stare Flux slike su ~800 KB) na <= 1200 px i JPEG kvalitet 82.
+    Ime fajla ostaje isto, pa se nijedan link ne menja. Posle prvog prolaza nema više šta da radi (brzo)."""
+    saved, count = 0, 0
+    for path in glob.glob(f"{POST_IMG_DIR}/*"):
+        if not path.lower().endswith((".jpg", ".jpeg")) or os.path.getsize(path) <= limit_kb * 1024:
+            continue
+        try:
+            before = os.path.getsize(path)
+            with Image.open(path) as im:
+                im = im.convert("RGB")
+                im.thumbnail((side, side), Image.Resampling.LANCZOS)
+                buf = io.BytesIO()
+                im.save(buf, "JPEG", quality=82, optimize=True, progressive=True)
+            if buf.tell() < before:
+                with open(path, "wb") as f:
+                    f.write(buf.getvalue())
+                saved += before - buf.tell()
+                count += 1
+        except Exception as e:
+            print(f"Slika {path} nije smanjena: {e}")
+    if count:
+        print(f"Smanjeno {count} slika bloga, ušteđeno {saved // 1048576} MB.")
+
+
+def update_home_latest(posts, count=6):
+    """Na početnoj stranici (index.html) osvežava deo 'Latest Gift Guides & Stories' između oznaka
+    <!--LATEST-POSTS:START--> i <!--LATEST-POSTS:END-->. Ako oznaka nema, ništa ne menja."""
+    if not os.path.exists("index.html"):
+        return
+    with open("index.html", encoding="utf-8") as f:
+        page = f.read()
+    start, end = "<!--LATEST-POSTS:START-->", "<!--LATEST-POSTS:END-->"
+    if start not in page or end not in page:
+        return
+    latest = sorted(posts, key=lambda x: x["dt_obj"], reverse=True)
+    latest = [p for p in latest if not p["img_url"].startswith("http")][:count] or latest[:count]
+    cards = "".join(
+        f'\n            <a class="latest-card" href="{p["clean_url"]}"><img src="{esc(site_img(p["img_url"]))}" '
+        f'alt="{esc(html.unescape(p["title"]))}" width="400" height="400" loading="lazy" decoding="async">'
+        f'<span>{p["title"]}</span></a>' for p in latest)
+    block = f'{start}\n        <div class="latest-grid">{cards}\n        </div>\n        {end}'
+    a, b = page.index(start), page.index(end) + len(end)
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(page[:a] + block + page[b:])
+    print("Početna stranica: osveženi najnoviji članci.")
+
+
 # ---------------------------------------------------------------------------
 # GLAVNI TOK
 # ---------------------------------------------------------------------------
@@ -1457,6 +1505,7 @@ def generate_post():
     if not GEMINI_API_KEY:
         raise SystemExit("GEMINI_API_KEY nije pronađen u environment varijablama!")
     today = datetime.date.today()
+    optimize_blog_images()                  # brže stranice: stare slike ~800 KB -> ~150 KB (jednom, pa ništa)
     posts = load_posts()
     today_count = sum(1 for p in posts if p["date_known"] and p["dt_obj"].date() == today)
     if today_count >= MAX_POSTS_PER_DAY:
@@ -1573,6 +1622,7 @@ def generate_post():
 
     all_posts = load_posts()
     update_blog_index(all_posts)
+    update_home_latest(all_posts)
     update_sitemap(all_posts)
     update_rss(topic, post_url, article, abs_images[0] if abs_images else None)
     notify_indexnow(post_url)
