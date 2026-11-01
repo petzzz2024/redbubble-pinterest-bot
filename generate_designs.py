@@ -667,6 +667,11 @@ OWN_BESTSELLER_TITLES = ["My Ducks Are Not In A Row - Funny Chaos ADHD Mental He
 OWN_BESTSELLER_TEXTS = ["MY DUCKS ARE NOT IN A ROW", "DANGER CANDY", "WINTER ASSASSIN"]
 
 # Prezasićene ili zaštićene fraze (dopuni preko blocked_terms.txt)
+# Psovke (i cenzurisane: f*ck, sh!t...) ne idu u dizajn, naslov, opis ni tagove
+PROFANITY_RE = re.compile(
+    r"(?i)(?<![a-z])(f+[u*@#!]+c+k+\w*|f\*+k\w*|fck\w*|sh[i1!*]+t+\w*|bitch\w*|b\*+tch\w*|ass ?hole\w*|dick\w*|cunt\w*|"
+    r"damn\w*|wtf|stfu|af|bastard\w*|piss\w*|crap\w*|bullsh\w*|motherf\w*|hell no|go to hell)(?![a-z])")
+
 SATURATED_RE = re.compile(
     r"(?i)\b(not my circus|not my monkeys|keep calm|live laugh love|this is fine|good vibes only|but first coffee|"
     r"i do what i want|nope not today|resting [a-z]+ face|hangry|wine o.?clock|what the duck|duck it|"
@@ -735,7 +740,8 @@ with a thick black outline around everything; the text ALWAYS sits in a ribbon b
 rectangle with a thick black outline at the bottom. Few details, strong contrasting flat colors, no thin lines, no gradients.
 Text 2-6 words, big and readable, it must work at thumbnail size (3-4 cm). The animal has a clear facial expression or action.
 FORBIDDEN: brands, characters from movies/cartoons/games, celebrity names, trademarked or overused phrases (e.g. "Not my circus,
-not my monkeys", "Keep calm", "Live laugh love", "This is fine"), copying other people's designs.
+not my monkeys", "Keep calm", "Live laugh love", "This is fine"), copying other people's designs, profanity or swear words of any
+kind, also censored ones (no "f*ck", "sh*t", "zero f*cks given", "AF") - the humor must stay clean and family-friendly.
 
 FIELDS FOR EVERY CONCEPT
 - slot: copy the slot id exactly. type: copy the type.
@@ -840,6 +846,8 @@ def normalize_tag(tag, title_key=None):
         return None
     if t in GENERIC_TAGS or set(re.split(r"[ -]", t)) & (NON_MERCH_WORDS | PRODUCT_WORDS | {"vs", "versus", "t"}) or find_blocked(t):
         return None
+    if PROFANITY_RE.search(t):
+        return None
     if title_key and phrase_key(t) == title_key:
         return None
     return t
@@ -939,6 +947,9 @@ def clean_concept(raw, slot, ctx):
     sat = SATURATED_RE.search(f"{text} {title}")
     if sat:
         issues.append(f"fraza '{sat.group(1)}' je prezasićena ili zaštićena, smisli drugu")
+    bad = PROFANITY_RE.search(f"{text} {title} {concept} {raw.get('description', '')}")
+    if bad:
+        issues.append(f"sadrži psovku ili prost izraz ('{bad.group(1)}'), smisli čistu frazu")
 
     pk = re.sub(r"\s+", " ", re.sub(r"[^a-z0-9\s'-]", " ", str(raw.get("primary_keyword", "")).lower())).strip()
     if not (2 <= len(pk.split()) <= 5):
@@ -1135,7 +1146,8 @@ def chroma_alpha(rgb_img):
     t_strict = min(45.0, max(20.0, spread + 8))   # skoro tačno boja pozadine (zatvoreni džepovi pozadine)
     d = np.sqrt(((a - bg) ** 2).sum(2))
 
-    cand = Image.fromarray(((d < t1) * 255).astype(np.uint8), "L")
+    cand = Image.fromarray(((d < t1) * 255).astype(np.uint8), "L").copy()   # .copy(): u Pillow 12 je slika iz numpy-ja
+                                                                            # samo-za-čitanje i floodfill tiho ne radi
     for x, y in ([(x, 0) for x in range(0, w, 4)] + [(x, h - 1) for x in range(0, w, 4)]
                  + [(0, y) for y in range(0, h, 4)] + [(w - 1, y) for y in range(0, h, 4)]):
         if cand.getpixel((x, y)) == 255:
