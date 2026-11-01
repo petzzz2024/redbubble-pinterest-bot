@@ -3,22 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Petzzz Studio - Official Store</title>
+    <title>Funny Animal Stickers, T-Shirts & Hoodies | Petzzz Studio</title>
+    <meta name="description" content="Funny, relatable animal designs for introverts, overthinkers and pet lovers: stickers, t-shirts, hoodies and 80+ gifts from Petzzz Studio on Redbubble.">
+    <meta name="robots" content="index, follow, max-image-preview:large">
     
     <!-- Pinterest Domain Verification Tag -->
     <meta name="p:domain_verify" content="5752fd0beb24816e24fa63a6f2b8d6e2"/>
 
     <!-- Canonical Tag za Google -->
-    <link rel="canonical" href="https://petzzz.world" />
+    <link rel="canonical" href="https://petzzz.world/" />
     
     <!-- SEO & Google Ime Sajta (Site Name) -->
     <meta property="og:site_name" content="Petzzz Studio Shop">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://petzzz.world/">
+    <meta property="og:title" content="Funny Animal Stickers, T-Shirts & Hoodies | Petzzz Studio">
+    <meta property="og:description" content="Funny, relatable animal designs for introverts, overthinkers and pet lovers: stickers, t-shirts, hoodies and 80+ gifts.">
+    <meta property="og:image" content="https://petzzz.world/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://petzzz.world/og-image.jpg">
+    <link rel="alternate" type="application/rss+xml" title="Petzzz Studio Blog" href="https://petzzz.world/rss.xml">
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "Petzzz Studio Shop",
-      "url": "https://petzzz.world"
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://petzzz.world/#website",
+          "name": "Petzzz Studio Shop",
+          "url": "https://petzzz.world/",
+          "publisher": {"@id": "https://petzzz.world/#org"}
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://petzzz.world/#org",
+          "name": "Petzzz Studio",
+          "url": "https://petzzz.world/",
+          "logo": "https://petzzz.world/Logo%202.png",
+          "sameAs": [
+            "https://petzzz.redbubble.com",
+            "https://www.instagram.com/petzz_official",
+            "https://www.facebook.com/people/Petzzz/61586316995899/",
+            "https://bsky.app/profile/petzzzshop.bsky.social",
+            "https://www.tumblr.com/blog/petzzzshop",
+            "https://www.pinterest.com/petzzz2024/"
+          ]
+        }
+      ]
     }
     </script>
 
@@ -37,6 +70,8 @@
     <link rel="icon" type="image/png" sizes="192x192" href="Logo 2.png">
     <link rel="apple-touch-icon" href="Logo 2.png">
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -240,6 +275,15 @@
                 font-size: 0.98em;
             }
         }
+
+        /* Najnoviji članci (blog bot ih sam osvežava) */
+        .latest-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 22px; }
+        .latest-card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,0.06); text-decoration: none; color: inherit; display: flex; flex-direction: column; transition: transform 0.3s, box-shadow 0.3s; }
+        .latest-card:hover { transform: translateY(-5px); box-shadow: 0 12px 25px rgba(0,0,0,0.12); }
+        .latest-card img { width: 100%; height: 240px; object-fit: cover; background: #f0f0f0; display: block; }
+        .latest-card span { padding: 14px 16px 18px; font-weight: 600; color: #1c1328; line-height: 1.35; font-size: 0.98em; }
+        .latest-more { text-align: center; margin-top: 28px; }
+        .latest-more a { color: #7b2cbf; font-weight: 700; text-decoration: none; }
     </style>
 </head>
 <body>
@@ -248,8 +292,8 @@
     <div class="popup-overlay" id="discountPopup">
         <div class="popup-content">
             <div class="popup-close" id="closePopup">&times;</div>
-            <a href="https://petzzz.redbubble.com" target="_blank" class="popup-link">
-                <img src="discount.png?v=2" alt="Discount 365 Days" class="popup-img" onerror="this.src='https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600&q=80'">
+            <a href="https://petzzz.redbubble.com" target="_blank" rel="noopener" class="popup-link">
+                <img src="discount.webp" alt="Petzzz Studio discount on Redbubble" class="popup-img" width="427" height="322" loading="lazy" onerror="this.onerror=null;this.src='discount.png?v=2'">
             </a>
         </div>
     </div>
@@ -257,14 +301,14 @@
     <header>
         <div class="nav-container">
             <a href="/" class="logo-box">
-                <img src="Logo 2.png" alt="Petzzz Studio Logo" class="logo-img">
+                <img src="Logo 2.png" alt="Petzzz Studio Logo" class="logo-img" width="44" height="44">
                 <span class="logo-text">Petzzz Studio</span>
             </a>
             <div class="nav-links">
                 <a href="#categories">Shop Categories</a>
-                <a href="/blog">Blog Articles</a>
-                <a href="https://petzzz.redbubble.com" target="_blank">Redbubble Shop</a>
-                <a href="/privacy">Privacy Policy</a>
+                <a href="/blog.html">Blog Articles</a>
+                <a href="https://petzzz.redbubble.com" target="_blank" rel="noopener">Redbubble Shop</a>
+                <a href="/privacy.html">Privacy Policy</a>
             </div>
         </div>
     </header>
@@ -272,7 +316,7 @@
     <section class="hero">
         <h1>Express Your Pet Passion</h1>
         <p>High-quality stickers, t-shirts, hoodies, and over 80+ custom products designed for animal lovers worldwide.</p>
-        <a href="https://petzzz.redbubble.com" target="_blank" class="hero-btn">Shop Full Redbubble Store 🛍️</a>
+        <a href="https://petzzz.redbubble.com" target="_blank" rel="noopener" class="hero-btn">Shop Full Redbubble Store 🛍️</a>
     </section>
 
     <div class="container" id="categories">
@@ -281,9 +325,9 @@
         <div class="category-grid">
             
             <!-- Kategorija 1: Stikeri -->
-            <a href="https://www.redbubble.com/people/petzzz/shop?asc=u&iaCode=all-stickers" target="_blank" class="category-card">
+            <a href="https://www.redbubble.com/people/petzzz/shop?asc=u&iaCode=all-stickers" target="_blank" rel="noopener" class="category-card">
                 <div class="card-img-container">
-                    <img src="stickers.png" alt="Pet Vinyl Stickers" class="category-img" onerror="this.src='https://images.unsplash.com/photo-1572375992501-4b0892d50c69?w=600&q=80'">
+                    <img src="stickers.webp" alt="Funny animal stickers by Petzzz Studio" class="category-img" width="800" height="800" decoding="async" onerror="this.onerror=null;this.src='stickers.png'">
                 </div>
                 <div class="category-info">
                     <div>
@@ -295,9 +339,9 @@
             </a>
 
             <!-- Kategorija 2: Majice -->
-            <a href="https://www.redbubble.com/people/petzzz/shop?asc=u&iaCode=u-tees" target="_blank" class="category-card">
+            <a href="https://www.redbubble.com/people/petzzz/shop?asc=u&iaCode=u-tees" target="_blank" rel="noopener" class="category-card">
                 <div class="card-img-container">
-                    <img src="tshirts.png" alt="Pet T-Shirts" class="category-img" onerror="this.src='https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=600&q=80'">
+                    <img src="tshirts.webp" alt="Funny animal t-shirts by Petzzz Studio" class="category-img" width="800" height="800" decoding="async" onerror="this.onerror=null;this.src='tshirts.png'">
                 </div>
                 <div class="category-info">
                     <div>
@@ -309,9 +353,9 @@
             </a>
 
             <!-- Kategorija 3: Duksevi -->
-            <a href="https://www.redbubble.com/people/petzzz/shop?asc=u&iaCode=u-sweatshirts" target="_blank" class="category-card">
+            <a href="https://www.redbubble.com/people/petzzz/shop?asc=u&iaCode=u-sweatshirts" target="_blank" rel="noopener" class="category-card">
                 <div class="card-img-container">
-                    <img src="hoodies.png" alt="Pet Hoodies" class="category-img" onerror="this.src='https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=600&q=80'">
+                    <img src="hoodies.webp" alt="Funny animal hoodies by Petzzz Studio" class="category-img" width="800" height="800" decoding="async" loading="lazy" onerror="this.onerror=null;this.src='hoodies.png'">
                 </div>
                 <div class="category-info">
                     <div>
@@ -323,9 +367,9 @@
             </a>
 
             <!-- Kategorija 4: 80+ More Products -->
-            <a href="https://petzzz.redbubble.com" target="_blank" class="category-card">
+            <a href="https://petzzz.redbubble.com" target="_blank" rel="noopener" class="category-card">
                 <div class="card-img-container">
-                    <img src="more.png" alt="80+ More Products" class="category-img" onerror="this.src='https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&q=80'">
+                    <img src="more.webp" alt="Animal mugs, phone cases, bandanas and more gifts" class="category-img" width="800" height="800" decoding="async" loading="lazy" onerror="this.onerror=null;this.src='more.png'">
                 </div>
                 <div class="category-info">
                     <div>
@@ -339,36 +383,51 @@
         </div>
     </div>
 
+    <div class="container" id="latest">
+        <h2 class="section-title">Latest Gift Guides & Stories</h2>
+        <!--LATEST-POSTS:START-->
+        <div class="latest-grid">
+            <a class="latest-card" href="/blog/pitbull-t-shirts-and-hoodies.html"><img src="/blog/images/pitbull-t-shirts-and-hoodies.jpg" alt="Pitbull T-Shirts and Hoodies: The Ultimate Buyer Guide 2026" width="400" height="400" loading="lazy" decoding="async"><span>Pitbull T-Shirts and Hoodies: The Ultimate Buyer Guide 2026</span></a>
+            <a class="latest-card" href="/blog/capybara-christmas-gifts.html"><img src="/blog/images/capybara-christmas-gifts.jpg" alt="Capybara Christmas Gifts: 12 Festive Ideas for 2026" width="400" height="400" loading="lazy" decoding="async"><span>Capybara Christmas Gifts: 12 Festive Ideas for 2026</span></a>
+            <a class="latest-card" href="/blog/black-cat-christmas-gifts.html"><img src="/blog/images/black-cat-christmas-gifts.jpg" alt="Black Cat Christmas Gifts: 14 Festive Ideas for 2026" width="400" height="400" loading="lazy" decoding="async"><span>Black Cat Christmas Gifts: 14 Festive Ideas for 2026</span></a>
+            <a class="latest-card" href="/blog/harbor-seal-hoodie.html"><img src="/blog/images/harbor-seal-hoodie.jpg" alt="Harbor Seal Hoodies And Shirts: The 2026 Buyer Guide" width="400" height="400" loading="lazy" decoding="async"><span>Harbor Seal Hoodies And Shirts: The 2026 Buyer Guide</span></a>
+            <a class="latest-card" href="/blog/gifts-for-newfoundland-dog-lovers.html"><img src="/blog/images/gifts-for-newfoundland-dog-lovers.jpg" alt="12 Best Gifts for Newfoundland Dog Lovers in 2026" width="400" height="400" loading="lazy" decoding="async"><span>12 Best Gifts for Newfoundland Dog Lovers in 2026</span></a>
+            <a class="latest-card" href="/blog/snow-leopard-obsession.html"><img src="/blog/images/snow-leopard-obsession.jpg" alt="Why Everyone Is Obsessed With the Snow Leopard" width="400" height="400" loading="lazy" decoding="async"><span>Why Everyone Is Obsessed With the Snow Leopard</span></a>
+        </div>
+        <!--LATEST-POSTS:END-->
+        <p class="latest-more"><a href="/blog.html">See all articles ➔</a></p>
+    </div>
+
     <footer>
-        <p>&copy; 2026 Petzzz Studio. Official Redbubble Showcase. | <a href="/privacy">Privacy Policy</a></p>
+        <p>&copy; 2026 Petzzz Studio. Official Redbubble Showcase. | <a href="/privacy.html">Privacy Policy</a></p>
         
         <div class="social-links">
        <!-- Instagram -->
-<a href="https://www.instagram.com/petzz_official" target="_blank" title="Instagram">
+<a href="https://www.instagram.com/petzz_official" target="_blank" rel="noopener" title="Instagram">
     <svg viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
     </svg>
 </a>
             <!-- Facebook -->
-            <a href="https://www.facebook.com/people/Petzzz/61586316995899/" target="_blank" title="Facebook">
+            <a href="https://www.facebook.com/people/Petzzz/61586316995899/" target="_blank" rel="noopener" title="Facebook">
                 <svg viewBox="0 0 512 512" fill="currentColor">
                     <path d="M504 256C504 119 393 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.41 19.12-40.41 38.73V256h68.78l-11 71.69h-57.78V501C413.31 482.38 504 379.78 504 256z"/>
                 </svg>
             </a>
             <!-- Bluesky -->
-            <a href="https://bsky.app/profile/petzzzshop.bsky.social" target="_blank" title="Bluesky">
+            <a href="https://bsky.app/profile/petzzzshop.bsky.social" target="_blank" rel="noopener" title="Bluesky">
                 <svg viewBox="0 0 320 286" fill="currentColor">
                     <path d="M69.364 19.146C105.733 46.541 143.085 96.02 160 119.782c16.915-23.762 54.267-73.24 90.636-100.636C275.986 0 320 0 320 40.54c0 30.644-12.784 100.82-15.688 108.621-8.528 22.906-31.782 28.534-54.896 25.109-29.248-4.336-57.733-14.072-57.733-14.072 0 0 36.19 86.815 39.814 107.458 4.671 26.6-13.064 30.76-29.176 13.911-30.887-32.28-72.37-97.77-72.37-97.77s-41.484 65.49-72.37 97.77c-16.112 16.85-33.847 12.69-29.176-13.91 3.624-20.64 39.814-107.46 39.814-107.46 0 0-28.485 9.736-57.733 14.072-23.114 3.425-46.368-2.203-54.896-25.11C12.784 141.36 0 71.18 0 40.54 0 0 44.014 0 69.364 19.146Z"/>
                 </svg>
             </a>
             <!-- Tumblr -->
-            <a href="https://www.tumblr.com/blog/petzzzshop" target="_blank" title="Tumblr">
+            <a href="https://www.tumblr.com/blog/petzzzshop" target="_blank" rel="noopener" title="Tumblr">
                 <svg viewBox="0 0 320 512" fill="currentColor">
                     <path d="M294.6 422c-23.6 23.6-58.4 33-87.3 33-82.6 0-128.2-57.3-128.2-132.8V195H34v-75.1c83-32.1 98.7-106.6 102.2-119.9H192v115h98.8v79.9H192v105c0 14.8 6.7 34.1 27.5 34.1 11.7 0 24-5.3 30.4-9.8l44.7 77.8z"/>
                 </svg>
             </a>
             <!-- Pinterest -->
-            <a href="https://www.pinterest.com/petzzz2024/" target="_blank" title="Pinterest">
+            <a href="https://www.pinterest.com/petzzz2024/" target="_blank" rel="noopener" title="Pinterest">
                 <svg viewBox="0 0 496 512" fill="currentColor">
                     <path d="M248 8C111.1 8 0 119.1 0 256c0 105.7 65.7 196.4 159.2 235.9-2.2-19.6-4.2-49.8 1-71.1 4.5-18.4 29.5-125 29.5-125s-7.5-15-7.5-37.2c0-34.9 20.3-60.9 45.6-60.9 21.6 0 32 16.2 32 35.6 0 21.7-13.8 54.2-21 84.3-6 25.1 12.6 45.6 37.3 45.6 44.8 0 79.3-47.3 79.3-115.6 0-60.4-43.4-102.6-105.4-102.6-70.9 0-112.5 53.2-112.5 108 0 21.3 8.2 44.1 18.5 56.5 2 2.4 2.3 4.6 1.7 7-2 8.3-6.4 26.2-7.3 29.7-.9 3.8-3.1 4.6-7.1 2.8-26.6-12.4-43.2-51.4-43.2-82.9 0-67.4 49-129.4 141.2-129.4 74 0 131.6 52.8 131.6 123.1 0 73.6-46.3 132.8-110.7 132.8-21.6 0-41.9-11.2-48.8-24.5 0 0-10.7 40.7-13.3 50.8-4.8 18.5-17.7 41.7-26.4 55.8 21.7 6.4 44.8 9.9 68.9 9.9 136.9 0 248-111.1 248-248S384.9 8 248 8z"/>
                 </svg>
@@ -378,10 +437,16 @@
 
     <!-- Skripta za upravljanje Pop-up prozorom -->
     <script>
+        // Popup: posle 10 sekundi i samo jednom po poseti (popup preko celog ekrana odmah po otvaranju
+        // na telefonu Google smatra "intruzivnim" i može da spusti stranicu u pretrazi).
         window.addEventListener('load', function() {
+            var seen = false;
+            try { seen = sessionStorage.getItem('petzzzPopupSeen') === '1'; } catch (e) {}
+            if (seen) return;
             setTimeout(function() {
                 document.getElementById('discountPopup').classList.add('active');
-            }, 1000);
+                try { sessionStorage.setItem('petzzzPopupSeen', '1'); } catch (e) {}
+            }, 10000);
         });
 
         document.getElementById('closePopup').addEventListener('click', function(e) {
