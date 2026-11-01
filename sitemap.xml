@@ -7,12 +7,17 @@
   </url>
   <url>
     <loc>https://petzzz.world/blog.html</loc>
-    <lastmod>2026-10-31</lastmod>
+    <lastmod>2026-11-01</lastmod>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://petzzz.world/privacy.html</loc>
     <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://petzzz.world/blog/black-cat-christmas-gifts.html</loc>
+    <lastmod>2026-11-01</lastmod>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/snow-leopard-obsession.html</loc>
