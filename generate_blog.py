@@ -4,9 +4,12 @@
 Petzzz blog bot v3
 
 Šta radi (jedan post po pokretanju, najviše MAX_POSTS_PER_DAY dnevno):
-  1. Bira životinju iz tvog shopa (one za koje imaš dizajne, da linkovi nikad ne vode na praznu pretragu),
-     PROIZVOD (nalepnice / majice / duksevi) i temu (smešni dizajni, pokloni, vodič za proizvod, značenje idioma,
-     "znaci da ti je duhovna životinja...", činjenice, sezonske teme).
+  1. Bira životinju koja STVARNO postoji u tvom Redbubble shopu: jednom dnevno pregleda stranice shopa
+     (redbubble.com/people/<ti>/shop) i iz naslova vidi koje životinje imaš, pa pre pisanja još jednom pretraži shop
+     za izabranu životinju. Životinju bez proizvoda preskače. Ako Redbubble ne pusti bota (blokada), koristi
+     shop_animals.txt (tvoj spisak) ili životinje ranije potvrđene u shopu; ako ni toga nema, NE objavljuje post.
+     Zatim bira PROIZVOD koji ta životinja ima (nalepnice / majice / duksevi) i temu (smešni dizajni, pokloni,
+     vodič za proizvod, značenje idioma, "znaci da ti je duhovna životinja...", činjenice, sezonske teme).
   2. Slike: prvo pokušava da povuče proizvode DIREKTNO iz tvog Redbubble shopa (slika proizvoda, naslov i link baš na
      taj proizvod). Ako Redbubble ne dozvoli pristup, Fal.ai pravi novu ilustraciju, a bot od nje napravi nalepnicu
      (beli die-cut rub) ili mockup majice/duksa.
@@ -18,7 +21,8 @@ Petzzz blog bot v3
 
 Opcione env promenljive:
   MAX_POSTS_PER_DAY=1     SHOP_USERNAME=Petzzz     SITE_DOMAIN=petzzz.world
-  USE_STORE_IMAGES=0      (ne čitaj shop, slike uvek pravi Fal.ai)
+  USE_STORE_IMAGES=0      (ne čitaj shop; tada je obavezan shop_animals.txt)
+  shop_animals.txt        (opciono, u glavnom folderu: tvoje životinje iz shopa, jedna po redu)
   USE_SEARCH_GROUNDING=0  (isključi Google Search za činjenice)
 """
 import os
@@ -28,6 +32,7 @@ import json
 import glob
 import html
 import random
+import time
 import datetime
 import urllib.parse
 import xml.etree.ElementTree as ET
@@ -77,6 +82,10 @@ STORE_HOME_URL = "https://petzzz.redbubble.com"
 LOGO_PATH = "/Logo%202.png"
 MAX_POSTS_PER_DAY = env_int("MAX_POSTS_PER_DAY", 1)
 USE_STORE_IMAGES = os.environ.get("USE_STORE_IMAGES", "1") != "0"
+SHOP_CHECK_FILE = "blog/shop_check.json"     # šta je bot video u shopu: {životinja: {"count": n, "date": "..."}}
+MANUAL_SHOP_FILE = "shop_animals.txt"        # opciono: tvoj spisak životinja koje su u shopu (jedna po redu)
+RECHECK_DAYS = 14                            # životinja bez proizvoda se ponovo proverava posle 14 dana
+MAX_SHOP_CHECKS = env_int("MAX_SHOP_CHECKS", 6)    # najviše toliko životinja proverava po pokretanju
 USE_SEARCH_GROUNDING = os.environ.get("USE_SEARCH_GROUNDING", "1") != "0"
 MIN_WORDS = 900
 POST_IMG_DIR = "blog/images"
@@ -87,9 +96,76 @@ PRODUCTS = {
     "hoodies": {"label": "hoodies", "one": "hoodie", "ia": "u-sweatshirts", "kind": "hoodie"},
 }
 
-# Rezervni spisak (samo ako shop/katalog još nema nijednu životinju)
-FALLBACK_ANIMALS = ["capybara", "corgi", "black cat", "pug", "frog", "raccoon", "sloth", "red panda", "otter",
-                    "highland cow", "axolotl", "duck", "hedgehog", "possum", "goose"]
+# ---------------------------------------------------------------------------
+# ŽIVOTINJE IZ TVOG SHOPA: blog piše SAMO o njima.
+# Kad postaviš dizajne za novu životinju, dopiši je ovde (ili u fajl shop_animals.txt, jednu po redu).
+# ---------------------------------------------------------------------------
+SHOP_ANIMALS = [
+    # Psi i divlje vrste pasa
+    "corgi", "bernese mountain dog", "golden retriever", "border collie",
+    "english bulldog", "basset hound", "belgian malinois", "shiba inu",
+    "red heeler", "pug", "norwegian lundehund", "chihuahua",
+    "samoyed", "pitbull", "husky", "dachshund", "afghan hound",
+    "newfoundland dog", "cavalier king charles spaniel", "doberman",
+    "spotted hyena",
+
+    # Mačke i divlje mačke
+    "cat", "black cat", "maine coon", "sphynx cat",
+    "pallas cat", "manul", "snow leopard", "jaguarundi",
+
+    # Ptice
+    "canada goose", "crow", "great potoo", "cassowary",
+    "green cheeked conure", "pigeon", "silkie chicken", "duck",
+    "emu", "bearded vulture",
+
+    # Gmizavci (kornjače, zmije, gušteri)
+    "turtle", "russian tortoise", "african sulcata tortoise",
+    "blue pit viper", "hognose snake", "corn snake",
+    "argentine tegu", "uromastyx", "leachianus gecko", "crested gecko",
+    "red-eyed crocodile skink",
+
+    # Vodozemci (žabe)
+    "poison dart frog", "pacman frog", "black rain frog", "dumpy tree frog",
+
+    # Morske, vodene životinje i beskičmenjaci
+    "sea otter", "harbor seal", "shark", "vampire crab", "sea sheep nudibranch",
+    "blobfish", "jumping spider", "weevil",
+
+    # Ostali sisari i egzotične vrste
+    "capybara", "wombat", "honey badger", "beaver", "platypus",
+    "maned wolf", "stoat", "tibetan fox", "binturong", "hedgehog",
+]
+
+# Životinje koje niko (ili skoro niko) ne drži kao ljubimca -> publika su "fanovi", ne "vlasnici"
+WILD_ANIMALS = {
+    "spotted hyena", "pallas cat", "manul", "snow leopard", "jaguarundi",
+    "canada goose", "crow", "great potoo", "cassowary", "pigeon", "emu",
+    "bearded vulture", "blue pit viper", "black rain frog", "sea otter",
+    "harbor seal", "shark", "vampire crab", "sea sheep nudibranch", "blobfish",
+    "weevil", "capybara", "wombat", "honey badger", "beaver", "platypus",
+    "maned wolf", "stoat", "tibetan fox", "binturong",
+}
+
+# Najtraženije životinje: dobijaju duplo više članaka u rotaciji
+POPULAR_ANIMALS = {
+    "cat", "black cat", "corgi", "golden retriever", "husky", "pug", "dachshund",
+    "shiba inu", "chihuahua", "pitbull", "border collie", "maine coon",
+    "bernese mountain dog", "english bulldog", "samoyed", "capybara", "hedgehog",
+}
+
+# Šire poznate životinje: pregled shopa ih prepoznaje u naslovima i kad nisu iz dizajn-bota (npr. ručno postavljeni dizajni)
+EXTRA_ANIMALS = {
+    "duck", "frog", "poison dart frog", "turtle", "tortoise", "stoat", "basset hound", "cat", "dog", "goose", "pigeon", "crow",
+    "raccoon", "possum", "opossum", "sloth", "otter", "sea otter", "capybara", "axolotl", "red panda", "panda", "koala", "fox",
+    "wolf", "bear", "polar bear", "penguin", "owl", "bee", "snail", "cow", "highland cow", "pig", "goat", "sheep", "llama",
+    "alpaca", "horse", "donkey", "rabbit", "bunny", "hedgehog", "hamster", "guinea pig", "ferret", "chinchilla", "squirrel",
+    "chipmunk", "beaver", "platypus", "wombat", "quokka", "kangaroo", "elephant", "giraffe", "zebra", "lion", "tiger",
+    "leopard", "snow leopard", "cheetah", "monkey", "lemur", "sloth bear", "hippo", "rhino", "manatee", "seal", "harbor seal",
+    "walrus", "whale", "orca", "dolphin", "shark", "octopus", "jellyfish", "crab", "lobster", "pufferfish", "manta ray",
+    "flamingo", "toucan", "parrot", "chicken", "rooster", "turkey", "swan", "moose", "deer", "reindeer", "bat", "moth",
+    "butterfly", "ladybug", "spider", "gecko", "chameleon", "bearded dragon", "snake", "dinosaur", "unicorn", "shiba inu",
+    "corgi", "pug", "dachshund", "beagle", "poodle", "husky", "golden retriever", "french bulldog", "black cat", "meerkat",
+}
 
 PET_ANIMALS = {
     "australian shepherd", "beagle", "border collie", "chihuahua", "corgi", "dachshund", "dalmatian", "french bulldog",
@@ -182,7 +258,9 @@ def esc(text):
 
 
 def is_pet(animal):
-    return animal in PET_ANIMALS or animal.endswith((" cat", " dog"))
+    if animal in WILD_ANIMALS:
+        return False
+    return animal in PET_ANIMALS or animal in SHOP_ANIMALS or animal.endswith((" cat", " dog"))
 
 
 def count_words(html_text):
@@ -224,7 +302,8 @@ def shop_url(query=None, product=None):
 
 
 def load_shop_animals():
-    """Životinje za koje shop stvarno ima dizajne (dizajn-bot ih upisuje u used_animals.txt / design_history.json)."""
+    """Životinje iz dizajn-bota (used_animals.txt / design_history.json). Služe SAMO kao rečnik za pregled shopa;
+    blog o njima ne piše dok ih ne dopišeš u SHOP_ANIMALS ili shop_animals.txt (nisu sve postavljene u shop)."""
     animals = set()
     if os.path.exists("used_animals.txt"):
         with open("used_animals.txt", encoding="utf-8") as f:
@@ -274,21 +353,62 @@ def best_src(img_tag):
     return html.unescape(m.group(1)) if m else None
 
 
-def fetch_store_products(animal, product, limit=4):
-    """Čita tvoju Redbubble pretragu (tvoj nalog + životinja + vrsta proizvoda): naslov, slika i link proizvoda.
-    Ako Redbubble odbije pristup (zaštita od botova) vraća [] i slike pravi Fal.ai."""
-    if not USE_STORE_IMAGES:
-        return []
-    url = shop_url(animal, product)
+def store_get(url, timeout=25):
+    """GET za Redbubble. Ako ga zaštita od botova odbije, drugi pokušaj ide preko curl_cffi koji se predstavlja kao
+    pravi Chrome (često prolazi gde obični requests ne prolazi). Vraća (status_kod, tekst, bajtovi)."""
     try:
-        r = requests.get(url, headers=BROWSER_HEADERS, timeout=25)
-        body = r.text or ""
+        r = requests.get(url, headers=BROWSER_HEADERS, timeout=timeout)
+        code, text, content = r.status_code, r.text or "", r.content
     except Exception as e:
-        print(f"Redbubble shop nije dostupan ({str(e)[:120]}); slike pravi Fal.ai.")
-        return []
-    if r.status_code != 200 or "cf-chl" in body or "Just a moment" in body[:5000]:
-        print(f"Redbubble je odbio pristup (HTTP {r.status_code}); slike pravi Fal.ai.")
-        return []
+        code, text, content = 0, str(e), b""
+    if code == 200 and "cf-chl" not in text[:20000] and "Just a moment" not in text[:5000]:
+        return code, text, content
+    try:
+        from curl_cffi import requests as creq
+        r2 = creq.get(url, impersonate="chrome", timeout=timeout)
+        print(f"Shop: drugi pokušaj (kao Chrome) -> HTTP {r2.status_code}")
+        return r2.status_code, r2.text or "", r2.content
+    except ImportError:
+        return code, text, content
+    except Exception as e:
+        print(f"Shop: drugi pokušaj nije uspeo ({str(e)[:100]})")
+        return code, text, content
+
+
+def product_type(link):
+    """'/i/sticker/...' -> 'stickers', '/i/hoodie/...' ili '/i/sweatshirt/...' -> 'hoodies', '/i/t-shirt/...' -> 't-shirts'."""
+    m = re.search(r"/i/([a-z0-9-]+)/", link)
+    t = m.group(1) if m else ""
+    if "sticker" in t:
+        return "stickers"
+    if "hoodie" in t or "sweatshirt" in t:
+        return "hoodies"
+    if "t-shirt" in t or t.endswith("tee"):
+        return "t-shirts"
+    return t or None
+
+
+def fetch_store_products(animal, product=None, limit=4):
+    """Pretraga TVOG Redbubble shopa (tvoj nalog + životinja [+ vrsta proizvoda]).
+    Vraća (status, proizvodi). status: 'ok' (ima proizvoda), 'empty' (shop nema ništa za tu životinju),
+    'blocked' (Redbubble odbio pristup), 'unparsed' (stranica stigla, ali joj se promenio izgled), 'off'."""
+    if not USE_STORE_IMAGES:
+        return "off", []
+    url = shop_url(animal, product)
+    code, body, _ = store_get(url)
+    if code != 200 or "cf-chl" in body[:20000] or "Just a moment" in body[:5000]:
+        print(f"Shop: Redbubble je odbio pristup (HTTP {code}).")
+        return "blocked", []
+    items = parse_store_items(body, limit)
+    if not items and len(re.findall(r"ih\d\.redbubble\.net", body)) >= 5:
+        print("Shop: stranica je stigla, ali bot ne prepoznaje proizvode na njoj (Redbubble je promenio izgled).")
+        return "unparsed", []
+    print(f"Shop: '{animal}'{' / ' + product if product else ''} -> {len(items)} proizvoda.")
+    return ("ok" if items else "empty"), items
+
+
+def parse_store_items(body, limit=24):
+    """Proizvodi sa Redbubble stranice: naslov (iz alt teksta slike), link proizvoda, slika, vrsta proizvoda."""
     items, seen = [], set()
     for m in re.finditer(r'<a\b[^>]*href="([^"]*/i/[^"]+)"[^>]*>(.*?)</a>', body, re.S | re.I):
         img = re.search(r'<img\b[^>]*>', m.group(2), re.I)
@@ -305,18 +425,51 @@ def fetch_store_products(animal, product, limit=4):
             continue
         seen.add(link)
         items.append({"title": title, "phrase": title.split(" - ")[0] if " - " in title else "", "link": link,
-                      "img_url": src})
+                      "img_url": src, "ptype": product_type(link)})
         if len(items) >= limit:
             break
-    print(f"Iz shopa povučeno {len(items)} proizvoda ({animal}, {product}).")
     return items
+
+
+def scan_shop_inventory(animals, check, today, max_pages=40):   # ~1500 dizajna = oko 25 strana
+    """Jednom dnevno prođe kroz stranice tvog shopa (redbubble.com/people/<ti>/shop) i iz naslova dizajna vidi
+    koje životinje stvarno imaš. Brže od provere jedne po jedne. Ne upisuje "nema" (shop može imati više strana)."""
+    if not USE_STORE_IMAGES or check.get("__scan__", {}).get("date") == today.isoformat():
+        return
+    titles, page = [], 0
+    for page in range(1, max_pages + 1):
+        if page > 1:
+            time.sleep(1.5)
+        code, body, _ = store_get(f"https://www.redbubble.com/people/{SHOP_USERNAME}/shop?asc=u&page={page}")
+        if code != 200 or "cf-chl" in body[:20000] or "Just a moment" in body[:5000]:
+            if page == 1:
+                print(f"Shop: pregled celog shopa nije uspeo (HTTP {code}).")
+            break
+        page_items = parse_store_items(body, limit=200)
+        new = [it["title"] for it in page_items if it["title"] not in titles]
+        if not new:
+            break
+        titles += new
+    if not titles:
+        return
+    low = [t.lower() for t in titles]
+    found = {}
+    for a in animals:
+        pat = re.compile(rf"(?<![a-z]){re.escape(a)}(?:e?s)?(?![a-z])")
+        n = sum(1 for t in low if pat.search(t))
+        if n:
+            found[a] = n
+            check[a] = {"count": n, "date": today.isoformat()}
+    check["__scan__"] = {"date": today.isoformat(), "designs": len(titles)}
+    print(f"Shop: pregledano {len(titles)} dizajna; životinje koje imaš: {', '.join(sorted(found)) or '(nijedna sa spiska)'}")
 
 
 def download_store_image(src, side=1000):
     try:
-        r = requests.get(src, headers=BROWSER_HEADERS, timeout=30)
-        r.raise_for_status()
-        im = Image.open(io.BytesIO(r.content)).convert("RGB")
+        code, _, content = store_get(src, timeout=30)
+        if code != 200:
+            raise RuntimeError(f"HTTP {code}")
+        im = Image.open(io.BytesIO(content)).convert("RGB")
         im.thumbnail((side, side), Image.Resampling.LANCZOS)
         return im
     except Exception as e:
@@ -370,10 +523,12 @@ def load_posts():
 
 
 def repair_old_links(shop_animals):
+    # shop_animals = known_shop_animals(check): životinje za koje pretraga shopa ima smisla
     """Stari postovi su vodili na pretragu shopa za životinju za koju nemaš dizajne (prazna stranica).
     Takve linkove prebacuje na tvoj shop. Bezbedno je pokretati svaki put (menja samo pogrešne)."""
     fixed = 0
-    pat = re.compile(r'https://www\.redbubble\.com/shop/\?query=([^&"]+)&(?:amp;)?artistUserName=' + re.escape(SHOP_USERNAME) + r'(?=["&])')
+    pat = re.compile(r'https://www\.redbubble\.com/shop/\?query=([^&"]+)&(?:amp;)?artistUserName=' + re.escape(SHOP_USERNAME)
+                     + r'(?:&(?:amp;)?iaCode=([a-z0-9-]+))?(?=["&<\s])')
     for file in glob.glob("blog/*.html"):
         try:
             with open(file, encoding="utf-8") as f:
@@ -388,12 +543,19 @@ def repair_old_links(shop_animals):
                     re.search(rf"(?<![a-z]){re.escape(q.rstrip('s'))}(?![a-z])", a) for a in shop_animals):
                 return m.group(0)                    # npr. "cat": shop ima "black cat", "tabby cat" -> pretraga radi
             missing.add(q)
+            if m.group(2):                           # zadrži vrstu proizvoda: tvoj shop filtriran na hoodie/sticker/majicu
+                return f"https://www.redbubble.com/people/{SHOP_USERNAME}/shop?asc=u&amp;iaCode={m.group(2)}"
             return STORE_HOME_URL
         new = pat.sub(repl, content)
         if new != content:
             for q in missing:
-                new = new.replace(f"View Petzzz {q.title()} Collection", "Visit the Petzzz Shop")
-                new = new.replace(f"See All Our {q.title()} Products", "Browse All Petzzz Designs")
+                Q = q.title()
+                new = new.replace(f"View Petzzz {Q} Collection", "Visit the Petzzz Shop")
+                new = new.replace(f"See All Our {Q} Products", "Browse All Petzzz Designs")
+                for label in ("Stickers", "T-Shirts", "Hoodies", "stickers", "t-shirts", "hoodies"):
+                    new = new.replace(f"Shop {Q} {label}", f"Shop Petzzz {label}")
+                    new = new.replace(f">{Q} {label}<", f">Petzzz {label}<")
+                new = new.replace(f"all {q} designs", "all Petzzz designs")
             with open(file, "w", encoding="utf-8") as f:
                 f.write(new)
             fixed += 1
@@ -404,18 +566,91 @@ def repair_old_links(shop_animals):
 # ---------------------------------------------------------------------------
 # IZBOR ŽIVOTINJE, PROIZVODA I TEME
 # ---------------------------------------------------------------------------
-def pick_animal(posts, shop_animals):
+def load_shop_check():
+    try:
+        with open(SHOP_CHECK_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_shop_check(check):
+    os.makedirs(os.path.dirname(SHOP_CHECK_FILE), exist_ok=True)
+    with open(SHOP_CHECK_FILE, "w", encoding="utf-8") as f:
+        json.dump(dict(sorted(check.items())), f, ensure_ascii=False, indent=1)
+
+
+def manual_shop_animals():
+    """shop_animals.txt (ako postoji): dopune spiska, jedna životinja po redu."""
+    if not os.path.exists(MANUAL_SHOP_FILE):
+        return None
+    with open(MANUAL_SHOP_FILE, encoding="utf-8") as f:
+        names = [l.split("#")[0].strip().lower() for l in f]
+    return [n for n in dict.fromkeys(names) if n]
+
+
+def shop_list():
+    """Sve životinje iz tvog shopa: SHOP_ANIMALS (gore u kodu) + dopune iz shop_animals.txt."""
+    return list(dict.fromkeys([a.lower() for a in SHOP_ANIMALS] + (manual_shop_animals() or [])))
+
+
+def checked_empty(check, animal, today):
+    c = check.get(animal)
+    if not c or c.get("count", 0) > 0:
+        return False
+    try:
+        return (today - datetime.date.fromisoformat(c["date"])).days < RECHECK_DAYS
+    except (KeyError, ValueError):
+        return False
+
+
+def known_shop_animals(check):
+    """Za popravku linkova: životinje za koje pretraga shopa ima smisla (bez onih za koje je shop potvrđeno prazan)."""
+    return set(shop_list()) | {a for a, c in check.items() if c.get("count", 0) > 0 and a != "__scan__"}
+
+
+def choose_animal(posts, today):
+    """Bira životinju SAMO sa spiska SHOP_ANIMALS (+ shop_animals.txt). Prednost imaju one o kojima je najmanje
+    pisano (popularne mogu duplo više), a preskaču se životinje iz poslednja 3 posta. Ako Redbubble pusti bota,
+    uz životinju uzme i prave proizvode iz shopa (slike i linkovi). Vraća (životinja, proizvodi_iz_shopa, izvor)."""
     counts = Counter(a for p in posts for a in p["animals"])
-    pool = sorted(shop_animals) or FALLBACK_ANIMALS
-    best = min(counts[a] for a in pool)
-    animal = random.choice([a for a in pool if counts[a] == best])
-    print(f"Izabrana životinja: {animal} ({counts[animal]} ranijih postova)")
-    return animal
+    pool = shop_list()
+    check = load_shop_check()
+    scan_shop_inventory(set(pool) | load_shop_animals() | EXTRA_ANIMALS | PET_ANIMALS, check, today)
+    recent = {a for p in sorted(posts, key=lambda x: x["dt_obj"], reverse=True)[:3] for a in p["animals"]}
+    random.shuffle(pool)
+    ordered = sorted(pool, key=lambda a: (a in recent, checked_empty(check, a, today),
+                                          counts[a] / (2 if a in POPULAR_ANIMALS else 1)))
+
+    checked = set()
+    if USE_STORE_IMAGES:
+        for n, animal in enumerate(ordered[:MAX_SHOP_CHECKS]):
+            if n:
+                time.sleep(1.5)                  # pristojno prema Redbubble-u
+            status, items = fetch_store_products(animal, None, limit=24)
+            if status not in ("ok", "empty"):
+                break                            # Redbubble ne pušta bota: bira se samo po spisku
+            check[animal] = {"count": len(items), "date": today.isoformat()}
+            checked.add(animal)
+            if items:
+                save_shop_check(check)
+                print(f"Izabrana životinja: {animal} (sa spiska, u shopu nađeno {len(items)} proizvoda, "
+                      f"{counts[animal]} ranijih postova)")
+                return animal, items, "shop"
+            print(f"Pretraga shopa za '{animal}' ne vraća proizvode (možda je u naslovima drugačije napisana): "
+                  f"probam sledeću sa spiska.")
+        save_shop_check(check)
+    animal = next((a for a in ordered if a not in checked), ordered[0])
+    print(f"Izabrana životinja sa spiska: {animal} ({counts[animal]} ranijih postova; slike pravi Fal.ai).")
+    return animal, [], "spisak"
 
 
-def pick_product(animal, posts, today):
+def pick_product(animal, posts, today, available=None):
     used = Counter(p["product"] for p in posts if animal in p["animals"] and p.get("product"))
     order = ["hoodies", "stickers", "t-shirts"] if today.month in (10, 11, 12, 1, 2) else ["stickers", "t-shirts", "hoodies"]
+    if available:                            # samo vrste proizvoda koje ta životinja stvarno ima u shopu
+        order = [p for p in order if p in available] or order
     least = min(used[p] for p in order)
     product = next(p for p in order if used[p] == least)
     print(f"Izabran proizvod: {product}")
@@ -1514,13 +1749,23 @@ def generate_post():
         return
 
     client = genai.Client(api_key=GEMINI_API_KEY)
-    shop_animals = load_shop_animals()
-    repair_old_links(shop_animals)
-
-    animal = pick_animal(posts, shop_animals)
-    product = pick_product(animal, posts, today)
+    chosen = choose_animal(posts, today)
+    repair_old_links(known_shop_animals(load_shop_check()))
+    if chosen is None:
+        # bez novog posta, ali spisak blogova, početna i sitemap se osvežavaju (npr. ako si obrisao neki post)
+        update_blog_index(posts)
+        update_home_latest(posts)
+        update_sitemap(posts)
+        return
+    animal, shop_items, source = chosen
+    available = {it["ptype"] for it in shop_items if it.get("ptype") in PRODUCTS}
+    product = pick_product(animal, posts, today, available)
     angle = pick_angle(animal, product, posts, today, True)
-    store_items = fetch_store_products(animal, product)
+    store_items = [it for it in shop_items if it.get("ptype") == product][:4]
+    if source == "shop" and len(store_items) < 2:
+        st, more = fetch_store_products(animal, product)
+        known = {it["link"] for it in store_items}
+        store_items += [it for it in more if it["link"] not in known][:4 - len(store_items)]
 
     existing_titles = [p["title"] for p in posts if animal in p["animals"]][:15]
     plan = plan_topic(client, animal, product, angle, store_items, existing_titles, today)
