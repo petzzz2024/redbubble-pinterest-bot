@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Glavne Stranice -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://petzzz.world/</loc>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog.html</loc>
-    <lastmod>2026-11-01</lastmod>
+    <lastmod>2026-11-02</lastmod>
     <priority>0.9</priority>
   </url>
   <url>
@@ -15,198 +14,243 @@
     <priority>0.3</priority>
   </url>
   <url>
+    <loc>https://petzzz.world/blog/meerkat-hoodies-christmas-gifts.html</loc>
+    <lastmod>2026-11-02</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/meerkat-hoodies-christmas-gifts.jpg</image:loc></image:image>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://petzzz.world/blog/pitbull-t-shirts-and-hoodies.html</loc>
     <lastmod>2026-11-01</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/pitbull-t-shirts-and-hoodies.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/capybara-christmas-gifts.html</loc>
     <lastmod>2026-11-01</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/capybara-christmas-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/black-cat-christmas-gifts.html</loc>
     <lastmod>2026-11-01</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/black-cat-christmas-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/snow-leopard-obsession.html</loc>
     <lastmod>2026-10-31</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/snow-leopard-obsession.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/harbor-seal-hoodie.html</loc>
     <lastmod>2026-10-31</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/harbor-seal-hoodie.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/gifts-for-newfoundland-dog-lovers.html</loc>
     <lastmod>2026-10-31</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/gifts-for-newfoundland-dog-lovers.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/hedgehog-aesthetic.html</loc>
     <lastmod>2026-10-30</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/hedgehog-aesthetic.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/gifts-for-crow-lovers.html</loc>
     <lastmod>2026-10-30</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/gifts-for-crow-lovers.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/fun-sea-otter-facts.html</loc>
     <lastmod>2026-10-30</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/fun-sea-otter-facts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/tibetan-fox-birthday-gifts.html</loc>
     <lastmod>2026-10-29</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/tibetan-fox-birthday-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/sea-sheep-nudibranch-christmas-gifts.html</loc>
     <lastmod>2026-10-29</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/sea-sheep-nudibranch-christmas-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/english-bulldog-desk-decor.html</loc>
     <lastmod>2026-10-29</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/english-bulldog-desk-decor.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/doberman-christmas-gifts.html</loc>
     <lastmod>2026-10-28</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/doberman-christmas-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/why-beavers-are-so-popular.html</loc>
     <lastmod>2026-10-28</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/why-beavers-are-so-popular.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/samoyed-gifts.html</loc>
     <lastmod>2026-10-28</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/samoyed-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/dachshund-christmas-gifts.html</loc>
     <lastmod>2026-10-27</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/dachshund-christmas-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/maine-coon-birthday-gifts.html</loc>
     <lastmod>2026-10-27</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/maine-coon-birthday-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/unique-gifts-for-cat-lovers.html</loc>
     <lastmod>2026-10-27</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/unique-gifts-for-cat-lovers.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/jaguarundi-t-shirts-and-hoodies.html</loc>
     <lastmod>2026-10-26</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/jaguarundi-t-shirts-and-hoodies.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/pallas-cat-christmas-gifts.html</loc>
     <lastmod>2026-10-26</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/pallas-cat-christmas-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/uromastyx-christmas-gifts.html</loc>
     <lastmod>2026-10-26</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/uromastyx-christmas-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/silkie-chicken-gifts.html</loc>
     <lastmod>2026-10-25</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/silkie-chicken-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/afghan-hound-christmas-gifts.html</loc>
     <lastmod>2026-10-25</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/afghan-hound-christmas-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/blue-pit-viper-gifts.html</loc>
     <lastmod>2026-10-25</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/blue-pit-viper-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/golden-retriever-birthday-gifts.html</loc>
     <lastmod>2026-10-24</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/golden-retriever-birthday-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/pacman-frog-birthday-gifts.html</loc>
     <lastmod>2026-10-24</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/pacman-frog-birthday-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/leachianus-gecko-christmas-gifts.html</loc>
     <lastmod>2026-10-24</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/leachianus-gecko-christmas-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/gifts-for-chihuahua-lovers.html</loc>
     <lastmod>2026-10-23</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/gifts-for-chihuahua-lovers.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/border-collie-gifts.html</loc>
     <lastmod>2026-10-23</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/border-collie-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/cat-lover-birthday-gifts.html</loc>
     <lastmod>2026-10-23</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/cat-lover-birthday-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/maine-coon-gifts.html</loc>
     <lastmod>2026-10-22</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/maine-coon-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/shiba-inu-t-shirts-and-hoodies.html</loc>
     <lastmod>2026-10-22</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/shiba-inu-t-shirts-and-hoodies.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/capybara-person.html</loc>
     <lastmod>2026-10-22</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/capybara-person.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/hedgehog-christmas-gifts.html</loc>
     <lastmod>2026-10-21</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/hedgehog-christmas-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/english-bulldog-christmas-gifts.html</loc>
     <lastmod>2026-10-21</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/english-bulldog-christmas-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/samoyed-gifts-by-recipient.html</loc>
     <lastmod>2026-10-21</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/samoyed-gifts-by-recipient.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/bernese-mountain-dog-gifts.html</loc>
     <lastmod>2026-10-20</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/bernese-mountain-dog-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/gifts-for-black-cat-lovers.html</loc>
     <lastmod>2026-10-20</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/gifts-for-black-cat-lovers.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://petzzz.world/blog/pitbull-gift-ideas.html</loc>
     <lastmod>2026-10-20</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/pitbull-gift-ideas.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
@@ -217,6 +261,7 @@
   <url>
     <loc>https://petzzz.world/blog/cat-christmas-gifts.html</loc>
     <lastmod>2026-10-19</lastmod>
+    <image:image><image:loc>https://petzzz.world/blog/images/cat-christmas-gifts.jpg</image:loc></image:image>
     <priority>0.8</priority>
   </url>
   <url>
