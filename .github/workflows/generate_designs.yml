@@ -34,14 +34,14 @@ jobs:
         # Za jeftin test bez slika (samo naslovi, tagovi, opisi u logu) skini # ispod:
         # METADATA_ONLY: 1
 
-    - name: Save used animals to repository
+    - name: Save used birds to repository
       if: always()
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add used_animals.txt
-        if [ -f design_history.json ]; then git add design_history.json; fi
-        git commit -m "Ažurirana lista iskorištenih životinja" || echo "Nema novih životinja za čuvanje"
+        if [ -f used_birds.txt ]; then git add used_birds.txt; fi
+        if [ -f design_history_birds.json ]; then git add design_history_birds.json; fi
+        git commit -m "Ažurirana lista iskorišćenih ptica" || echo "Nema novih ptica za čuvanje"
         git pull --rebase
         git push
 
