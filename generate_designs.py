@@ -26,7 +26,7 @@ Opcije (environment promenljive, sve su opcione):
   METADATA_ONLY=1        -> samo koncepti/naslovi/tagovi, bez slika i Telegrama (jeftin test)
   VERIFY_IMAGE_TEXT=0    -> isključi proveru teksta i šara na slici
   USE_AUTOSUGGEST=0      -> isključi Google autosuggest
-  USED_FILE / HISTORY_FILE -> imena fajlova sa istorijom (podrazumevano kao u starom botu, da workflow radi bez izmena)
+  USED_FILE / HISTORY_FILE -> imena fajlova sa istorijom (podrazumevano used_birds.txt i design_history_birds.json)
 """
 import os
 import re
@@ -74,10 +74,9 @@ USE_AUTOSUGGEST = os.getenv("USE_AUTOSUGGEST", "1") != "0"
 
 STICKER_BORDER = os.getenv("STICKER_BORDER", "0") == "1"      # beli obrub nalepnice: isključen; uključi sa STICKER_BORDER=1
 
-# Ista imena kao u starom botu, da GitHub workflow (koji ih commit-uje) radi bez izmena.
-# Ako oba bota rade u ISTOM repou, postavi npr. USED_FILE=used_birds.txt i HISTORY_FILE=design_history_birds.json.
-USED_FILE = os.getenv("USED_FILE", "used_animals.txt")
-HISTORY_FILE = os.getenv("HISTORY_FILE", "design_history.json")
+# Posebni fajlovi za ptice, da se ne mešaju sa botom za životinje (used_animals.txt / design_history.json)
+USED_FILE = os.getenv("USED_FILE", "used_birds.txt")
+HISTORY_FILE = os.getenv("HISTORY_FILE", "design_history_birds.json")
 BLOCKED_FILE = "blocked_terms.txt"      # opciono: dodatni zaštićeni pojmovi, jedan po liniji
 OUTPUT_DIR = "output_images"
 
