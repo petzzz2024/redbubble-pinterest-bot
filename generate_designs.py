@@ -834,7 +834,7 @@ PROFANITY_RE = re.compile(
     r"(?i)(?<![a-z])(f+[u*@#!]+c+k+\w*|f\*+k\w*|fck\w*|sh[i1!*]+t+\w*|bitch\w*|b\*+tch\w*|ass ?hole\w*|dick\w*|cunt\w*|"
     r"damn\w*|wtf|stfu|af|bastard\w*|piss\w*|crap\w*|bullsh\w*|motherf\w*|hell no|go to hell|"
     # PTICE: dvosmislene igre reči sa imenima ptica (tit, booby, cock, shag, pecker...)
-    r"tits|titties|boob\w*|cocks?|shags?|shagging|pecker\w*|nice rack|horny|sexy|thicc)(?![a-z])")
+    r"tits|titties|boob\w*|cocks?|shags?|shagging|pecker\w*|nice rack|horny|sexy|thicc|sucks?|sucky|sucked)(?![a-z])")
 
 SATURATED_RE = re.compile(
     r"(?i)\b(not my circus|not my monkeys|keep calm|live laugh love|this is fine|good vibes only|but first coffee|"
@@ -921,6 +921,9 @@ holds, clutches, grips or carries anything, never has crossed arms, hands on hip
 binoculars or a camera HANG on a strap around its neck, a hat or beanie sits on its head, a small light thing (twig, tiny
 note) can be in its beak, a mug, book, phone or alarm clock stands NEXT TO the bird or the bird stands ON it. Wings may only
 be folded, spread or raised. The attitude comes from the face, posture and the prop, never from human gestures.
+EXACTLY ONE BIRD and NO PEOPLE in every scene: an idiom about a group (pecking order, birds of a feather, flock) is shown with
+the one bird and props, and a joke about a birder is shown with the bird itself acting as the birder. The bird stands on the
+banner, on a short branch or on a prop, never on bare ground, and nothing is drawn under it (no shadow, no puddle).
 FORBIDDEN: brands, apps and organizations (eBird, Merlin, Audubon, RSPB...), sports teams (never plural team-like bird names such
 as cardinals, blue jays, orioles, ravens, eagles, falcons, hawks, penguins, pelicans - always singular), characters from
 movies/cartoons/games (Tweety, Woody Woodpecker, Road Runner, Duolingo owl, Angry Birds...), song lyrics, celebrity names,
@@ -1079,9 +1082,35 @@ FILLER_WORDS = {"i", "im", "am", "a", "an", "the", "is", "it", "its", "my", "me"
                 "s", "t", "m", "dont", "don"}
 
 
+FILLER_WORDS |= {"total", "another", "here", "now", "definitely", "added", "ever", "every", "much", "too", "more", "one",
+                 "some", "for", "with", "at", "by", "we", "he", "she", "they", "our", "his", "her", "out", "up", "get", "got"}
+SPECIES_WORDS = {t for b in BIRDS for t in tokens(b)} - FILLER_WORDS
+# Glavne reči šala koje se lako ponavljaju: dve fraze sa istom ovakvom rečju u skorijoj istoriji = ista ideja
+ANCHOR_WORDS = {singular(w) for w in """lifer lifers dip dipped dipping wait waiting early night winging wing ruffled ruffle
+peck pecking nest yard patch list twitch twitching chorus spark scope binocular binoculars feeder seed map lost inspector
+judge judging coffee sleep nap alarm morning mornings""".split()}
+RUN_TEXTS = []          # fraze prihvaćene u OVOM pokretanju (stroža provera: ni jedna zajednička glavna reč)
+
+
 def text_core(text):
     """Glavne reči fraze: 'TOTALLY WINGING IT' i 'WINGING IT DAILY' -> {'winging'} (ista ideja, drugačije reči)."""
     return {w for w in tokens(text) if w not in FILLER_WORDS}
+
+
+def repeat_of(text, cores, recent_texts):
+    """Vraća raniju frazu koja je ista ideja, ili None.
+    - u OVOM pokretanju: bilo koja zajednička glavna reč (osim imena ptica) = ponavljanje
+      ('Still Waiting Here' / 'Still Waiting For Juncos', 'Early Bird Pain' / 'Early Bird Chaos')
+    - u skorijoj istoriji (40 fraza): zajednička 'udarna' reč (lifer, waiting, early, winging...)
+    - u celoj istoriji: ista glavna reč/reči (similar_text)."""
+    core = text_core(text) - SPECIES_WORDS
+    for prev in RUN_TEXTS:
+        if core & (text_core(prev) - SPECIES_WORDS):
+            return prev
+    for prev in recent_texts[-40:]:
+        if core & (text_core(prev) - SPECIES_WORDS) & ANCHOR_WORDS:
+            return prev
+    return similar_text(text, cores)
 
 
 def similar_text(text, cores):
@@ -1207,7 +1236,7 @@ def clean_concept(raw, slot, ctx):
     if text and canon(text) in ctx["texts"]:
         issues.append(f"text '{text}' je već korišćen")
     elif text:
-        same_idea = similar_text(text, ctx.get("cores", []))
+        same_idea = repeat_of(text, ctx.get("cores", []), ctx.get("recent_texts", []))
         if same_idea:
             issues.append(f"text '{text}' je ista ideja kao već korišćena fraza '{same_idea}': smisli potpuno drugu šalu")
 
@@ -1221,6 +1250,12 @@ def clean_concept(raw, slot, ctx):
     _, _, _, chroma_words, replacement = chroma_for(animal)
     scene = chroma_words.sub(replacement, scene)     # boja pozadine ne sme biti na rekvizitima (nestala bi sa pozadinom)
     scene = sanitize_anatomy(scene)                  # bez ruku: ništa se ne drži, dvogled visi oko vrata
+    crowd = re.search(r"(?i)\b(other|several|many|two|three|four|five|a group of|a flock of|a line of|a queue of|a row of|"
+                      r"crowd|flock|queue|baby|babies|chicks)\b[^,.;]{0,25}\b(birds?|" + "|".join(
+                          re.escape(w) + "s?" for w in set(tokens(animal)) - ANIMAL_COLOR_WORDS) + r"|chicks)\b"
+                      r"|\b(person|people|man|woman|men|women|human|kid|child|children|hiker)s?\b", scene)
+    if crowd:
+        issues.append(f"visual_scene mora imati TAČNO JEDNU pticu i nijednu osobu (našao: '{crowd.group(0)}')")
 
     title = clean_title(raw.get("title", ""), animal)
     if len(title.split()) < 3 or len(title) < 15:
@@ -1291,6 +1326,7 @@ def generate_concepts(slots, theme_kw, animal_kw, today, history):
         "keywords": animal_kw,
         "theme_keywords": theme_kw,
         "cores": [(text_core(t), t) for t in avoid_texts],
+        "recent_texts": [d["text"] for d in old if d.get("text")][-40:],
     }
     accepted = {}
     for start in range(0, len(slots), 8):                      # najviše 8 koncepata po pozivu: kraći, pouzdaniji JSON
@@ -1332,6 +1368,7 @@ def generate_concepts(slots, theme_kw, animal_kw, today, history):
                 if design["text"]:
                     ctx["texts"].add(canon(design["text"]))
                     ctx["cores"].append((text_core(design["text"]), design["text"]))
+                    RUN_TEXTS.append(design["text"])
                     avoid_texts.append(design["text"])
                 avoid_titles.append(design["title"])
             print(f"  -> Pokušaj {attempt}: prihvaćeno {sum(s['id'] in accepted for s in group)}/{len(group)} koncepata.")
@@ -1362,18 +1399,20 @@ def fal_text_to_image(design):
     design = dict(design, visual_scene=sanitize_anatomy(design["visual_scene"]))   # još jednom, za svaki slučaj
     text = design["text"]
     q = '"' if "'" in text else "'"
+    perch = ("The bird stands directly ON a short simple brown branch (or on a prop from the scene); that is its only support. ")
     if text and design.get("style") == "oblačić":
         banner = (f"Speech bubble & Text: next to the bird's head there is ONE white speech bubble with a thick dark navy outline, "
                   f"its tail pointing at the bird's beak and touching the bird, containing bold dark navy rounded typography "
                   f"reading exactly {q}{text}{q}. This is the ONLY text in the image, spelled exactly like that, all letters "
-                  f"inside the bubble. ")
+                  f"inside the bubble. " + perch)
     elif text:
-        banner = (f"Banner & Text: Positioned strictly at the very bottom below the bird, there is a horizontal ribbon banner "
-                  f"filled with solid white or bright yellow with a thick dark navy outline, containing bold dark navy rounded "
-                  f"typography reading exactly {q}{text}{q}. This is the ONLY text in the image, spelled exactly like that, "
-                  f"all letters inside the banner. ")
+        banner = (f"Banner & Text: Positioned strictly at the very bottom, there is a horizontal ribbon banner filled with solid "
+                  f"white or bright yellow with a thick dark navy outline, containing bold dark navy rounded typography reading "
+                  f"exactly {q}{text}{q}. This is the ONLY text in the image, spelled exactly like that, all letters inside the "
+                  f"banner. The bird's feet stand directly ON the top edge of the banner (the banner is its perch), or on a "
+                  f"prop that rests on the banner. ")
     else:
-        banner = "There is NO text, letters, numbers, speech bubble or banner anywhere. "
+        banner = "There is NO text, letters, numbers, speech bubble or banner anywhere. " + perch
     image_prompt = (
         "A standalone flat vector cartoon illustration for a t-shirt design. "
         f"Subject: ONE cute, chubby, round {bird} with the accurate colors and markings of the real species: {marks}. "
@@ -1388,7 +1427,8 @@ def fal_text_to_image(design):
         + ((" and the speech bubble" if design.get("style") == "oblačić" else " and the banner") if text else "")
         + " MUST have a thick solid very dark navy (almost black) outline enclosing every single shape. "
         + banner
-        + "Nothing under the feet: no ground, no floor, no shadow, no puddle, no oval under the bird. "
+        + "Nothing else: no ground, no floor, no shadow, no puddle, no oval or blob under the feet, no circle, halo or shape "
+        "behind the bird, no other birds, no people. "
         + f"Composition: centered, fully visible, the artwork is completely isolated on a {chroma_bg}."
     )
     negative_prompt = (
@@ -1398,7 +1438,8 @@ def fal_text_to_image(design):
         "detailed feather texture, fur, anime eyes, arms, hands, human hands, fingers, thumbs, human arms, holding objects, "
         "wings used as hands, extra limbs, four limbs, extra legs, extra wings, two heads, multiple birds, "
         "wrong species colors, brush strokes, watermark, signature, messy edges, floating text, curved text, arched text, "
-        "ground, floor, ground shadow, cast shadow, puddle, dust cloud, "
+        "ground, floor, ground shadow, cast shadow, oval shadow, shadow under feet, puddle, dust cloud, background circle, "
+        "backdrop, halo, spotlight, people, humans, person, crowd, "
         "misspelled text, extra words, cropped, cut off, beige, pastels, washed out colors"
     )
     r = http_request("POST", "https://fal.run/fal-ai/z-image/turbo", headers=fal_headers(),
@@ -1426,12 +1467,18 @@ def check_design_text(img_bytes, expected, bird=None):
                        'It is a cartoon, so simplified shapes are fine, but "species_ok" is false if a KEY marking is clearly '
                        'wrong or missing (wrong main colors, missing face pattern, wrong bill) so a birdwatcher would say it is '
                        'the wrong bird.')
-        prompt = ('Look at this sticker illustration. Read ALL text visible in the image exactly as written.' + species + '\n'
+        prompt = ('Look at this sticker illustration. Read ALL text visible in the image EXACTLY as it is drawn, letter by '
+                  'letter. Do NOT correct spelling and do NOT fill in missing or broken letters: if a letter is missing, '
+                  'merged or malformed, write it the way you actually see it.' + species + '\n'
+                  'Ignore the plain flat background color itself.\n'
                   'Return ONLY JSON: {"text": "<all text you read, or empty>", '
                   + ('"species_ok": true/false, ' if bird else '')
                   + '"major_defect": true/false (true if the bird has ARMS or HANDS or fingers in addition to or instead of '
                   'its wings - a bird may only have two wings and two legs -, or extra heads, legs, wings or eyes, merged '
-                  'bodies, a cropped subject, unreadable letters), "defect": "<short description or empty>"}')
+                  'bodies, a cropped subject, unreadable letters), '
+                  '"extra_objects": true/false (true if there is a shadow, oval, puddle or colored blob under the feet that is '
+                  'not a branch, banner or prop, a circle, halo or shape behind the bird, more than one bird, or any person), '
+                  '"defect": "<short description or empty>"}')
         txt = gemini(prompt, json_mode=True, image=(img_bytes, mime),
                      validator=lambda t: isinstance(extract_json(t), dict), label="provera slike")
         data = extract_json(txt)
@@ -1442,6 +1489,8 @@ def check_design_text(img_bytes, expected, bird=None):
             ok = len(read) <= 2
         if bird and data.get("species_ok") is False:
             return False, f"šare ne odgovaraju vrsti {bird}: {data.get('defect', '')}".strip()
+        if bird and data.get("extra_objects") is True:
+            return False, f"senka/pozadinski oblik/više ptica: {data.get('defect', '')}".strip()
         if not ok or data.get("major_defect") is True:
             return False, f"očekivano '{expected or '(bez teksta)'}', pročitano '{data.get('text', '')}' {data.get('defect', '')}".strip()
         return True, ""
@@ -1470,28 +1519,39 @@ def chroma_alpha(rgb_img):
     # "Senka" ispod nogu: generator ume da nacrta tamniju/svetliju elipsu U BOJI POZADINE (tamno roze na magenti).
     # Takvi pikseli su predaleko od tačne boje pozadine, pa ih uključujemo kao pozadinu ako su POVEZANI sa njom.
     # Dizajn po pravilu nema tu boju (prompt + zamena boja u sceni), pa ovo ne dira pticu.
+    def flood(base):
+        cand = Image.fromarray((base * 255).astype(np.uint8), "L").copy()   # .copy(): u Pillow 12 je slika iz numpy-ja
+                                                                            # samo-za-čitanje i floodfill tiho ne radi
+        for x, y in ([(x, 0) for x in range(0, w, 4)] + [(x, h - 1) for x in range(0, w, 4)]
+                     + [(0, y) for y in range(0, h, 4)] + [(w - 1, y) for y in range(0, h, 4)]):
+            if cand.getpixel((x, y)) == 255:
+                ImageDraw.floodfill(cand, (x, y), 128)            # pozadina povezana sa ivicom slike
+        return (np.asarray(cand) == 128) | (d < t_strict)
+
+    basic = flood(d < t1)                                         # kao stari bot: samo boja pozadine
+    bgmask = basic
     family = chroma_family(a, bg)
-    base = (d < t1) | family
-    zone = None
-    # Senka često ima tanku tamnu konturu ili tačkice, pa je "zatvorena" i flood do nje ne stiže: u zoni oko senke
-    # sve što je tanje od ~5 px računamo kao pozadinu (konture ptice su mnogo deblje i ostaju).
     if family.sum() > 0.002 * h * w:
+        base = (d < t1) | family
+        # Senka često ima tanku tamnu konturu ili tačkice, pa je "zatvorena" i flood do nje ne stiže: u zoni oko senke
+        # sve što je tanje od ~5 px računamo kao pozadinu (konture ptice su mnogo deblje i ostaju).
         zone = np.asarray(Image.fromarray((family * 255).astype(np.uint8), "L").filter(ImageFilter.MaxFilter(21))) > 0
         solid = Image.fromarray(((~base) * 255).astype(np.uint8), "L")
         opened = np.asarray(solid.filter(ImageFilter.MinFilter(5)).filter(ImageFilter.MaxFilter(5))) > 0
         base = base | (zone & ~base & ~opened)
-    cand = Image.fromarray((base * 255).astype(np.uint8), "L").copy()   # .copy(): u Pillow 12 je slika iz numpy-ja
-                                                                        # samo-za-čitanje i floodfill tiho ne radi
-    for x, y in ([(x, 0) for x in range(0, w, 4)] + [(x, h - 1) for x in range(0, w, 4)]
-                 + [(0, y) for y in range(0, h, 4)] + [(w - 1, y) for y in range(0, h, 4)]):
-        if cand.getpixel((x, y)) == 255:
-            ImageDraw.floodfill(cand, (x, y), 128)                # pozadina povezana sa ivicom slike
-    bgmask = (np.asarray(cand) == 128) | (d < t_strict)
-    if zone is not None:                                          # roze obod senke uz pozadinu (2 sloja)
-        tinted = chroma_family(a, bg, margin=20)
+        shadowless = flood(base)
+        tinted = chroma_family(a, bg, margin=20)                  # roze obod senke uz pozadinu (2 sloja)
         for _ in range(2):
-            near_bg = np.asarray(Image.fromarray((bgmask * 255).astype(np.uint8), "L").filter(ImageFilter.MaxFilter(5))) > 0
-            bgmask = bgmask | (zone & tinted & near_bg)
+            near_bg = np.asarray(Image.fromarray((shadowless * 255).astype(np.uint8), "L").filter(ImageFilter.MaxFilter(5))) > 0
+            shadowless = shadowless | (zone & tinted & near_bg)
+        # Osigurač: senka je mala (do ~5% slike) i nikad ne pravi rupu UNUTAR ptice. Ako je brisanje veće ili je
+        # napravilo rupu (npr. pojelo stomak), vraća se staro skidanje samo po boji pozadine.
+        extra = float((shadowless & ~basic).sum()) / (h * w)
+        new_holes = interior_holes(shadowless) - interior_holes(basic)
+        if extra <= 0.05 and new_holes <= 0.005:
+            bgmask = shadowless
+        else:
+            print(f"    (senka se ne briše: brisanje {extra:.1%} slike / nova rupa {new_holes:.1%}, čuvam pticu celu)")
 
     alpha = np.where(bgmask, 0, 255).astype(np.float32)
     # glatka ivica samo u uskom pojasu oko pozadine (2-3 px), unutrašnjost dizajna ostaje puna
@@ -1504,15 +1564,28 @@ def chroma_alpha(rgb_img):
 def chroma_family(a, bg, margin=50):
     """Pikseli iste NIJANSE kao pozadina, bilo koje svetline (tamno/svetlo roze na magenti, tamnoplavo na plavoj...).
     margin: koliko jače mora biti boja pozadine od ostalih kanala (manje = hvata i blede, isprane nijanse)."""
+    # Samo ZASIĆENE nijanse: beo stomak koji je od pozadine dobio blagi roze odsjaj (npr. 250,190,245) NIJE senka.
+    # (Bez ovoga je flood ulazio kroz senku u beo stomak junca i brisao ga.)
     R, G, B = a[..., 0], a[..., 1], a[..., 2]
     br, bgr, bb = (float(v) for v in bg)
     if br > 150 and bb > 150 and bgr < 110:                      # magenta
-        return (np.minimum(R, B) - G > margin) & (R > 60) & (B > 50)
+        return (np.minimum(R, B) - G > margin) & (G < 140) & (np.maximum(R, B) > 110)
     if bb > 150 and br < 110 and bgr < 160:                      # plava
-        return (B - np.maximum(R, G) > margin + 20) & (B > 90)
+        return (B - np.maximum(R, G) > margin + 20) & (B > 90) & (np.minimum(R, G) < 140)
     if bgr > 150 and br < 110 and bb < 110:                      # zelena
-        return (G - np.maximum(R, B) > margin + 20) & (G > 90)
+        return (G - np.maximum(R, B) > margin + 20) & (G > 90) & (np.minimum(R, B) < 140)
     return np.zeros(R.shape, dtype=bool)
+
+
+def interior_holes(bgmask, size=384):
+    """Udeo providnih piksela koji su potpuno okruženi dizajnom (rupa u stomaku, a ne pozadina oko ptice)."""
+    m = Image.fromarray((bgmask * 255).astype(np.uint8), "L").resize((size, size), Image.Resampling.NEAREST).copy()
+    for x, y in ([(x, 0) for x in range(size)] + [(x, size - 1) for x in range(size)]
+                 + [(0, y) for y in range(size)] + [(size - 1, y) for y in range(size)]):
+        if m.getpixel((x, y)) == 255:
+            ImageDraw.floodfill(m, (x, y), 128)
+    arr = np.asarray(m)
+    return float((arr == 255).sum()) / (size * size)
 
 
 def remove_background(original_bytes, url):
