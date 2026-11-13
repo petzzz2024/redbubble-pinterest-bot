@@ -20,7 +20,8 @@ Isti tok kao bot za životinje, prepravljen za birding nišu:
      + zajednički podaci_<datum>.txt; sve na Telegram.
 
 Opcije (environment promenljive, sve su opcione):
-  BIRDS_PER_RUN=5   DESIGNS_PER_BIRD=5   IDIOMS_PER_BIRD=2   BIRDER_PER_BIRD=2   IMAGE_ATTEMPTS=3   TARGET_SIZE=8000
+  BIRDS_PER_RUN=5   DESIGNS_PER_BIRD=5   IDIOMS_PER_BIRD=2   BIRDER_PER_BIRD=2   IMAGE_ATTEMPTS=4   TARGET_SIZE=8000
+  KEEP_FLAGGED=1         -> pošalji i slike koje ni posle svih pokušaja ne prođu proveru (podrazumevano se ne šalju)
   (stara imena ANIMALS_PER_RUN / DESIGNS_PER_ANIMAL i dalje rade)
   STICKER_BORDER=1       -> doda beli obrub nalepnice oko dizajna (podrazumevano isključeno)
   METADATA_ONLY=1        -> samo koncepti/naslovi/tagovi, bez slika i Telegrama (jeftin test)
@@ -65,7 +66,10 @@ def env_int(name, default):
         return default
 
 
-IMAGE_ATTEMPTS = max(1, env_int("IMAGE_ATTEMPTS", 3))
+IMAGE_ATTEMPTS = max(1, env_int("IMAGE_ATTEMPTS", 4))
+# Slika koja ni posle svih pokušaja ne prođe proveru (greška u tekstu, ruke, pogrešna vrsta) se NE šalje.
+# KEEP_FLAGGED=1 -> ipak je pošalji, sa oznakom "!!! PROVERI SLIKU" u txt fajlu (kao ranije).
+KEEP_FLAGGED = os.getenv("KEEP_FLAGGED", "0") == "1"
 TARGET_SIZE = env_int("TARGET_SIZE", 8000)
 VERIFY_IMAGE_TEXT = os.getenv("VERIFY_IMAGE_TEXT", "1") != "0"
 METADATA_ONLY = os.getenv("METADATA_ONLY", "0") == "1"
@@ -140,7 +144,7 @@ BLOCKED_TERMS = [
     "red wings", "blackhawks", "hawks", "ducks fan", "thunderbirds", "fighting irish",
     # PTICE: birding brendovi, aplikacije i organizacije
     "ebird", "merlin bird id", "merlin app", "audubon", "rspb", "cornell lab", "sibley", "birds aren't real",
-    "birds arent real",
+    "birds arent real", "angry bird", "reddit",
 ]
 
 # Pretrage koje nisu kupovne namere za majice/stikere (ne koristimo ih kao tagove)
@@ -160,6 +164,7 @@ NON_MERCH_WORDS = {
     "birdhouse", "birdhouses", "bath", "call", "calls", "chirp", "identification", "identify", "id", "migration",
     "map", "range", "symbolism", "spiritual", "dream", "tattoos", "hood", "jersey", "team", "logo", "mascot",
     "football", "baseball", "hockey", "basketball", "church", "pope",
+    "basket", "baskets", "documentary", "documentaries", "census", "kit", "kits",
 }
 
 # Fraza iz autosuggest-a se koristi samo ako je ostatak (posle imena životinje) SAMO ove reči: kupac/prilika/proizvod.
@@ -909,8 +914,13 @@ DESIGN RULES (brand style): ONE cute, chubby, round cartoon bird of the given sp
 listed for it (birdwatchers notice every mistake), flat vector look, thick dark navy outline around everything, flat solid
 colors, no gradients, no texture. For idiom and birder concepts the text sits in a ribbon banner with a thick dark outline at
 the bottom. For character concepts the text (if any) is in a white speech bubble with a thick dark outline next to the bird's
-head. Few details, simple props, no thin lines. Text 2-6 words, big and readable at thumbnail size (3-4 cm). The bird has a
-clear facial expression or action. Small props are fine (coffee cup, binoculars, tiny phone, notebook, branch).
+head. Few details, simple props, no thin lines. Text 2-6 words (2-4 is best: long phrases get misspelled), big and readable
+at thumbnail size (3-4 cm). The bird has a clear facial expression or action.
+ANATOMY (very important): a real bird has exactly TWO WINGS and TWO LEGS and NO ARMS, NO HANDS, NO FINGERS. The bird NEVER
+holds, clutches, grips or carries anything, never has crossed arms, hands on hips or a thumbs up. Props are placed like this:
+binoculars or a camera HANG on a strap around its neck, a hat or beanie sits on its head, a small light thing (twig, tiny
+note) can be in its beak, a mug, book, phone or alarm clock stands NEXT TO the bird or the bird stands ON it. Wings may only
+be folded, spread or raised. The attitude comes from the face, posture and the prop, never from human gestures.
 FORBIDDEN: brands, apps and organizations (eBird, Merlin, Audubon, RSPB...), sports teams (never plural team-like bird names such
 as cardinals, blue jays, orioles, ravens, eagles, falcons, hawks, penguins, pelicans - always singular), characters from
 movies/cartoons/games (Tweety, Woody Woodpecker, Road Runner, Duolingo owl, Angry Birds...), song lyrics, celebrity names,
@@ -926,8 +936,9 @@ FIELDS FOR EVERY CONCEPT
 - text: the exact phrase on the design, ENGLISH, 2-6 words, max 32 characters, only letters, numbers, spaces, apostrophes, ! and ?.
   REQUIRED for idiom and birder. For character: "" (no text) or 1-6 words the bird says.
 - visual_scene: max 35 words, English: exactly what is drawn: the bird (with its real markings), the LITERAL depiction of the
-  phrase, pose, facial expression, props and their colors (state every color). No background, no frame, no text in the scene.
-  Follow the color rule of the slot.
+  phrase, pose, facial expression, props and their colors (state every color) and WHERE each prop is (around the neck, on the
+  head, next to the bird, under its feet). Never the words holding, clutching, gripping, hands or arms. No background, no
+  frame, no text in the scene. Follow the color rule of the slot.
 - title: max 70 characters, format "<Phrase or character> - <3-6 words a buyer searches>", modeled on
   "My Ducks Are Not In A Row - Funny Chaos ADHD Mental Health Meme" (e.g. "Dipped Again - Funny Birding Humor Blue Tit Birder").
   The species name must be in the title. Never the words sticker, design, shirt, t-shirt, hoodie, poster, Redbubble.
@@ -940,8 +951,12 @@ FIELDS FOR EVERY CONCEPT
   characters) must contain the exact phrase from "text" (if there is one), the species name and the primary_keyword, written
   naturally (Google shows only the start). Then say what the artwork shows and who will relate to it, and naturally work in 2-3
   related phrases people search (e.g. "birding humor", "gift for birders", "bird watcher gift", "<species> lover", "backyard birds").
-  Readable for humans, not a keyword list, no repeated words. NEVER name products or where to put it (no sticker, shirt, tee,
-  hoodie, mug, poster, laptop, water bottle, notebook...). No prices, shipping, quality claims, hashtags, emojis or URLs.
+  Readable for humans, not a keyword list, no repeated words, the species name at most twice, the word "gift" at most once,
+  and NEVER a list of buyers ("for him or her", "mom or dad", "men and women", "kids and adults"). NEVER name products or
+  where to put it (no sticker, shirt, tee, hoodie, mug, poster, laptop, water bottle, notebook...). No prices, shipping,
+  quality claims, hashtags, emojis or URLs.
+- Every text must be a DIFFERENT joke from all already used phrases, not the same idea with other filler words
+  ("Winging It Daily" after "Totally Winging It" is a repeat).
 
 Return ONLY a JSON array with exactly {len(slots)} objects with the keys: slot, type, animal, concept, text, visual_scene, title, primary_keyword, tags, description."""
 
@@ -1012,6 +1027,93 @@ def clean_banner_text(raw):
     t = t.replace("’", "'")
     t = re.sub(r"[^A-Za-z0-9 '!?&-]", " ", t)
     return re.sub(r"\s+", " ", t).strip().upper()
+
+
+_HOLD_VERBS = (r"holding|holds|hold|clutching|clutches|clutch|gripping|grips|grip|grasping|grasps|grasp|carrying|"
+               r"carries|carry|hugging|hugs|hug|cradling|cradles|cradle|balancing|balances|balance|waving|waves|wave|"
+               r"raising|raises|raise|lifting|lifts|lift|sipping|sips|sip|drinking|drinks|drink|reading|reads|read|"
+               r"scrolling|scrolls|scroll|typing|types|type|writing|writes|write|pointing|points|point")
+
+
+def sanitize_anatomy(scene):
+    """Ptica nema ruke: generator za 'holding a cup' crta ruke POTRED krila. Scena se prepisuje tako da ništa ne drži:
+    dvogled visi oko vrata, šolja/telefon/knjiga stoje PORED ptice, ljudski gestovi postaju poza krila."""
+    s = scene
+    s = re.sub(r"(?i)\b(arms?|wings?) (crossed|folded)\b|\b(crossed|folded) (arms?|wings?)\b", "wings folded tight", s)
+    s = re.sub(r"(?i)\b(hands?|wings?|fists?) on (its |his |her |the )?hips\b", "chest puffed out", s)
+    s = re.sub(r"(?i)\b(giving |gives |with |doing )?(a |an |two )?thumbs?[- ]up\b", "with a proud grin", s)
+    s = re.sub(r"(?i)\b(facepalm\w*|face-palm\w*|shrug\w*|salut\w*|clapping|claps)\b", "eyes rolled", s)
+    # dvogled i foto-aparat: uvek na kaišu oko vrata
+    s = re.sub(r"(?i)\b(looking|peering|peeking|staring|squinting|gazing) (out )?(through|into|in) (a pair of |its |his |her |tiny |"
+               r"little |giant |big |huge |small |oversized |\w+ ){0,3}(binoculars?|camera)\b",
+               r"wearing \5 on a strap around its neck", s)
+    s = re.sub(r"(?i)\b(holding|holds|clutching|clutches|gripping|grips|carrying|carries|raising|lifting|with)\s+"
+               r"((?:a pair of |its |his |her |tiny |little |giant |big |huge |small |oversized |\w+ ){0,3})(binoculars?|camera)\b",
+               r"wearing \2\3 on a strap around its neck", s)
+    s = re.sub(r"(?i)\b(using|with) (its|one|a|both) (wing|wings|wingtip|wingtips|foot|feet) to\b", "", s)
+    s = re.sub(r"(?i)\b(is |are )?(" + _HOLD_VERBS + r")( up| onto| on| out)?\b", "next to", s)
+    s = re.sub(r"(?i)\b(up )?(to|against|in front of) (its|his|her) (eyes?|face|beak)\b", "", s)
+    s = re.sub(r"(?i)\b(in|under|between|with) (its|his|her|both|one) (hands?|arms?|wings?|wingtips?)\b", "", s)
+    s = re.sub(r"(?i)\b(hands?|arms?|fingers?|thumbs?|fists?|paws?|palms?|elbows?)\b", "wings", s)
+    if re.search(r"(?i)binocular|camera", s) and not re.search(r"(?i)neck", s):
+        s += ", binoculars hanging on a strap around its neck" if re.search(r"(?i)binocular", s) else ", camera hanging on a strap around its neck"
+    s = re.sub(r"(?i)\bnext to (next to |in |on |into |at |with |through |onto )+", "next to ", s)
+    s = re.sub(r"(?i)\b(a|an|the) (a|an|the)\b", r"\2", s)
+    s = re.sub(r"\s+,", ",", re.sub(r"\s{2,}", " ", s)).strip(" ,")
+    return s
+
+
+# Reči po kojima se prepoznaje idiom/igra reči o pticama (dizajn tipa "idiom" mora da sadrži bar jednu ili ime vrste)
+IDIOM_WORDS = {singular(w) for w in """
+bird birds early night owl owls feather feathers feathered wing wings winging nest nests nesting flock flocking peck pecking
+pecked beak beaks tweet tweets tweeting chirp chirpy cuckoo crow crows duck ducks goose geese hen hens chick chicks roost
+roosting coop perch perched perching fly flying flew flight fledge fledgling hatch hatched egg eggs plume preen preening
+ruffle ruffled molt molting moult squawk squawking caw cawing hoot hooting coo cooing gull gullible swan lark robin robins
+birdbrain songbird
+""".split()}
+
+
+FILLER_WORDS = {"i", "im", "am", "a", "an", "the", "is", "it", "its", "my", "me", "you", "your", "of", "to", "in", "on",
+                "and", "or", "so", "very", "really", "just", "still", "again", "today", "daily", "totally", "simply",
+                "always", "all", "be", "being", "not", "no", "this", "that", "are", "was", "bird", "birding", "birder",
+                "s", "t", "m", "dont", "don"}
+
+
+def text_core(text):
+    """Glavne reči fraze: 'TOTALLY WINGING IT' i 'WINGING IT DAILY' -> {'winging'} (ista ideja, drugačije reči)."""
+    return {w for w in tokens(text) if w not in FILLER_WORDS}
+
+
+def similar_text(text, cores):
+    """Vraća već korišćenu frazu sa istom idejom (ista glavna reč/reči), ili None."""
+    core = text_core(text)
+    if not core:
+        return None
+    for prev_core, prev_text in cores:
+        if not prev_core:
+            continue
+        if core <= prev_core or prev_core <= core or len(core & prev_core) / len(core | prev_core) >= 0.6:
+            return prev_text
+    return None
+
+
+AUDIENCE_RE = re.compile(r"(?i)\b(him|her|men|women|dad|mom|kids|adults|boys|girls)\b")
+
+
+def description_problems(desc, animal):
+    """Opis koji liči na spisak ključnih reči Redbubble može da proglasi 'tag spamom' (niži nivo naloga)."""
+    problems = []
+    low = desc.lower()
+    dup = re.search(r"\b(\w+(?: \w+)?) \1\b", low)
+    if dup:
+        problems.append(f"ponovljene reči '{dup.group(0)}'")
+    if len(re.findall(r"\bgifts?\b", low)) > 2:
+        problems.append("reč 'gift' više od 2 puta")
+    if len(AUDIENCE_RE.findall(low)) > 2:
+        problems.append("nabrajanje kupaca (him/her, mom/dad, men/women, kids...)")
+    if low.count(animal.lower()) > 3:
+        problems.append(f"ime ptice '{animal}' više od 3 puta")
+    return problems
 
 
 def normalize_tag(tag, title_key=None):
@@ -1097,10 +1199,17 @@ def clean_concept(raw, slot, ctx):
     if ctype in ("idiom", "birder"):
         if not (2 <= len(words) <= 6) or not (5 <= len(text) <= 32):
             issues.append(f"text '{text}' mora imati 2-6 reči i najviše 32 karaktera")
+    if ctype == "idiom" and text and not (set(tokens(text)) & (IDIOM_WORDS | (set(tokens(animal)) - ANIMAL_COLOR_WORDS))):
+        issues.append(f"text '{text}' nije idiom o pticama: mora sadržati pravi idiom (night owl, early bird, winging it, "
+                      f"ruffled feathers, empty nest, pecking order...) ili igru reči sa imenom vrste")
     elif text and (not (1 <= len(words) <= 6) or len(text) > 32):
         issues.append(f"text '{text}' za character mora biti prazan ili 1-6 reči (najviše 32 karaktera)")
     if text and canon(text) in ctx["texts"]:
         issues.append(f"text '{text}' je već korišćen")
+    elif text:
+        same_idea = similar_text(text, ctx.get("cores", []))
+        if same_idea:
+            issues.append(f"text '{text}' je ista ideja kao već korišćena fraza '{same_idea}': smisli potpuno drugu šalu")
 
     style = "lenta" if ctype in ("idiom", "birder") else ("oblačić" if text else "bez teksta")
 
@@ -1111,6 +1220,7 @@ def clean_concept(raw, slot, ctx):
         scene = f"a cartoon {animal}: {scene}"
     _, _, _, chroma_words, replacement = chroma_for(animal)
     scene = chroma_words.sub(replacement, scene)     # boja pozadine ne sme biti na rekvizitima (nestala bi sa pozadinom)
+    scene = sanitize_anatomy(scene)                  # bez ruku: ništa se ne drži, dvogled visi oko vrata
 
     title = clean_title(raw.get("title", ""), animal)
     if len(title.split()) < 3 or len(title) < 15:
@@ -1132,6 +1242,13 @@ def clean_concept(raw, slot, ctx):
         pk = " ".join(title.split(" - ")[0].lower().split()[:4])
 
     description = clean_description(raw.get("description", ""), animal, title, concept or scene)
+    spam = description_problems(description, animal)
+    if spam:
+        if not ctx.get("last_attempt"):
+            issues.append("description liči na spisak ključnih reči: " + "; ".join(spam) +
+                          ". Napiši 2-3 prirodne rečenice, 'gift' najviše jednom, bez nabrajanja kupaca")
+        else:                                       # poslednji pokušaj: ukloni ponovljene reči u kodu
+            description = re.sub(r"(?i)\b(\w+(?: \w+)?) \1\b", r"\1", description)
     # SEO: Google u rezultatu prikazuje ~150 prvih znakova, pa fraza (ono što ljudi kucaju) i životinja moraju biti na početku.
     head = description[:170]
     seo_missing = []
@@ -1173,6 +1290,7 @@ def generate_concepts(slots, theme_kw, animal_kw, today, history):
         "texts": {canon(t) for t in avoid_texts},
         "keywords": animal_kw,
         "theme_keywords": theme_kw,
+        "cores": [(text_core(t), t) for t in avoid_texts],
     }
     accepted = {}
     for start in range(0, len(slots), 8):                      # najviše 8 koncepata po pozivu: kraći, pouzdaniji JSON
@@ -1213,6 +1331,7 @@ def generate_concepts(slots, theme_kw, animal_kw, today, history):
                 ctx["titles"].add(phrase_key(design["title"]))
                 if design["text"]:
                     ctx["texts"].add(canon(design["text"]))
+                    ctx["cores"].append((text_core(design["text"]), design["text"]))
                     avoid_texts.append(design["text"])
                 avoid_titles.append(design["title"])
             print(f"  -> Pokušaj {attempt}: prihvaćeno {sum(s['id'] in accepted for s in group)}/{len(group)} koncepata.")
@@ -1240,6 +1359,7 @@ def fal_text_to_image(design):
     chroma_bg, color_negative, _ = pick_chroma(design)
     bird = design["animal"]
     marks = bird_info(bird)["marks"]
+    design = dict(design, visual_scene=sanitize_anatomy(design["visual_scene"]))   # još jednom, za svaki slučaj
     text = design["text"]
     q = '"' if "'" in text else "'"
     if text and design.get("style") == "oblačić":
@@ -1259,19 +1379,24 @@ def fal_text_to_image(design):
         f"Subject: ONE cute, chubby, round {bird} with the accurate colors and markings of the real species: {marks}. "
         f"Scene: {design['visual_scene']}. Friendly round dark eyes with a small white highlight and a clear funny expression; "
         "a birdwatcher must instantly recognise the species. "
+        "Anatomy: a real bird body with exactly two feathered wings and two thin bird legs with bird feet; the bird has NO "
+        "arms, NO hands and NO fingers and does not hold anything: props stand next to the bird, sit on its head, or hang "
+        "on a strap around its neck. "
         "Style: flat vector illustration, simple rounded shapes, flat solid saturated colors, minimal shading, no texture, "
         "clean crisp sharp edges, no blur. "
         "Outline: the bird, every prop"
         + ((" and the speech bubble" if design.get("style") == "oblačić" else " and the banner") if text else "")
         + " MUST have a thick solid very dark navy (almost black) outline enclosing every single shape. "
         + banner
+        + "Nothing under the feet: no ground, no floor, no shadow, no puddle, no oval under the bird. "
         + f"Composition: centered, fully visible, the artwork is completely isolated on a {chroma_bg}."
     )
     negative_prompt = (
         f"{color_negative} white background, black background, transparent background, gradient background, "
         "scenery, sticker, sticker peel, die cut, white border, white outline, white edge, sticker border, badge, circle frame, "
         "circular frame, round emblem, border, frame, drop shadow, 3d render, photorealistic, photograph, glow, blurry edges, "
-        "detailed feather texture, fur, anime eyes, human hands, extra legs, extra wings, two heads, multiple birds, "
+        "detailed feather texture, fur, anime eyes, arms, hands, human hands, fingers, thumbs, human arms, holding objects, "
+        "wings used as hands, extra limbs, four limbs, extra legs, extra wings, two heads, multiple birds, "
         "wrong species colors, brush strokes, watermark, signature, messy edges, floating text, curved text, arched text, "
         "ground, floor, ground shadow, cast shadow, puddle, dust cloud, "
         "misspelled text, extra words, cropped, cut off, beige, pastels, washed out colors"
@@ -1304,8 +1429,9 @@ def check_design_text(img_bytes, expected, bird=None):
         prompt = ('Look at this sticker illustration. Read ALL text visible in the image exactly as written.' + species + '\n'
                   'Return ONLY JSON: {"text": "<all text you read, or empty>", '
                   + ('"species_ok": true/false, ' if bird else '')
-                  + '"major_defect": true/false (extra heads, legs, wings or eyes, merged bodies, cropped subject, '
-                  'unreadable letters), "defect": "<short description or empty>"}')
+                  + '"major_defect": true/false (true if the bird has ARMS or HANDS or fingers in addition to or instead of '
+                  'its wings - a bird may only have two wings and two legs -, or extra heads, legs, wings or eyes, merged '
+                  'bodies, a cropped subject, unreadable letters), "defect": "<short description or empty>"}')
         txt = gemini(prompt, json_mode=True, image=(img_bytes, mime),
                      validator=lambda t: isinstance(extract_json(t), dict), label="provera slike")
         data = extract_json(txt)
@@ -1341,13 +1467,31 @@ def chroma_alpha(rgb_img):
     t_strict = min(45.0, max(20.0, spread + 8))   # skoro tačno boja pozadine (zatvoreni džepovi pozadine)
     d = np.sqrt(((a - bg) ** 2).sum(2))
 
-    cand = Image.fromarray(((d < t1) * 255).astype(np.uint8), "L").copy()   # .copy(): u Pillow 12 je slika iz numpy-ja
-                                                                            # samo-za-čitanje i floodfill tiho ne radi
+    # "Senka" ispod nogu: generator ume da nacrta tamniju/svetliju elipsu U BOJI POZADINE (tamno roze na magenti).
+    # Takvi pikseli su predaleko od tačne boje pozadine, pa ih uključujemo kao pozadinu ako su POVEZANI sa njom.
+    # Dizajn po pravilu nema tu boju (prompt + zamena boja u sceni), pa ovo ne dira pticu.
+    family = chroma_family(a, bg)
+    base = (d < t1) | family
+    zone = None
+    # Senka često ima tanku tamnu konturu ili tačkice, pa je "zatvorena" i flood do nje ne stiže: u zoni oko senke
+    # sve što je tanje od ~5 px računamo kao pozadinu (konture ptice su mnogo deblje i ostaju).
+    if family.sum() > 0.002 * h * w:
+        zone = np.asarray(Image.fromarray((family * 255).astype(np.uint8), "L").filter(ImageFilter.MaxFilter(21))) > 0
+        solid = Image.fromarray(((~base) * 255).astype(np.uint8), "L")
+        opened = np.asarray(solid.filter(ImageFilter.MinFilter(5)).filter(ImageFilter.MaxFilter(5))) > 0
+        base = base | (zone & ~base & ~opened)
+    cand = Image.fromarray((base * 255).astype(np.uint8), "L").copy()   # .copy(): u Pillow 12 je slika iz numpy-ja
+                                                                        # samo-za-čitanje i floodfill tiho ne radi
     for x, y in ([(x, 0) for x in range(0, w, 4)] + [(x, h - 1) for x in range(0, w, 4)]
                  + [(0, y) for y in range(0, h, 4)] + [(w - 1, y) for y in range(0, h, 4)]):
         if cand.getpixel((x, y)) == 255:
             ImageDraw.floodfill(cand, (x, y), 128)                # pozadina povezana sa ivicom slike
     bgmask = (np.asarray(cand) == 128) | (d < t_strict)
+    if zone is not None:                                          # roze obod senke uz pozadinu (2 sloja)
+        tinted = chroma_family(a, bg, margin=20)
+        for _ in range(2):
+            near_bg = np.asarray(Image.fromarray((bgmask * 255).astype(np.uint8), "L").filter(ImageFilter.MaxFilter(5))) > 0
+            bgmask = bgmask | (zone & tinted & near_bg)
 
     alpha = np.where(bgmask, 0, 255).astype(np.float32)
     # glatka ivica samo u uskom pojasu oko pozadine (2-3 px), unutrašnjost dizajna ostaje puna
@@ -1355,6 +1499,20 @@ def chroma_alpha(rgb_img):
     edge = near & ~bgmask
     alpha[edge] = np.clip((d[edge] - t_strict) / (t1 + 40 - t_strict), 0, 1) * 255
     return Image.fromarray(alpha.astype(np.uint8), "L"), spread < 60
+
+
+def chroma_family(a, bg, margin=50):
+    """Pikseli iste NIJANSE kao pozadina, bilo koje svetline (tamno/svetlo roze na magenti, tamnoplavo na plavoj...).
+    margin: koliko jače mora biti boja pozadine od ostalih kanala (manje = hvata i blede, isprane nijanse)."""
+    R, G, B = a[..., 0], a[..., 1], a[..., 2]
+    br, bgr, bb = (float(v) for v in bg)
+    if br > 150 and bb > 150 and bgr < 110:                      # magenta
+        return (np.minimum(R, B) - G > margin) & (R > 60) & (B > 50)
+    if bb > 150 and br < 110 and bgr < 160:                      # plava
+        return (B - np.maximum(R, G) > margin + 20) & (B > 90)
+    if bgr > 150 and br < 110 and bb < 110:                      # zelena
+        return (G - np.maximum(R, B) > margin + 20) & (G > 90)
+    return np.zeros(R.shape, dtype=bool)
 
 
 def remove_background(original_bytes, url):
@@ -1470,6 +1628,8 @@ def make_design_image(design, out_path):
                 if not ok and attempt < IMAGE_ATTEMPTS:
                     print(f"    ⟳ Tekst/anatomija nisu u redu ({note}). Pokušaj {attempt + 1}/{IMAGE_ATTEMPTS}...")
                     continue
+                if not ok and not KEEP_FLAGGED:
+                    raise RuntimeError(f"ni posle {IMAGE_ATTEMPTS} pokušaja nije dobra, ne šaljem je: {note}")
             transparent, method = remove_background(original, url)
             transparent, pieces = split_pieces(transparent)
             if VERIFY_IMAGE_TEXT and design["text"]:
@@ -1483,6 +1643,8 @@ def make_design_image(design, out_path):
                     if attempt < IMAGE_ATTEMPTS:
                         print(f"    ⟳ Posle skidanja pozadine ({method}) tekst nije ceo ({note2}). Pokušaj {attempt + 1}/{IMAGE_ATTEMPTS}...")
                         continue
+                    if not KEEP_FLAGGED:
+                        raise RuntimeError(f"posle skidanja pozadine tekst i dalje nije dobar, ne šaljem je: {note2}")
                     ok, note = False, f"posle skidanja pozadine: {note2}"
             if STICKER_BORDER:
                 transparent = add_sticker_border(transparent)
