@@ -1,26 +1,32 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Redbubble bot v3: formula iz tvojih stvarnih prodaja
+Redbubble bot v3 - PTICE (shop "Feathered Gossip" - Birds with opinions.)
 
-Tok:
-  1. Bira 5 različitih životinja (Gemini + Google trend + autosuggest, bez ponavljanja), za svaku 5 dizajna:
-     - idiom (3):     poznat engleski idiom/fraza nacrtan DOSLOVNO sa tom životinjom + relatable humor (ADHD, introverti, umor, kafa...)
-     - character (2): ta životinja sa jakim karakterom/radnjom u upečatljivim bojama, tekst opcion
-  2. Stvarne pretrage (Google autosuggest) za teme i životinje -> Gemini piše koncept, frazu, naslov "Fraza - opis",
-     15 tagova i kratak opis. Sve se proverava u KODU (dužine, duplikati, prezasićene i zaštićene fraze, nevezani tagovi).
-  3. Slika: Fal.ai Z-Image Turbo (polu-realistična životinja, crna kontura, tekst u lenti) -> Gemini vision čita tekst
-     -> pozadina se skida PO BOJI (BiRefNet samo kao rezerva) -> Gemini ponovo čita tekst da lenta nije odsečena
-     -> BiRefNet -> provera da je JEDAN oblik (sitne mrlje se brišu) -> 8000x8000 transparentan PNG.
-  4. Izlaz: folder po životinji sa <životinja>_podaci.txt (Naslov / Opis / Tagovi / Slika / Tip / Koncept)
+Isti tok kao bot za životinje, prepravljen za birding nišu:
+  1. Bira 5 vrsta ptica iz SPISKA SA TAČNIM ŠARAMA (BIRDS niže), bez ponavljanja dok se spisak ne potroši.
+     Mešavina: britanske/evropske ptice iz dvorišta (rupa na tržištu) + severnoameričke ptice iz dvorišta (najveće
+     tržište) + omiljene ptice birdera (sove, vrane, čaplje, puffin...). Sezonske ptice dobijaju prednost (Božić -> crvendać...).
+     Google autosuggest rangira kandidate po stvarnoj potražnji.
+  2. Za svaku pticu 5 dizajna:
+     - idiom (2):     poznat engleski idiom o pticama nacrtan DOSLOVNO (night owl, winging it, a little bird told me...)
+                      + relatable humor (introverti, umor, kafa, anksioznost, socijalna baterija) - formula tvog bestselera
+     - birder (2):    šala koju razumeju samo birderi (lifer, life list, dipped, dawn chorus, binoculars, bird app...)
+     - character (1): ptica sa karakterom ("Birds with opinions"), kratka rečenica u oblačiću ili bez teksta
+  3. Slika: Fal.ai Z-Image Turbo u stilu brenda (slatka punačka ptica, debela tamnoplava kontura, ravne boje,
+     TAČNE šare vrste) -> Gemini vision proverava tekst I šare vrste -> pozadina se skida PO BOJI (boja pozadine se
+     bira po bojama ptice: magenta / plava / zelena) -> 8000x8000 transparentan PNG bez obruba.
+  4. Izlaz: folder po ptici sa <ptica>_podaci.txt (Naslov / Opis / Tagovi / Slika / Tip / Koncept)
      + zajednički podaci_<datum>.txt; sve na Telegram.
 
 Opcije (environment promenljive, sve su opcione):
-  ANIMALS_PER_RUN=5   DESIGNS_PER_ANIMAL=5   IDIOMS_PER_ANIMAL=3   IMAGE_ATTEMPTS=3   TARGET_SIZE=8000
+  BIRDS_PER_RUN=5   DESIGNS_PER_BIRD=5   IDIOMS_PER_BIRD=2   BIRDER_PER_BIRD=2   IMAGE_ATTEMPTS=3   TARGET_SIZE=8000
+  (stara imena ANIMALS_PER_RUN / DESIGNS_PER_ANIMAL i dalje rade)
+  STICKER_BORDER=1       -> doda beli obrub nalepnice oko dizajna (podrazumevano isključeno)
   METADATA_ONLY=1        -> samo koncepti/naslovi/tagovi, bez slika i Telegrama (jeftin test)
-  VERIFY_IMAGE_TEXT=0    -> isključi proveru teksta na slici
-  USE_SEARCH_GROUNDING=0 -> isključi Google Search u Gemini-ju
+  VERIFY_IMAGE_TEXT=0    -> isključi proveru teksta i šara na slici
   USE_AUTOSUGGEST=0      -> isključi Google autosuggest
+  USED_FILE / HISTORY_FILE -> imena fajlova sa istorijom (podrazumevano kao u starom botu, da workflow radi bez izmena)
 """
 import os
 import re
@@ -66,8 +72,12 @@ METADATA_ONLY = os.getenv("METADATA_ONLY", "0") == "1"
 USE_SEARCH_GROUNDING = os.getenv("USE_SEARCH_GROUNDING", "1") != "0"
 USE_AUTOSUGGEST = os.getenv("USE_AUTOSUGGEST", "1") != "0"
 
-USED_FILE = "used_animals.txt"
-HISTORY_FILE = "design_history.json"
+STICKER_BORDER = os.getenv("STICKER_BORDER", "0") == "1"      # beli obrub nalepnice: isključen; uključi sa STICKER_BORDER=1
+
+# Ista imena kao u starom botu, da GitHub workflow (koji ih commit-uje) radi bez izmena.
+# Ako oba bota rade u ISTOM repou, postavi npr. USED_FILE=used_birds.txt i HISTORY_FILE=design_history_birds.json.
+USED_FILE = os.getenv("USED_FILE", "used_animals.txt")
+HISTORY_FILE = os.getenv("HISTORY_FILE", "design_history.json")
 BLOCKED_FILE = "blocked_terms.txt"      # opciono: dodatni zaštićeni pojmovi, jedan po liniji
 OUTPUT_DIR = "output_images"
 
@@ -122,6 +132,16 @@ BLOCKED_TERMS = [
     "coca cola", "coca-cola", "pepsi", "mcdonalds", "mcdonald's", "netflix", "hbo", "tesla",
     # sport i muzika
     "nfl", "nba", "mlb", "nhl", "fifa", "taylor swift", "beyonce", "blackpink", "bts",
+    # PTICE: crtani likovi, maskote i logotipi
+    "tweety", "woody woodpecker", "road runner", "roadrunner", "big bird", "daffy", "donald duck", "daisy duck",
+    "duolingo", "duo the owl", "twitter", "hedwig", "zazu", "iago", "flappy bird", "pingu", "happy feet",
+    "foghorn leghorn", "heckle and jeckle", "scrooge mcduck", "toucan sam", "froot loops", "red bull",
+    # PTICE: sportski timovi sa imenom ptice (množina = tim; Redbubble ih privremeno suspenduje radi provere brenda)
+    "blue jays", "cardinals", "orioles", "ravens", "eagles", "falcons", "seahawks", "penguins", "pelicans",
+    "red wings", "blackhawks", "hawks", "ducks fan", "thunderbirds", "fighting irish",
+    # PTICE: birding brendovi, aplikacije i organizacije
+    "ebird", "merlin bird id", "merlin app", "audubon", "rspb", "cornell lab", "sibley", "birds aren't real",
+    "birds arent real",
 ]
 
 # Pretrage koje nisu kupovne namere za majice/stikere (ne koristimo ih kao tagove)
@@ -136,6 +156,11 @@ NON_MERCH_WORDS = {
     # druga značenja iste reči (iz pravog izlaza: poodle skirt, turkey tail mushroom, reindeer moss, turkey trot...)
     "meaning", "names", "name", "skirt", "skirts", "mushroom", "mushrooms", "shuttle", "trot", "vulture",
     "moss", "cuts",
+    # PTICE: pretrage koje nisu kupovina majice/nalepnice (hrana, kućice, zvuk, informacije, sport)
+    "feeder", "feeders", "seed", "seeds", "suet", "cage", "cages", "nest", "nests", "egg", "eggs", "box", "boxes",
+    "birdhouse", "birdhouses", "bath", "call", "calls", "chirp", "identification", "identify", "id", "migration",
+    "map", "range", "symbolism", "spiritual", "dream", "tattoos", "hood", "jersey", "team", "logo", "mascot",
+    "football", "baseball", "hockey", "basketball", "church", "pope",
 }
 
 # Fraza iz autosuggest-a se koristi samo ako je ostatak (posle imena životinje) SAMO ove reči: kupac/prilika/proizvod.
@@ -154,6 +179,10 @@ adhd anxiety anxious introvert introverted extrovert mental health chaos chaotic
 caffeine monday mondays tired sleepy lazy nap naps grumpy angry overthinker overthinking procrastination procrastinator
 neurodivergent social battery awkward weird unhinged aesthetic neon retro vintage kawaii cartoon sticker stickers laptop
 water bottle humor humour relatable saying sayings idiom quote quotes mood vibe club squad crew
+birding birdwatching birdwatcher birdwatchers birder birders watcher watchers watching watch nerd nerds geek geeks
+ornithology ornithologist backyard garden british uk european england scottish irish american north nature wildlife
+outdoor outdoors hiking hiker spotting spotter twitcher twitchers lifer life list binoculars bins early night owl
+morning person dawn chorus winter spring autumn retirement retired retiree grandparent lady guy
 """
 
 GENERIC_TAGS = {
@@ -186,24 +215,170 @@ CLAIM_RE = re.compile(
 ANIMAL_COLOR_WORDS = {
     "red", "black", "blue", "white", "green", "grey", "gray", "brown", "little", "giant", "common", "great",
     "lesser", "greater", "golden", "yellow", "orange", "pink", "purple", "spotted", "striped", "american",
-    "african", "asian", "european", "arctic", "wild", "baby", "mini", "miniature", "toy"
+    "african", "asian", "european", "arctic", "wild", "baby", "mini", "miniature", "toy",
+    # PTICE: pridevi u imenu vrste (glavna reč je ona posle njih: "barn owl" -> "owl", "house sparrow" -> "sparrow")
+    "northern", "eastern", "western", "eurasian", "atlantic", "house", "barn", "rock", "mourning", "downy", "pileated",
+    "tufted", "snowy", "bald", "horned", "carrion", "pied", "coal", "long", "tailed", "ruby", "throated", "winged",
+    "capped", "dark", "eyed", "cedar", "tawny", "headed",
 }
 
-# Rezervni spisak ako Gemini potpuno zakaže (bot nikad ne staje zbog toga)
-FALLBACK_ANIMALS = [
-    "capybara", "red panda", "axolotl", "sea otter", "highland cow", "sloth", "hedgehog", "frog", "owl", "fox",
-    "raccoon", "penguin", "llama", "alpaca", "corgi", "french bulldog", "pug", "sphynx cat", "black cat",
-    "maine coon", "hamster", "bunny", "duck", "chicken", "goat", "giraffe", "koala", "quokka", "platypus",
-    "wolf", "bear", "moose", "bat", "manatee", "harbor seal", "narwhal", "jellyfish", "octopus", "turtle",
-    "gecko", "bearded dragon", "chameleon", "ferret", "guinea pig", "shiba inu", "dachshund", "golden retriever",
-    "husky", "border collie", "bernese mountain dog", "pigeon", "crow", "flamingo", "toucan", "puffin",
-    "hummingbird", "bee", "butterfly", "moth", "ladybug", "snail", "sheep", "horse", "donkey", "deer",
-    "squirrel", "otter", "badger", "mole", "hippo", "pygmy hippo", "tapir", "pangolin", "armadillo",
-    "meerkat", "lemur", "red fox", "arctic fox", "snow leopard", "tiger", "lion", "elephant", "zebra",
-]
+# ---------------------------------------------------------------------------
+# PTICE: spisak vrsta sa TAČNIM šarama (birderi primete svaku grešku)
+# region: uk = Britanija/Evropa (rupa na tržištu), na = Severna Amerika (najveće tržište), both/world = svuda
+# palette: samo boje bitne za pozadinu koja se skida: "pink" (i ljubičasta), "blue", "green"
+# marks: šare koje generator MORA da nacrta (ulaze u prompt slike i u proveru slike)
+# seasons: sezone u kojima ptica dobija prednost (id-jevi iz SEASONS)
+# ---------------------------------------------------------------------------
+def _b(region, palette, marks, seasons=()):
+    return {"region": region, "palette": set(palette), "marks": marks, "seasons": list(seasons)}
 
-# Životinje čija je prirodna boja ružičasta/magenta: pozadina za uklanjanje ide u plavu (word-boundary: "pig" != "pigeon")
-PINK_ANIMAL_RE = re.compile(r"\b(flamingos?|pigs?|piglets?|axolotls?|spoonbills?|pink fairy armadillos?)\b", re.I)
+
+BIRDS = {
+    # --- Britanija / Evropa ---
+    "european robin": _b("uk", [], "olive-brown crown, back, wings and tail; bright orange-red face and breast edged with a "
+                         "thin blue-grey border; off-white belly; big black eye; thin dark bill; slim brown legs", ["christmas"]),
+    "blue tit": _b("uk", ["blue", "green"], "bright blue cap, wings and tail; white cheeks; thin dark navy line through the "
+                   "eye; dark navy collar line around the cheek and a small dark bib; lemon-yellow belly; yellow-green back; "
+                   "one white wing bar; tiny dark bill"),
+    "great tit": _b("uk", ["blue", "green"], "glossy black head and neck with big white cheek patches; yellow belly with a "
+                    "bold black stripe down the middle of the breast; olive-green back; blue-grey wings with one white wing "
+                    "bar; small dark bill"),
+    "long-tailed tit": _b("uk", ["pink"], "tiny round fluffy body with a very long thin black-and-white tail; white head with "
+                          "a broad black stripe above each eye; black back; dusky-pink shoulders and flanks; whitish breast; "
+                          "tiny stubby black bill", ["christmas"]),
+    "coal tit": _b("uk", [], "small bird with a black cap and black bib; white cheeks; white patch on the back of the neck; "
+                   "grey back; buff-white belly; two white wing bars; tiny dark bill"),
+    "european goldfinch": _b("uk", [], "bright red face mask; white cheeks and throat; black crown and nape; warm buff-brown "
+                             "back and flanks; black wings with a broad bright yellow wing bar; black tail with white spots; "
+                             "pale pointed bill", ["spring-easter"]),
+    "bullfinch": _b("uk", ["pink", "blue"], "chunky male with a glossy black cap and chin; rosy-pink cheeks and breast; "
+                    "blue-grey back; black wings with one pale grey-white wing bar; white rump; black tail; short thick black "
+                    "bill", ["christmas"]),
+    "chaffinch": _b("uk", ["pink", "blue"], "male with a blue-grey cap and nape; rusty-pink face and breast; chestnut-brown "
+                    "back; olive rump; black wings with two bold white wing bars; white outer tail feathers; grey bill"),
+    "house sparrow": _b("both", [], "male with a grey crown; chestnut-brown stripe behind the eye and on the nape; black bib; "
+                        "pale grey cheeks and belly; brown back streaked with black; one white wing bar; short thick dark bill"),
+    "common starling": _b("both", ["pink", "green"], "glossy black body with an oily green-and-purple sheen and small white "
+                          "star-like spots; pointed yellow bill; reddish legs"),
+    "common blackbird": _b("uk", [], "male entirely glossy black; bright orange-yellow bill and yellow eye-ring; dark legs; "
+                           "fairly long tail"),
+    "wren": _b("uk", [], "tiny round warm-brown bird; fine dark barring on the wings and tail; short tail cocked straight up; "
+               "pale cream eyebrow stripe; paler buff belly; thin slightly curved bill"),
+    "magpie": _b("uk", ["blue", "green"], "black head, breast and back; bright white belly and white shoulder patches; very "
+                 "long black tail with a blue-green gloss; black wings with a blue sheen; strong black bill"),
+    "eurasian jay": _b("uk", ["pink", "blue"], "pinkish-brown body; pale crown streaked with black; bold black moustache "
+                       "stripe; white throat; bright blue-and-black barred patch on the wing; black wings and tail; white "
+                       "rump; pale eye"),
+    "common kingfisher": _b("uk", ["blue", "green"], "electric blue-turquoise back, crown and wings; bright orange cheeks and "
+                            "belly; white throat and a white patch on the side of the neck; long dagger-shaped black bill; "
+                            "tiny bright red legs"),
+    "goldcrest": _b("uk", ["green"], "tiny round olive-green bird; bright yellow crown stripe bordered with black; plain pale "
+                    "face with a big black eye; two white wing bars; very thin dark bill", ["christmas"]),
+    "eurasian nuthatch": _b("uk", ["blue"], "blue-grey back and crown; long black stripe through the eye; white cheeks and "
+                            "throat; warm orange-buff belly; chestnut flanks; strong pointed dark bill; short tail"),
+    "great spotted woodpecker": _b("uk", [], "black-and-white pied pattern; large white oval shoulder patches; white cheeks "
+                                   "crossed by black lines; bright red patch under the tail; small red patch on the back of "
+                                   "the head; strong chisel bill"),
+    "tawny owl": _b("uk", [], "round head with no ear tufts; mottled rusty-brown body with darker streaks; pale facial disc "
+                    "outlined in brown; big dark eyes", ["halloween"]),
+    "grey heron": _b("uk", [], "tall grey wader; white head and neck; black stripe from the eye to long black head plumes; "
+                     "black streaks down the front of the neck; long yellow-orange dagger bill; grey back; long yellowish legs"),
+    "pied wagtail": _b("uk", [], "slim black-and-white bird; black crown, back and bib; white face and belly; white wing bars; "
+                       "long black tail with white edges; thin black bill"),
+    "jackdaw": _b("uk", [], "small black crow; soft grey nape and sides of the head; pale silvery-white eye; short black bill",
+                  ["halloween"]),
+    # --- Severna Amerika ---
+    "american robin": _b("na", [], "dark grey-brown back; brick-orange breast; blackish head with broken white eye-ring; "
+                         "yellow bill; white patch under the tail", ["spring-easter"]),
+    "northern cardinal": _b("na", [], "male bright red all over; tall pointed red crest; black face mask around a thick "
+                            "orange-red cone-shaped bill", ["christmas"]),
+    "blue jay": _b("na", ["blue"], "bright blue crest, back, wings and tail; black necklace collar; white face and pale "
+                   "grey-white belly; wings and tail barred with black and white; black bill"),
+    "black-capped chickadee": _b("na", [], "black cap and black bib; bright white cheeks; soft grey back; white belly with "
+                                 "warm buff flanks; tiny black bill", ["christmas"]),
+    "american goldfinch": _b("na", [], "male bright lemon-yellow body; black forehead cap; black wings with white wing bars; "
+                             "black-and-white tail; small orange cone-shaped bill", ["spring-easter", "summer"]),
+    "eastern bluebird": _b("na", ["blue"], "bright royal-blue head, back, wings and tail; rusty-orange throat and breast; "
+                           "white belly; small dark bill", ["spring-easter"]),
+    "ruby-throated hummingbird": _b("na", ["green"], "tiny bird with a glossy green back and crown; glowing ruby-red throat; "
+                                    "white collar and pale belly; long needle-thin black bill", ["summer"]),
+    "downy woodpecker": _b("na", [], "small black-and-white woodpecker; white stripe down the back; black wings with white "
+                           "spots; black-and-white striped face; small red patch on the back of the head; short chisel bill"),
+    "tufted titmouse": _b("na", [], "soft grey upperparts; pointed grey crest; small black patch above the bill; big black "
+                          "eyes; white belly; rusty-orange flanks"),
+    "dark-eyed junco": _b("na", [], "slate-grey head, back and breast; clean white belly; pale ivory bill; white outer tail "
+                          "feathers; dark eyes", ["christmas"]),
+    "mourning dove": _b("na", [], "soft buff-brown dove with a small round head; black spots on the wings; long pointed tail "
+                        "with white tips; dark eye; reddish legs"),
+    "red-winged blackbird": _b("na", [], "male glossy black all over; bright red shoulder patches edged with a yellow "
+                               "stripe; pointed black bill", ["spring-easter"]),
+    "great blue heron": _b("na", ["blue"], "tall blue-grey wader; white face with a black stripe above the eye ending in "
+                           "black plumes; long yellow dagger bill; rusty thighs; long legs"),
+    "great horned owl": _b("na", [], "large owl with tall ear tufts; mottled grey-brown body with fine bars; orange facial "
+                           "disc; bright yellow eyes; white throat patch", ["halloween"]),
+    "bald eagle": _b("na", [], "dark brown body and wings; bright white head and tail; big hooked yellow bill; yellow feet; "
+                     "pale yellow eyes"),
+    "pileated woodpecker": _b("na", [], "large black woodpecker; flaming red crest; white stripes down the face and neck; "
+                              "long chisel bill; red moustache stripe"),
+    "cedar waxwing": _b("na", [], "sleek soft brown-grey bird with a smooth crest; black mask edged in white; pale yellow "
+                        "belly; bright yellow tail tip; small waxy red tips on the wings"),
+    "northern mockingbird": _b("na", [], "slim grey bird; long dark tail with white outer feathers; white wing patches; pale "
+                               "grey belly; thin dark bill; pale yellow eye"),
+    "house finch": _b("na", [], "male with a bright red head, throat and breast; brown streaked back, wings and belly; short "
+                      "thick grey bill"),
+    # --- Svuda / omiljene ptice birdera ---
+    "atlantic puffin": _b("world", ["blue"], "black back, crown and collar; white cheeks and belly; large triangular bill "
+                          "striped red-orange, yellow and blue-grey; dark eye with a red eye-ring; bright orange feet"),
+    "barn owl": _b("world", [], "heart-shaped white face; small black eyes; golden-buff and soft grey upperparts with tiny dark "
+                   "spots; white underparts; long legs", ["halloween"]),
+    "snowy owl": _b("world", [], "big white owl with black-brown spots and bars; round head; bright yellow eyes; feathered "
+                    "feet", ["christmas"]),
+    "crow": _b("world", [], "all glossy black body; heavy black bill; black legs; dark eye", ["halloween"]),
+    "common raven": _b("world", [], "large all-black bird; shaggy throat feathers; massive black bill; wedge-shaped tail",
+                       ["halloween"]),
+    "rock pigeon": _b("world", ["pink", "green"], "soft grey body; iridescent green-and-violet neck; two black bars on each "
+                      "wing; orange eye; red feet"),
+    "barn swallow": _b("world", ["blue"], "glossy dark blue back and wings; brick-red forehead and throat; cream to rusty "
+                       "belly; very long forked tail streamers; tiny bill", ["summer"]),
+    "mallard": _b("world", ["green", "blue"], "male with a glossy green head; thin white neck ring; chestnut-brown breast; "
+                  "pale grey body; yellow bill; orange feet; curled black tail feathers; blue wing patch edged with white"),
+    "shoebill": _b("world", [], "huge slate-grey stork-like bird; giant shoe-shaped pale bill with a hooked tip; pale yellow "
+                   "eyes; serious stare; long legs"),
+    "flamingo": _b("world", ["pink"], "bright pink body; long thin neck and legs; bent pink bill with a black tip; black "
+                   "flight feathers", ["summer"]),
+}
+
+REGION_TAGS = {
+    "uk": ["british birds", "garden birds", "uk birds", "birdwatching"],
+    "na": ["backyard birds", "north american birds", "birdwatching"],
+    "both": ["backyard birds", "garden birds", "birdwatching"],
+    "world": ["birdwatching", "bird lover", "wildlife"],
+}
+
+# Boja pozadine koja se skida: bira se tako da je NEMA na ptici (roze ptica na magenti bi nestala).
+# (id, opis za prompt, negativne boje, regex boja koje se brišu iz scene, zamena)
+CHROMAS = [
+    ("magenta", "PURE SOLID HOT MAGENTA (#FF00FF) CHROMA KEY BACKGROUND", "magenta, hot pink, pink, fuchsia, purple,",
+     re.compile(r"(?i)\b(neon |hot |bright |pastel |light )?(magenta|pink|fuchsia|purple|violet|lilac|lavender)\b"), "red"),
+    ("blue", "PURE SOLID NEON BLUE (#0044FF) CHROMA KEY BACKGROUND", "blue, neon blue, cyan, teal, turquoise,",
+     re.compile(r"(?i)\b(neon |bright |electric |royal |sky |light |pale )?(blue|cyan|teal|turquoise|azure)\b"), "orange"),
+    ("green", "PURE SOLID NEON GREEN (#00FF00) CHROMA KEY BACKGROUND", "green, neon green, lime, chartreuse,",
+     re.compile(r"(?i)\b(neon |bright |lime |light |pale |leafy )?(green|lime|chartreuse|mint)\b"), "orange"),
+]
+_CHROMA_FAMILY = {"magenta": "pink", "blue": "blue", "green": "green"}
+
+
+def bird_info(bird):
+    return BIRDS.get(bird, _b("world", [], f"the real natural colors and markings of a {bird}"))
+
+
+def chroma_for(bird):
+    """Prva pozadina čije boje nema na ptici: magenta -> plava -> zelena."""
+    palette = bird_info(bird)["palette"]
+    for c in CHROMAS:
+        if _CHROMA_FAMILY[c[0]] not in palette:
+            return c
+    return CHROMAS[0]
 
 # ---------------------------------------------------------------------------
 # UGLOVI (kome je dizajn namenjen) I SEZONE
@@ -234,11 +409,11 @@ SEASON_TAGS = {
     "back-to-school": ["back to school", "student gift", "teacher gift"],
 }
 
-ANIMAL_TAG_TEMPLATES = ["{a} lover", "{a} gift idea", "cute {a}", "funny {a}", "{a} mom", "{a} dad", "{a} lovers gift"]
+ANIMAL_TAG_TEMPLATES = ["{a} lover", "funny {a}", "cute {a}", "{a} gift idea", "{a} bird", "{a} lovers gift"]
 PADDING_TAGS = [
-    "animal lover", "animal lover gift", "gift for animal lovers", "funny animal", "cute animal", "cartoon animal",
-    "kawaii", "cute cartoon", "wildlife", "nature lover", "birthday gift", "gift for her", "gift for him",
-    "best friend gift", "funny gift", "novelty gift", "gift idea"
+    "birding", "birdwatching", "bird watcher", "birder gift", "bird lover", "bird lover gift", "funny bird",
+    "cute bird", "birding humor", "bird nerd", "ornithology", "nature lover", "wildlife", "backyard birds",
+    "gift for birders", "birthday gift", "gift for her", "gift for him", "funny gift",
 ]
 
 
@@ -468,7 +643,7 @@ def save_history(history):
 def valid_animal(name):
     name = re.sub(r"[^a-z\s-]", " ", str(name).lower())
     name = re.sub(r"\s+", " ", name).strip(" -")
-    if not (2 <= len(name) <= 24) or len(name.split()) > 3 or any(len(w) < 2 for w in name.split()):
+    if not (2 <= len(name) <= 30) or len(name.split()) > 3 or any(len(w) < 2 for w in name.split()):
         return None
     if set(name.split()) & BANNED_ANIMAL_WORDS:      # cele reči (stari kod: 'are' je odbijao 'hare')
         return None
@@ -497,23 +672,6 @@ def parse_animal_candidates(text):
     return out
 
 
-def animal_prompt(count, forbidden, today, grounded):
-    forbidden_str = ", ".join(forbidden[-300:]) if forbidden else "none"
-    research = ("Use Google Search to find what is selling and trending RIGHT NOW. " if grounded
-                else "Use your knowledge of print-on-demand demand. ")
-    return f"""You are a print-on-demand market researcher for Redbubble (stickers, t-shirts, gifts). Today is {today.strftime('%B %d, %Y')}.
-{research}Suggest {count} animals that buyers actively search for as stickers, t-shirts and gifts.
-Mix: about 40% currently viral or trending animals (last 1-2 months: memes, social media, news, popular culture),
-40% evergreen bestsellers with steady demand (popular dog and cat breeds, cute wild animals), and 20% animals that fit the
-upcoming season. Prefer animals that are visually distinctive and easy to draw as a cute cartoon mascot.
-
-RULES
-- Real species or dog/cat breeds only. NO fictional characters, brands, franchises, named individual animals or memes.
-- Common English name, 1-3 words, lowercase (e.g. "capybara", "red panda", "bernese mountain dog").
-- STRICTLY EXCLUDE these animals (already used): [{forbidden_str}]
-- Return ONLY a JSON array, no other text. Each item: {{"animal": "...", "reason": "max 12 words", "kind": "trending" or "evergreen" or "seasonal"}}"""
-
-
 def google_suggest(query):
     """Google autosuggest: stvarni upiti koje ljudi ukucavaju. Vraća [] ako je nedostupan."""
     try:
@@ -539,67 +697,56 @@ def demand_score(animal):
 
 
 def pick_animals(used, history, today, count):
-    used_keys = {phrase_key(a) for a in used}
+    """Bira PTICE iz spiska BIRDS (samo vrste sa proverenim šarama):
+    - bez ponavljanja dok se spisak ne potroši (onda novi krug; istorija naslova i fraza ostaje, pa dizajni nisu isti)
+    - mešavina regiona: Britanija/Evropa, Severna Amerika, ostalo (sove, vrane, puffin...)
+    - sezonske ptice imaju prednost (npr. crvendać i kardinal pred Božić)
+    - Google autosuggest rangira kandidate po stvarnoj potražnji."""
     failed = history.get("failed", {})
-    seen = set(used_keys)
-    candidates = []
+    used_keys = {phrase_key(a) for a in used}
+    pool = [b for b in BIRDS if phrase_key(b) not in used_keys and failed.get(b, 0) < 3]
+    if len(pool) < count:
+        print("  -> Sve ptice sa spiska su iskorišćene: počinje novi krug.")
+        used.clear()
+        pool = [b for b in BIRDS if failed.get(b, 0) < 3]
+    season_ids = {s["id"] for s in active_seasons(today)}
 
-    def consider(items):
-        for it in items:
-            name = valid_animal(it["animal"])
-            if not name:
-                continue
-            key = phrase_key(name)
-            if key in seen or failed.get(name, 0) >= 3:
-                continue
-            seen.add(key)
-            candidates.append({"animal": name, "reason": it.get("reason", ""), "kind": it.get("kind", ""), "score": None})
+    def seasonal(b):
+        return bool(set(BIRDS[b]["seasons"]) & season_ids)
 
-    want = max(count * 3, 12)
-    for round_no in range(3):
-        if len(candidates) >= want:
+    def bucket(b):
+        r = BIRDS[b]["region"]
+        return r if r in ("uk", "na") else "other"
+
+    random.shuffle(pool)
+    pool.sort(key=lambda b: 0 if seasonal(b) else 1)          # stabilno: sezonske napred, ostalo nasumično
+    want = {"uk": max(1, round(count * 0.4)), "na": max(1, round(count * 0.4))}
+    want["other"] = max(0, count - want["uk"] - want["na"])
+
+    lists = {}
+    for bk in ("uk", "na", "other"):
+        cands = [b for b in pool if bucket(b) == bk][:max(2 * want[bk], want[bk])]
+        if USE_AUTOSUGGEST and cands:
+            print(f"  -> Procenjujem potražnju ({bk}) preko Google autosuggest-a...")
+            scores = {b: (demand_score(b) or 0) + (5 if seasonal(b) else 0) for b in cands}
+            cands.sort(key=lambda b: -scores[b])
+        lists[bk] = cands[:want[bk]]
+
+    chosen = []                                               # naizmenično: uk, na, ostalo, uk, na...
+    while any(lists.values()):
+        for bk in ("uk", "na", "other"):
+            if lists[bk]:
+                chosen.append(lists[bk].pop(0))
+    for b in pool:                                            # dopuna ako nekom regionu fali ptica
+        if len(chosen) >= count:
             break
-        forbidden = list(used) + [c["animal"] for c in candidates]
-        modes = []
-        if USE_SEARCH_GROUNDING and round_no == 0:
-            modes.append(True)
-        modes.append(False)
-        for grounded in modes:
-            try:
-                txt = gemini(animal_prompt(want, forbidden, today, grounded), json_mode=not grounded, grounded=grounded,
-                             validator=lambda t: bool(parse_animal_candidates(t)), label="životinje")
-                before = len(candidates)
-                consider(parse_animal_candidates(txt))
-                print(f"  -> Gemini ({'Google Search' if grounded else 'bez pretrage'}): {len(candidates) - before} novih kandidata")
-                if len(candidates) > before:
-                    break
-            except Exception as e:
-                print(f"  -> Predlog životinja nije uspeo ({'grounded' if grounded else 'običan'}): {redact(e)[:150]}")
+        if b not in chosen:
+            chosen.append(b)
 
-    if candidates:
-        pool = candidates[:want]
-        if USE_AUTOSUGGEST:
-            print("  -> Procenjujem potražnju preko Google autosuggest-a...")
-            for c in pool:
-                c["score"] = demand_score(c["animal"])
-            if any(c["score"] for c in pool):
-                order = {id(c): i for i, c in enumerate(pool)}
-                pool.sort(key=lambda c: (-(c["score"] or 0), order[id(c)]))
-        chosen = pool[:count]
-    else:
-        chosen = []
-
-    if len(chosen) < count:
-        print("  -> Dopunjavam iz rezervnog spiska životinja.")
-        rest = [a for a in FALLBACK_ANIMALS if phrase_key(a) not in seen and failed.get(a, 0) < 3]
-        random.shuffle(rest)
-        for a in rest[:count - len(chosen)]:
-            chosen.append({"animal": a, "reason": "rezervni spisak", "kind": "evergreen", "score": None})
-
-    for c in chosen:
-        score = "" if c["score"] is None else f" | potražnja: {c['score']}"
-        print(f"     • {c['animal']} [{c['kind'] or '?'}]{score} {('- ' + c['reason']) if c['reason'] else ''}")
-    return [c["animal"] for c in chosen]
+    for b in chosen[:count]:
+        info = BIRDS[b]
+        print(f"     • {b} [{info['region']}]{' [sezona]' if seasonal(b) else ''}")
+    return chosen[:count]
 
 
 # ---------------------------------------------------------------------------
@@ -622,9 +769,9 @@ def research_keywords(animal):
     """Stvarne pretrage vezane za životinju (Google autosuggest). Vraća listu fraza."""
     if not USE_AUTOSUGGEST:
         return []
-    seeds = [f"{animal} ", f"{animal} gift", f"{animal} gifts for", f"{animal} lover", f"{animal} mom",
-             f"{animal} dad", f"funny {animal}", f"cute {animal}", f"{animal} shirt", f"{animal} sticker",
-             f"{animal} lovers", f"{animal} themed"]
+    seeds = [f"{animal} ", f"{animal} gift", f"{animal} gifts for", f"{animal} lover", f"funny {animal}",
+             f"cute {animal}", f"{animal} shirt", f"{animal} sticker", f"{animal} lovers", f"{animal} bird",
+             f"{animal} birding", f"{animal} christmas"]
     found, seen = [], set()
     for seed in seeds:
         for s in google_suggest(seed):
@@ -638,27 +785,38 @@ def research_keywords(animal):
 
 
 # ---------------------------------------------------------------------------
-# 3) KONCEPTI PO FORMULI IZ TVOJIH PRODAJA
-#    - "idiom":     poznat engleski idiom nacrtan DOSLOVNO sa izabranom životinjom + relatable humor (ADHD, introverti, umor...)
-#    - "character": životinja sa jakim karakterom/radnjom u upečatljivim bojama, tekst opcion
+# 3) KONCEPTI: formula iz tvojih prodaja, prilagođena pticama
+#    - "idiom":     idiom o pticama nacrtan DOSLOVNO + relatable humor (introverti, umor, kafa...)
+#    - "birder":    šala koju razumeju samo birderi (lifer, life list, dipped...)
+#    - "character": ptica sa karakterom ("Birds with opinions"), rečenica u oblačiću ili bez teksta
 # ---------------------------------------------------------------------------
-BEST_SELLERS = """- "My Ducks Are Not In A Row - Funny Chaos ADHD Mental Health Meme" (41 sales, best seller): a well-known idiom drawn LITERALLY with animals + relatable ADHD / chaos humor
-- "Danger Candy Neon Poison Dart Frog Aesthetic" (16 sales): no phrase, strong neon colors
-- "Lazy Turtle", "Winter Assassin White Stoat Hiding", "Majestic Running Basset Hound Flying Ears": animals with strong character and action"""
+BEST_SELLERS = """Proven formula from the owner's other animal shop (real sales data):
+- "My Ducks Are Not In A Row - Funny Chaos ADHD Mental Health Meme" (41 sales, best seller): a well-known idiom drawn LITERALLY with birds + relatable chaos humor
+- "Lazy Turtle", "Winter Assassin White Stoat Hiding", "Majestic Running Basset Hound Flying Ears": animals with strong character and action
+This shop: "Feathered Gossip - Birds with opinions." Sassy, nosy, dramatic little birds and in-jokes for birdwatchers.
+Buyers: birdwatchers (a hobby growing fast with Gen Z and millennials), backyard and garden bird lovers, and people buying them a gift."""
 
 CONCEPT_TYPES = {
     "idiom": ("IDIOM DOSLOVNO",
-              "a well-known English idiom, saying or pun drawn LITERALLY with the {animal} (like the best seller where ducks are "
-              "literally not in a row: an idiom acted out by the animal, or a saying built on the animal's name or trait) + "
-              "relatable humor about the BUYER: ADHD, introverts, tiredness, chaos, coffee, anxiety, Mondays, procrastination, "
-              "social battery. The buyer must think 'this is so me'. The animal is {animal}."),
-    "character": ("ZIVOTINJA SA KARAKTEROM",
-                  "the animal {animal} with a strong character or action (lazy, grumpy, hiding, sneaking, running fast, "
-                  "dramatic, chaotic) in bold eye-catching or neon colors. Text is optional: none, or a 2-4 word label."),
+              "a well-known English idiom or saying about birds drawn LITERALLY with the {animal} (night owl, early bird, "
+              "winging it, a little bird told me, ruffled feathers, birds of a feather, bird brain, odd bird, empty nest, "
+              "pecking order, free as a bird, under my wing...) or a pun on this species' name or real behavior + relatable "
+              "humor about the BUYER: introverts, tiredness, coffee, anxiety, overthinking, Mondays, social battery, chaos. "
+              "The buyer must think 'this is so me'. The bird is {animal}."),
+    "birder": ("BIRDER SALA",
+               "an insider joke only real birdwatchers get, starring the {animal}: lifer, life list, dipped (missed the "
+               "bird), twitching, first of year, dawn chorus, patch birding, spark bird, binoculars always ready, the bird "
+               "app, waiting hours for a bird, stopping mid-sentence for birdsong, little brown birds you can't identify, "
+               "partners waiting in the car. The text is about the BIRDER (the buyer), never a generic 'I love birds'."),
+    "character": ("PTICA SA KARAKTEROM",
+                  "the {animal} as a character with a strong opinion or attitude based on REAL behavior of this species "
+                  "(territorial robin, loud wren, nosy blue tit, patient heron, collector magpie, judgy owl...). Brand voice: "
+                  "'Birds with opinions.' Text is optional: none, or 1-6 words the bird says in a speech bubble."),
 }
-ANIMALS_PER_RUN = env_int("ANIMALS_PER_RUN", 5)
-DESIGNS_PER_ANIMAL = env_int("DESIGNS_PER_ANIMAL", 5)
-IDIOMS_PER_ANIMAL = min(DESIGNS_PER_ANIMAL, env_int("IDIOMS_PER_ANIMAL", 3))   # ostatak su "karakter" dizajni
+ANIMALS_PER_RUN = env_int("BIRDS_PER_RUN", env_int("ANIMALS_PER_RUN", 5))
+DESIGNS_PER_ANIMAL = env_int("DESIGNS_PER_BIRD", env_int("DESIGNS_PER_ANIMAL", 5))
+IDIOMS_PER_ANIMAL = min(DESIGNS_PER_ANIMAL, env_int("IDIOMS_PER_BIRD", 2))
+BIRDER_PER_ANIMAL = min(DESIGNS_PER_ANIMAL - IDIOMS_PER_ANIMAL, env_int("BIRDER_PER_BIRD", 2))   # ostatak su "karakter"
 MIN_DESIGNS_PER_ANIMAL = min(3, DESIGNS_PER_ANIMAL)
 # Tvoji postojeći hitovi: bot ih nikad ne pravi ponovo, samo varijacije
 OWN_BESTSELLER_TITLES = ["My Ducks Are Not In A Row - Funny Chaos ADHD Mental Health Meme",
@@ -670,16 +828,23 @@ OWN_BESTSELLER_TEXTS = ["MY DUCKS ARE NOT IN A ROW", "DANGER CANDY", "WINTER ASS
 # Psovke (i cenzurisane: f*ck, sh!t...) ne idu u dizajn, naslov, opis ni tagove
 PROFANITY_RE = re.compile(
     r"(?i)(?<![a-z])(f+[u*@#!]+c+k+\w*|f\*+k\w*|fck\w*|sh[i1!*]+t+\w*|bitch\w*|b\*+tch\w*|ass ?hole\w*|dick\w*|cunt\w*|"
-    r"damn\w*|wtf|stfu|af|bastard\w*|piss\w*|crap\w*|bullsh\w*|motherf\w*|hell no|go to hell)(?![a-z])")
+    r"damn\w*|wtf|stfu|af|bastard\w*|piss\w*|crap\w*|bullsh\w*|motherf\w*|hell no|go to hell|"
+    # PTICE: dvosmislene igre reči sa imenima ptica (tit, booby, cock, shag, pecker...)
+    r"tits|titties|boob\w*|cocks?|shags?|shagging|pecker\w*|nice rack|horny|sexy|thicc)(?![a-z])")
 
 SATURATED_RE = re.compile(
     r"(?i)\b(not my circus|not my monkeys|keep calm|live laugh love|this is fine|good vibes only|but first coffee|"
     r"i do what i want|nope not today|resting [a-z]+ face|hangry|wine o.?clock|what the duck|duck it|"
-    r"cute but psycho|i('?m| am) just here for|my therapist)\b")
+    r"cute but psycho|i('?m| am) just here for|my therapist|"
+    # PTICE: fraze kojih je Redbubble već pun (videli smo ih u pretrazi) ili su stihovi pesama / TV
+    r"easily distracted by birds|bird nerd|rather be birding|can'?t talk,? (now,? )?i'?m birding|sorry i'?m late,? i saw a bird|"
+    r"this nerd watches birds|murder is wrong|birds aren'?t real|bird is the word|put a bird on it|three little birds|"
+    r"free ?bird|rockin'? robin|blackbird singing|crazy bird lady|just a girl who loves birds)\b")
 
 TYPE_PADDING = {
-    "idiom": ["funny meme", "relatable humor", "funny saying", "sarcastic", "mental health", "introvert"],
-    "character": ["funny animal", "cute animal", "bold colors", "animal lover gift", "cartoon animal"],
+    "idiom": ["funny saying", "relatable humor", "introvert", "funny bird", "bird pun", "sarcastic"],
+    "birder": ["birding humor", "birdwatching", "bird watcher", "birder gift", "gift for birders", "life list"],
+    "character": ["funny bird", "cute bird", "birds with opinions", "bird lover", "cartoon bird"],
 }
 
 
@@ -687,8 +852,9 @@ def research_theme_keywords():
     """Stvarne pretrage za teme koje ti prodaju (ADHD, introvert, anksioznost...). Vraća [] ako autosuggest ne radi."""
     if not USE_AUTOSUGGEST:
         return []
-    seeds = ["adhd sticker", "funny adhd", "introvert sticker", "anxiety sticker", "mental health sticker",
-             "funny coffee sticker", "chaos sticker", "funny idiom", "funny animal sticker", "sarcastic sticker"]
+    seeds = ["birding gift", "bird watching gift", "funny birding", "birder", "birdwatcher", "bird lover gift",
+             "funny bird sticker", "night owl", "introvert sticker", "funny coffee sticker", "backyard birds",
+             "garden birds"]
     found, seen = [], set()
     for seed in seeds:
         for s in google_suggest(seed):
@@ -699,7 +865,7 @@ def research_theme_keywords():
                 seen.add(phrase_key(k))
                 found.append(k)
         time.sleep(0.3)
-    print(f"  -> Pronađeno {len(found)} stvarnih pretraga za teme (ADHD, introvert...).")
+    print(f"  -> Pronađeno {len(found)} stvarnih pretraga za teme (birding, night owl, introvert...).")
     return found[:30]
 
 
@@ -708,7 +874,12 @@ def build_concept_prompt(slots, theme_kw, animal_kw, avoid_titles, avoid_texts, 
     for s in slots:
         label = CONCEPT_TYPES[s["type"]][1].replace("{animal}", s.get("animal") or "")
         fixed = f' (animal = "{s["animal"]}")' if s.get("animal") else ""
-        slot_lines.append(f'- slot "{s["id"]}" type={s["type"]}{fixed}: {label}')
+        bird = s.get("animal") or ""
+        chroma = chroma_for(bird)
+        slot_lines.append(f'- slot "{s["id"]}" type={s["type"]}{fixed}: {label}\n'
+                          f'  REAL MARKINGS of the {bird} (never contradict them): {bird_info(bird)["marks"]}.\n'
+                          f'  Props must NOT use these colors (the background is {chroma[0]} and would erase them): '
+                          f'{chroma[2].rstrip(",")}.')
     kw_lines = "\n".join(f"- {k}" for k in theme_kw[:25]) or "- (live data unavailable)"
     for a, kws in animal_kw.items():
         if kws:
@@ -719,11 +890,11 @@ def build_concept_prompt(slots, theme_kw, animal_kw, avoid_titles, avoid_texts, 
     titles_block = "\n".join(f"- {t}" for t in avoid_titles[-60:]) or "- (none)"
     texts_block = ", ".join(avoid_texts[-150:]) or "(none)"
     fix_block = ("\nFIX THESE PROBLEMS FROM YOUR PREVIOUS ANSWER:\n" + "\n".join(f"- {f}" for f in feedback[:15]) + "\n") if feedback else ""
-    return f"""You are the creative director and SEO expert of a Redbubble sticker and t-shirt shop with animals. Today is {today.strftime('%B %d, %Y')}.
+    return f"""You are the creative director and SEO expert of "Feathered Gossip", a Redbubble sticker and t-shirt shop with funny birds. Today is {today.strftime('%B %d, %Y')}.
 
-WHAT ACTUALLY SELLS IN THIS SHOP (real sales data):
+WHAT SELLS:
 {BEST_SELLERS}
-People buy stickers that say something about THEM, not just a picture of an animal.
+People buy stickers that say something about THEM, not just a picture of a bird.
 
 REAL GOOGLE SEARCHES (use for tags and wording when they fit; ignore anything off-topic):
 {kw_lines}
@@ -735,37 +906,43 @@ ALREADY USED, never repeat or paraphrase these titles:
 {titles_block}
 ALREADY USED phrases (never reuse or closely imitate): {texts_block}
 {fix_block}
-DESIGN RULES: semi-realistic cartoon illustration (real proportions, real coat colors and markings of the species, fur texture)
-with a thick black outline around everything; the text ALWAYS sits in a ribbon banner or
-rectangle with a thick black outline at the bottom. Few details, strong contrasting flat colors, no thin lines, no gradients.
-Text 2-6 words, big and readable, it must work at thumbnail size (3-4 cm). The animal has a clear facial expression or action.
-FORBIDDEN: brands, characters from movies/cartoons/games, celebrity names, trademarked or overused phrases (e.g. "Not my circus,
-not my monkeys", "Keep calm", "Live laugh love", "This is fine"), copying other people's designs, profanity or swear words of any
-kind, also censored ones (no "f*ck", "sh*t", "zero f*cks given", "AF") - the humor must stay clean and family-friendly.
+DESIGN RULES (brand style): ONE cute, chubby, round cartoon bird of the given species with the REAL colors and markings
+listed for it (birdwatchers notice every mistake), flat vector look, thick dark navy outline around everything, flat solid
+colors, no gradients, no texture. For idiom and birder concepts the text sits in a ribbon banner with a thick dark outline at
+the bottom. For character concepts the text (if any) is in a white speech bubble with a thick dark outline next to the bird's
+head. Few details, simple props, no thin lines. Text 2-6 words, big and readable at thumbnail size (3-4 cm). The bird has a
+clear facial expression or action. Small props are fine (coffee cup, binoculars, tiny phone, notebook, branch).
+FORBIDDEN: brands, apps and organizations (eBird, Merlin, Audubon, RSPB...), sports teams (never plural team-like bird names such
+as cardinals, blue jays, orioles, ravens, eagles, falcons, hawks, penguins, pelicans - always singular), characters from
+movies/cartoons/games (Tweety, Woody Woodpecker, Road Runner, Duolingo owl, Angry Birds...), song lyrics, celebrity names,
+trademarked or overused phrases (e.g. "Easily distracted by birds", "Bird nerd", "I'd rather be birding", "Sorry I'm late I saw a
+bird", "Birds aren't real", "Keep calm", "This is fine"), copying other people's designs, profanity of any kind, also censored
+ones, and NO double meanings or sexual puns on bird names (tit, booby, cock, shag, woodpecker, swallow) - the humor must stay
+clean and family-friendly. Never anything that harms birds (no hunting, no cages, no dead birds).
 
 FIELDS FOR EVERY CONCEPT
 - slot: copy the slot id exactly. type: copy the type.
-- animal: copy the given animal.
+- animal: copy the given bird species exactly.
 - concept: one sentence: what is seen and why it is funny.
 - text: the exact phrase on the design, ENGLISH, 2-6 words, max 32 characters, only letters, numbers, spaces, apostrophes, ! and ?.
-  REQUIRED for idiom. For character: "" (no text) or 2-4 words.
-- visual_scene: max 35 words, English: exactly what is drawn: the animal(s), the LITERAL depiction of the phrase, poses, facial
-  expressions, props and their colors (state every color). No background, no frame, no text in the scene.
-  COLOR RULE: never use magenta, pink, fuchsia, purple or violet anywhere (the background is magenta and would erase them);
-  use orange, yellow, red, navy blue, white, green, teal, brown or grey instead.
+  REQUIRED for idiom and birder. For character: "" (no text) or 1-6 words the bird says.
+- visual_scene: max 35 words, English: exactly what is drawn: the bird (with its real markings), the LITERAL depiction of the
+  phrase, pose, facial expression, props and their colors (state every color). No background, no frame, no text in the scene.
+  Follow the color rule of the slot.
 - title: max 70 characters, format "<Phrase or character> - <3-6 words a buyer searches>", modeled on
-  "My Ducks Are Not In A Row - Funny Chaos ADHD Mental Health Meme". Never the words sticker, design, shirt, t-shirt, hoodie, poster, Redbubble.
-- primary_keyword: main search phrase, 2-4 words, lowercase (e.g. "adhd duck", "introvert cat").
-- tags: exactly 15 lowercase tags (1-3 words) that a buyer would type: the phrase and its short parts, the animal, the theme
-  (adhd, introvert, anxiety, mental health, coffee lover...), humor words (funny, sarcastic, meme), who it is for. No filler words
-  (art, design, cool, new, awesome, trending, best), no brands, and NO product names (sticker, shirt, t-shirt, tee, hoodie, mug,
-  poster, case, bag, apparel...).
+  "My Ducks Are Not In A Row - Funny Chaos ADHD Mental Health Meme" (e.g. "Dipped Again - Funny Birding Humor Blue Tit Birder").
+  The species name must be in the title. Never the words sticker, design, shirt, t-shirt, hoodie, poster, Redbubble.
+- primary_keyword: main search phrase, 2-4 words, lowercase (e.g. "funny blue tit", "birding humor", "night owl introvert").
+- tags: exactly 15 lowercase tags (1-3 words) that a buyer would type: the phrase and its short parts, the species, birding words
+  (birding, birdwatching, bird watcher, birder gift, backyard birds / garden birds), the theme (introvert, coffee lover...), humor
+  words (funny, sarcastic), who it is for. No filler words (art, design, cool, new, awesome, trending, best), no brands, and NO
+  product names (sticker, shirt, t-shirt, tee, hoodie, mug, poster, case, bag, apparel...).
 - description: SEO description for Google, 2-3 natural sentences, 220-420 characters. The FIRST sentence (within the first 150
-  characters) must contain the exact phrase from "text" (if there is one), the animal name and the primary_keyword, written
+  characters) must contain the exact phrase from "text" (if there is one), the species name and the primary_keyword, written
   naturally (Google shows only the start). Then say what the artwork shows and who will relate to it, and naturally work in 2-3
-  related phrases people search (e.g. "adhd humor", "introvert gift", "funny mental health meme", "gift for coworker", "<animal>
-  lover"). Readable for humans, not a keyword list, no repeated words. NEVER name products or where to put it (no sticker, shirt,
-  tee, hoodie, mug, poster, laptop, water bottle, notebook...). No prices, shipping, quality claims, hashtags, emojis or URLs.
+  related phrases people search (e.g. "birding humor", "gift for birders", "bird watcher gift", "<species> lover", "backyard birds").
+  Readable for humans, not a keyword list, no repeated words. NEVER name products or where to put it (no sticker, shirt, tee,
+  hoodie, mug, poster, laptop, water bottle, notebook...). No prices, shipping, quality claims, hashtags, emojis or URLs.
 
 Return ONLY a JSON array with exactly {len(slots)} objects with the keys: slot, type, animal, concept, text, visual_scene, title, primary_keyword, tags, description."""
 
@@ -918,23 +1095,23 @@ def clean_concept(raw, slot, ctx):
     concept = re.sub(r"\s+", " ", str(raw.get("concept", ""))).strip()
     text = clean_banner_text(raw.get("text", ""))
     words = text.split()
-    if ctype == "idiom":
+    if ctype in ("idiom", "birder"):
         if not (2 <= len(words) <= 6) or not (5 <= len(text) <= 32):
             issues.append(f"text '{text}' mora imati 2-6 reči i najviše 32 karaktera")
-    elif text and (not (1 <= len(words) <= 4) or len(text) > 26):
-        issues.append(f"text '{text}' za character mora biti prazan ili 2-4 reči")
+    elif text and (not (1 <= len(words) <= 6) or len(text) > 32):
+        issues.append(f"text '{text}' za character mora biti prazan ili 1-6 reči (najviše 32 karaktera)")
     if text and canon(text) in ctx["texts"]:
         issues.append(f"text '{text}' je već korišćen")
 
-    style = "lenta"
+    style = "lenta" if ctype in ("idiom", "birder") else ("oblačić" if text else "bez teksta")
 
     scene = re.sub(r"\s+", " ", str(raw.get("visual_scene", ""))).strip().rstrip(".")
     if len(scene) < 25:
         issues.append("visual_scene je prekratak ili ga nema")
     elif not mentions_animal(scene, animal):
         scene = f"a cartoon {animal}: {scene}"
-    if not PINK_ANIMAL_RE.search(animal) or "guinea" in animal:     # magenta pozadina: roze delovi bi nestali sa njom
-        scene = re.sub(r"(?i)\b(neon |hot |bright |pastel )?(magenta|pink|fuchsia|purple|violet|lilac|lavender)\b", "red", scene)
+    _, _, _, chroma_words, replacement = chroma_for(animal)
+    scene = chroma_words.sub(replacement, scene)     # boja pozadine ne sme biti na rekvizitima (nestala bi sa pozadinom)
 
     title = clean_title(raw.get("title", ""), animal)
     if len(title.split()) < 3 or len(title) < 15:
@@ -972,7 +1149,8 @@ def clean_concept(raw, slot, ctx):
             description = shorten(f"{lead}. {description}", DESC_MAX)
     shown = set(tokens(scene)) | set(tokens(text)) | set(tokens(concept))
     tags = clean_tags(raw.get("tags", []), animal, title, ctx["keywords"].get(animal, []) + ctx["theme_keywords"],
-                      extra_pools=[TYPE_PADDING.get(ctype, [])], allowed_extra=shown)
+                      extra_pools=[REGION_TAGS.get(bird_info(animal)["region"], []), TYPE_PADDING.get(ctype, [])],
+                      allowed_extra=shown)
 
     blocked = find_blocked(" ".join([title, description, text, scene, concept, pk]))
     if blocked:
@@ -1050,35 +1228,43 @@ def fal_headers():
 
 
 def pick_chroma(design):
-    """Kao ranije: uvek MAGENTA pozadina; NEON PLAVA samo za prirodno roze životinje (flamingo, svinja, aksolotl...).
-    Zato dizajn ne sme da ima roze/ljubičaste delove (scena ih menja u crveno, negativni prompt ih zabranjuje)."""
-    if PINK_ANIMAL_RE.search(design["animal"]) and "guinea" not in design["animal"]:
-        return ("PURE SOLID NEON BLUE (#0044FF) CHROMA KEY BACKGROUND", "blue, neon blue, cyan, teal,", None)
-    return ("PURE SOLID HOT MAGENTA (#FF00FF) CHROMA KEY BACKGROUND", "magenta, hot pink, pink, fuchsia, purple,", None)
+    """Boja pozadine koje NEMA na ptici: magenta (većina ptica), plava (roze ptice: flamingo, long-tailed tit...),
+    zelena (ptice koje imaju i roze i plavo: bullfinch, jay, chaffinch). Skidanje po boji radi sa bilo kojom od njih."""
+    _, chroma_bg, color_negative, _, _ = chroma_for(design["animal"])
+    return chroma_bg, color_negative, None
 
 
 def fal_text_to_image(design):
-    """Z-Image Turbo: polu-realistična ilustracija (prave proporcije, prave šare vrste, tekstura krzna), debela CRNA kontura oko svega,
-    tekst UVEK u lenti/pravougaoniku sa crnom ivicom, izolovano na jednobojnoj pozadini koju BiRefNet lako skine.
-    Bez reči 'sticker'/'die-cut': zbog njih je generator crtao beli okvir nalepnice koji posle ostane oko dizajna."""
+    """Z-Image Turbo u stilu brenda Feathered Gossip: slatka punačka ptica, debela tamnoplava kontura, ravne boje,
+    TAČNE šare vrste; izolovano na jednobojnoj pozadini koja se posle skida po boji.
+    Bez reči 'sticker'/'die-cut' u promptu: beli obrub nalepnice dodaje KOD (add_sticker_border), uvek isti i čist."""
     chroma_bg, color_negative, _ = pick_chroma(design)
+    bird = design["animal"]
+    marks = bird_info(bird)["marks"]
     text = design["text"]
     q = '"' if "'" in text else "'"
-    if text:
-        banner = (f"Banner & Text: Positioned strictly at the very bottom below the animal, there is a horizontal ribbon banner "
-                  f"or rectangle filled with solid bright yellow, orange, white or red with a thick black outline, containing bold "
-                  f"black typography reading exactly {q}{text}{q}. This is the ONLY text in the image, spelled exactly like that, "
+    if text and design.get("style") == "oblačić":
+        banner = (f"Speech bubble & Text: next to the bird's head there is ONE white speech bubble with a thick dark navy outline, "
+                  f"its tail pointing at the bird's beak and touching the bird, containing bold dark navy rounded typography "
+                  f"reading exactly {q}{text}{q}. This is the ONLY text in the image, spelled exactly like that, all letters "
+                  f"inside the bubble. ")
+    elif text:
+        banner = (f"Banner & Text: Positioned strictly at the very bottom below the bird, there is a horizontal ribbon banner "
+                  f"filled with solid white or bright yellow with a thick dark navy outline, containing bold dark navy rounded "
+                  f"typography reading exactly {q}{text}{q}. This is the ONLY text in the image, spelled exactly like that, "
                   f"all letters inside the banner. ")
     else:
-        banner = "There is NO text, letters, numbers or banner anywhere. "
+        banner = "There is NO text, letters, numbers, speech bubble or banner anywhere. "
     image_prompt = (
-        "A standalone semi-realistic cartoon illustration graphic for a t-shirt design. "
-        f"Subject: A {design['animal']} drawn with true-to-life proportions, anatomy and the real natural coat colors and markings "
-        f"of the species: {design['visual_scene']}. Small natural eyes and a subtle funny expression, still recognisable as the real animal. "
-        "Style: semi-realistic cel-shaded illustration, detailed fur or feather texture drawn with crisp jagged strokes, "
-        "2-3 tone shading, solid saturated colors, clean crisp sharp edges, no blur. "
-        + ("Outline: The entire illustration, character, props, and banner MUST have a thick solid bold black outline enclosing every single shape. "
-           if text else "Outline: The entire illustration, character and props MUST have a thick solid bold black outline enclosing every single shape. ")
+        "A standalone flat vector cartoon illustration for a t-shirt design. "
+        f"Subject: ONE cute, chubby, round {bird} with the accurate colors and markings of the real species: {marks}. "
+        f"Scene: {design['visual_scene']}. Friendly round dark eyes with a small white highlight and a clear funny expression; "
+        "a birdwatcher must instantly recognise the species. "
+        "Style: flat vector illustration, simple rounded shapes, flat solid saturated colors, minimal shading, no texture, "
+        "clean crisp sharp edges, no blur. "
+        "Outline: the bird, every prop"
+        + ((" and the speech bubble" if design.get("style") == "oblačić" else " and the banner") if text else "")
+        + " MUST have a thick solid very dark navy (almost black) outline enclosing every single shape. "
         + banner
         + f"Composition: centered, fully visible, the artwork is completely isolated on a {chroma_bg}."
     )
@@ -1086,8 +1272,8 @@ def fal_text_to_image(design):
         f"{color_negative} white background, black background, transparent background, gradient background, "
         "scenery, sticker, sticker peel, die cut, white border, white outline, white edge, sticker border, badge, circle frame, "
         "circular frame, round emblem, border, frame, drop shadow, 3d render, photorealistic, photograph, glow, blurry edges, "
-        "chibi, kawaii, big anime eyes, oversized head, mascot proportions, "
-        "brush strokes, watermark, signature, messy edges, floating text outside banner, curved text, arched text, "
+        "detailed feather texture, fur, anime eyes, human hands, extra legs, extra wings, two heads, multiple birds, "
+        "wrong species colors, brush strokes, watermark, signature, messy edges, floating text, curved text, arched text, "
         "ground, floor, ground shadow, cast shadow, puddle, dust cloud, "
         "misspelled text, extra words, cropped, cut off, beige, pastels, washed out colors"
     )
@@ -1104,15 +1290,23 @@ def fal_remove_background(image_url):
     return http_request("GET", transparent_url).content
 
 
-def check_design_text(img_bytes, expected):
+def check_design_text(img_bytes, expected, bird=None):
     """Gemini vision čita SAV tekst na slici: mora biti tačno traženi (ili nikakav, ako dizajn nema tekst).
-    Greška API-ja = prolazi (ne blokira posao)."""
+    Ako je data ptica, proverava i njene šare (birderi primete pogrešnu vrstu). Greška API-ja = prolazi (ne blokira posao)."""
     try:
         fmt = (Image.open(BytesIO(img_bytes)).format or "PNG").upper()
         mime = "image/jpeg" if fmt in ("JPEG", "JPG") else "image/png"
-        prompt = ('Look at this sticker illustration. Read ALL text visible in the image exactly as written.\n'
-                  'Return ONLY JSON: {"text": "<all text you read, or empty>", "major_defect": true/false (extra heads or '
-                  'limbs, merged bodies, cropped subject, unreadable letters), "defect": "<short description or empty>"}')
+        species = ""
+        if bird:
+            species = (f'\nThe bird should be a {bird} with these real markings: {bird_info(bird)["marks"]}. '
+                       'It is a cartoon, so simplified shapes are fine, but "species_ok" is false if a KEY marking is clearly '
+                       'wrong or missing (wrong main colors, missing face pattern, wrong bill) so a birdwatcher would say it is '
+                       'the wrong bird.')
+        prompt = ('Look at this sticker illustration. Read ALL text visible in the image exactly as written.' + species + '\n'
+                  'Return ONLY JSON: {"text": "<all text you read, or empty>", '
+                  + ('"species_ok": true/false, ' if bird else '')
+                  + '"major_defect": true/false (extra heads, legs, wings or eyes, merged bodies, cropped subject, '
+                  'unreadable letters), "defect": "<short description or empty>"}')
         txt = gemini(prompt, json_mode=True, image=(img_bytes, mime),
                      validator=lambda t: isinstance(extract_json(t), dict), label="provera slike")
         data = extract_json(txt)
@@ -1121,6 +1315,8 @@ def check_design_text(img_bytes, expected):
             ok = read == canon(expected)        # tačno slovo po slovo: "BRAAN" umesto "BRAIN" mora da padne
         else:
             ok = len(read) <= 2
+        if bird and data.get("species_ok") is False:
+            return False, f"šare ne odgovaraju vrsti {bird}: {data.get('defect', '')}".strip()
         if not ok or data.get("major_defect") is True:
             return False, f"očekivano '{expected or '(bez teksta)'}', pročitano '{data.get('text', '')}' {data.get('defect', '')}".strip()
         return True, ""
@@ -1222,12 +1418,31 @@ def split_pieces(img, size=384):
 _ALPHA_LUT = [0] * 100 + [round((i - 100) * 255 / 55) for i in range(100, 155)] + [255] * 101
 
 
-def to_canvas(img, size):
-    """Transparentna RGBA slika -> centrirano na platno size x size, glatke ivice, bez obojenog oboda od pozadine."""
+def add_sticker_border(img, frac=0.022):
+    """Beli obrub nalepnice oko celog dizajna, kao na avataru i coveru shopa (uvek iste debljine i čist,
+    za razliku od obruba koji crta generator). Radi na radnoj rezoluciji (~1024 px), pre uvećanja na TARGET_SIZE."""
+    img = img.convert("RGBA")
+    w, h = img.size
+    width = max(4, round(max(w, h) * frac))                    # željena debljina obruba u pikselima
+    blur = max(2, round(width / 1.86))                         # zamućenje + prag ~= okrugla dilatacija za 'width'
+    pad = width + 2 * blur
+    canvas = Image.new("RGBA", (w + 2 * pad, h + 2 * pad), (0, 0, 0, 0))
+    canvas.paste(img, (pad, pad))
+    shape = canvas.getchannel("A").point(lambda p: 255 if p > 100 else 0)
+    grown = shape.filter(ImageFilter.GaussianBlur(blur)).point(lambda p: 255 if p > 8 else 0)
+    smooth = grown.filter(ImageFilter.GaussianBlur(1.2)).point(_ALPHA_LUT)
+    white = Image.new("RGBA", canvas.size, (255, 255, 255, 255))
+    white.putalpha(smooth)
+    return Image.alpha_composite(white, canvas)
+
+
+def to_canvas(img, size, edge_rgb=(0, 0, 0)):
+    """Transparentna RGBA slika -> centrirano na platno size x size, glatke ivice, bez obojenog oboda od pozadine.
+    edge_rgb: boja poluprovidnih ivičnih piksela (crna kao ranije; bela kad postoji beli obrub nalepnice)."""
     img = img.convert("RGBA")
     r, g, b, a = img.split()
     a = a.filter(ImageFilter.MinFilter(3))                       # 1px erozija: skida ostatak pozadine
-    black = Image.new("RGB", img.size, (0, 0, 0))
+    black = Image.new("RGB", img.size, edge_rgb)
     rgb = Image.composite(Image.merge("RGB", (r, g, b)), black, a.point(lambda p: 255 if p >= 250 else 0))
     bbox = a.point(lambda p: 255 if p > 40 else 0).getbbox()
     if bbox:
@@ -1252,7 +1467,7 @@ def make_design_image(design, out_path):
             url, original = fal_text_to_image(design)
             ok, note = (True, "")
             if VERIFY_IMAGE_TEXT:
-                ok, note = check_design_text(original, design["text"])
+                ok, note = check_design_text(original, design["text"], design["animal"])
                 if not ok and attempt < IMAGE_ATTEMPTS:
                     print(f"    ⟳ Tekst/anatomija nisu u redu ({note}). Pokušaj {attempt + 1}/{IMAGE_ATTEMPTS}...")
                     continue
@@ -1270,7 +1485,9 @@ def make_design_image(design, out_path):
                         print(f"    ⟳ Posle skidanja pozadine ({method}) tekst nije ceo ({note2}). Pokušaj {attempt + 1}/{IMAGE_ATTEMPTS}...")
                         continue
                     ok, note = False, f"posle skidanja pozadine: {note2}"
-            canvas = to_canvas(transparent, TARGET_SIZE)
+            if STICKER_BORDER:
+                transparent = add_sticker_border(transparent)
+            canvas = to_canvas(transparent, TARGET_SIZE, edge_rgb=(255, 255, 255) if STICKER_BORDER else (0, 0, 0))
             canvas.save(out_path, "PNG", compress_level=6)
             del canvas, transparent
             size_mb = os.path.getsize(out_path) / 1024 / 1024
@@ -1417,23 +1634,25 @@ def main():
     used = load_used_animals()
     history = load_history()
     history.setdefault("designs", [])
-    print(f"🤖 [FAZA 1] Biram {ANIMALS_PER_RUN} životinja (trend + evergreen + stvarna potražnja)...")
-    animals = pick_animals(used, history, today, ANIMALS_PER_RUN + 3)     # +3 rezerve: ako neka životinja padne, uskače sledeća
+    n_character = DESIGNS_PER_ANIMAL - IDIOMS_PER_ANIMAL - BIRDER_PER_ANIMAL
+    print(f"🤖 [FAZA 1] Biram {ANIMALS_PER_RUN} ptica (Britanija + Severna Amerika + omiljene, sezona, stvarna potražnja)...")
+    animals = pick_animals(used, history, today, ANIMALS_PER_RUN + 3)     # +3 rezerve: ako neka ptica padne, uskače sledeća
     print(f"🎯 Lista za danas: {', '.join(a.upper() for a in animals[:ANIMALS_PER_RUN])}  "
           f"(rezerve: {', '.join(animals[ANIMALS_PER_RUN:]) or 'nema'})  "
-          f"(po životinji: {IDIOMS_PER_ANIMAL} idiom + {DESIGNS_PER_ANIMAL - IDIOMS_PER_ANIMAL} karakter)")
-    print("🔎 Istražujem stvarne pretrage za teme (ADHD, introvert...)...")
+          f"(po ptici: {IDIOMS_PER_ANIMAL} idiom + {BIRDER_PER_ANIMAL} birder + {n_character} karakter)")
+    print("🔎 Istražujem stvarne pretrage za teme (birding, night owl, introvert...)...")
     theme_kw = research_theme_keywords()
 
     results, done, failures = [], 0, []
     for animal in animals:
         if done >= ANIMALS_PER_RUN:
             break
-        print(f"\n--- Životinja {done + 1}/{ANIMALS_PER_RUN}: {animal.upper()} ---")
+        print(f"\n--- Ptica {done + 1}/{ANIMALS_PER_RUN}: {animal.upper()} ---")
         try:
             animal_kw = {animal: research_keywords(animal)}
             slots = ([{"type": "idiom", "animal": animal} for _ in range(IDIOMS_PER_ANIMAL)]
-                     + [{"type": "character", "animal": animal} for _ in range(DESIGNS_PER_ANIMAL - IDIOMS_PER_ANIMAL)])
+                     + [{"type": "birder", "animal": animal} for _ in range(BIRDER_PER_ANIMAL)]
+                     + [{"type": "character", "animal": animal} for _ in range(n_character)])
             for i, s_ in enumerate(slots, 1):
                 s_["id"] = f"s{i}"
             designs = generate_concepts(slots, theme_kw, animal_kw, today, history)
@@ -1477,7 +1696,7 @@ def main():
                                                "title": m["title"], "text": m["text"], "primary_keyword": m["primary_keyword"]})
                 save_history(history)
         except Exception as e:
-            print(f"❌ Greška na životinji {animal}: {redact(e)[:200]} -> uskače rezervna životinja")
+            print(f"❌ Greška na ptici {animal}: {redact(e)[:200]} -> uskače rezervna ptica")
             failures.append(f"{animal} preskočena: {redact(e)[:120]}")
             if not METADATA_ONLY:
                 history["failed"][animal] = history["failed"].get(animal, 0) + 1
@@ -1490,12 +1709,12 @@ def main():
     txt_paths, combined_txt = write_listings(results, today)
     review = [r for r in results if r.get("needs_review")]
     counts = {t: sum(r["type"] == t for r in results) for t in CONCEPT_TYPES}
-    summary = (f"✅ Redbubble bot {today.isoformat()}: {len(results)} dizajna "
-               f"({counts['idiom']} idiom, {counts['character']} karakter), "
-               f"{len(txt_paths)} životinja ({', '.join(txt_paths)}).\n"
+    summary = (f"✅ Feathered Gossip bot {today.isoformat()}: {len(results)} dizajna "
+               f"({counts['idiom']} idiom, {counts['birder']} birder, {counts['character']} karakter), "
+               f"{len(txt_paths)} ptica ({', '.join(txt_paths)}).\n"
                + (f"⚠ {len(review)} slika za ručnu proveru (u *_podaci.txt piše !!! PROVERI SLIKU).\n" if review else "")
                + ("ℹ " + "; ".join(failures) + "\n" if failures else "")
-               + "U folderu svake životinje je <životinja>_podaci.txt sa naslovom, opisom i tagovima za svaki dizajn.")
+               + "U folderu svake ptice je <ptica>_podaci.txt sa naslovom, opisom i tagovima za svaki dizajn.")
     print("\n" + summary)
 
     if METADATA_ONLY:
