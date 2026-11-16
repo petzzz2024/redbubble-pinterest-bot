@@ -1,1 +1,198 @@
-
+{
+ "animals": {},
+ "failed": {},
+ "designs": [
+  {
+   "date": "2026-11-16",
+   "type": "idiom",
+   "animal": "jackdaw",
+   "title": "Winging It - Chaotic Jackdaw Birding Christmas Gift",
+   "text": "WINGING IT",
+   "primary_keyword": "winging it"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "idiom",
+   "animal": "jackdaw",
+   "title": "A Little Bird - Nosy Jackdaw Gossip Birding Humor",
+   "text": "A LITTLE BIRD",
+   "primary_keyword": "a little bird"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "birder",
+   "animal": "jackdaw",
+   "title": "Dawn Chorus - Early Birder Jackdaw Bird Watching Gift",
+   "text": "DAWN CHORUS",
+   "primary_keyword": "dawn chorus"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "birder",
+   "animal": "jackdaw",
+   "title": "Still Waiting - Funny Jackdaw Birding Partner Gift",
+   "text": "STILL WAITING",
+   "primary_keyword": "still waiting"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "character",
+   "animal": "jackdaw",
+   "title": "Bad Choice - Nosy Jackdaw Character Birding Humor",
+   "text": "BAD CHOICE",
+   "primary_keyword": "bad choice"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "idiom",
+   "animal": "northern cardinal",
+   "title": "Ruffled Feathers - Funny Northern Cardinal Coffee Morning Meme",
+   "text": "RUFFLED FEATHERS",
+   "primary_keyword": "funny northern cardinal"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "idiom",
+   "animal": "northern cardinal",
+   "title": "Early Bird Regret - Funny Northern Cardinal Winter Holiday Meme",
+   "text": "EARLY BIRD REGRET",
+   "primary_keyword": "northern cardinal funny"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "birder",
+   "animal": "northern cardinal",
+   "title": "Your Spark Bird - Funny Northern Cardinal Birder Gift",
+   "text": "YOUR SPARK BIRD",
+   "primary_keyword": "bird watching gifts"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "birder",
+   "animal": "northern cardinal",
+   "title": "Local Patch Legend - Funny Northern Cardinal Birding Gift",
+   "text": "LOCAL PATCH LEGEND",
+   "primary_keyword": "birding gifts for dad"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "character",
+   "animal": "northern cardinal",
+   "title": "All Mine - Funny Greedy Northern Cardinal Bird Feeder Meme",
+   "text": "ALL MINE!",
+   "primary_keyword": "cute northern cardinal"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "idiom",
+   "animal": "mallard",
+   "title": "Night Owl - Funny Mallard Birding Introvert Meme",
+   "text": "NIGHT OWL",
+   "primary_keyword": "night owl introvert"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "idiom",
+   "animal": "mallard",
+   "title": "Pecking Order - Funny Mallard Office Burnout Meme",
+   "text": "PECKING ORDER",
+   "primary_keyword": "funny mallard"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "birder",
+   "animal": "mallard",
+   "title": "Life List Chaos - Funny Mallard Birder Humor",
+   "text": "LIFE LIST CHAOS",
+   "primary_keyword": "birding gifts"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "birder",
+   "animal": "mallard",
+   "title": "Just A Reed - Funny Mallard Bird Watching Gift Birder Joke",
+   "text": "JUST A REED",
+   "primary_keyword": "bird watching gifts"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "idiom",
+   "animal": "european robin",
+   "title": "Bird Brain - Funny European Robin Mental Health Meme",
+   "text": "BIRD BRAIN",
+   "primary_keyword": "bird brain humor"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "idiom",
+   "animal": "european robin",
+   "title": "Empty Nest Syndrome - Funny European Robin Birder Humor",
+   "text": "EMPTY NEST SYNDROME",
+   "primary_keyword": "funny european robin"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "birder",
+   "animal": "european robin",
+   "title": "Missed The Bird - Funny European Robin Birder Joke",
+   "text": "MISSED THE BIRD",
+   "primary_keyword": "birding humor"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "birder",
+   "animal": "european robin",
+   "title": "Ask The Car - Funny European Robin Birder Humor",
+   "text": "ASK THE CAR",
+   "primary_keyword": "birder gift"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "character",
+   "animal": "european robin",
+   "title": "My Turf - Funny European Robin Character Bird",
+   "text": "MY TURF",
+   "primary_keyword": "funny european robin"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "idiom",
+   "animal": "dark-eyed junco",
+   "title": "Free As A Bird - Funny Dark-eyed Junco Birding Gift",
+   "text": "FREE AS A BIRD",
+   "primary_keyword": "funny birding"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "idiom",
+   "animal": "dark-eyed junco",
+   "title": "A Bird Told Me - Funny Dark-eyed Junco Gossip Meme",
+   "text": "A BIRD TOLD ME",
+   "primary_keyword": "birding gift ideas"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "birder",
+   "animal": "dark-eyed junco",
+   "title": "Too Much Caffeine - Dark-eyed Junco Funny Birder Gift",
+   "text": "TOO MUCH CAFFEINE",
+   "primary_keyword": "bird watching gifts"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "birder",
+   "animal": "dark-eyed junco",
+   "title": "Got A New One - Dark-eyed Junco Funny Birding Humor",
+   "text": "GOT A NEW ONE",
+   "primary_keyword": "birding gifts for dad"
+  },
+  {
+   "date": "2026-11-16",
+   "type": "character",
+   "animal": "dark-eyed junco",
+   "title": "Rent Is Due Now - Dark-eyed Junco Funny Character Bird",
+   "text": "RENT IS DUE NOW",
+   "primary_keyword": "funny birding"
+  }
+ ]
+}
