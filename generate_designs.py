@@ -149,6 +149,7 @@ BLOCKED_TERMS = [
 
 # Pretrage koje nisu kupovne namere za majice/stikere (ne koristimo ih kao tagove)
 NON_MERCH_WORDS = {
+    "stocking", "stockings", "ornament", "ornaments", "decoy", "decoys",
     "svg", "png", "pdf", "clipart", "clip", "wallpaper", "wallpapers", "coloring", "colouring", "drawing",
     "tattoo", "cake", "pattern", "crochet", "knitting", "amigurumi", "plush", "plushie", "stuffed", "toy",
     "toys", "free", "amazon", "etsy", "walmart", "target", "ebay", "near", "price", "prices", "for sale",
@@ -376,10 +377,19 @@ def bird_info(bird):
     return BIRDS.get(bird, _b("world", [], f"the real natural colors and markings of a {bird}"))
 
 
+RED_MARKS_RE = re.compile(r"(?i)\b(red|scarlet|crimson|vermilion|rosy|rose|ruby|purple)\b")
+
+
 def chroma_for(bird):
-    """Prva pozadina čije boje nema na ptici: magenta -> plava -> zelena."""
-    palette = bird_info(bird)["palette"]
-    for c in CHROMAS:
+    """Prva pozadina čije boje nema na ptici: magenta -> plava -> zelena.
+    Crvene ptice (kardinal, češljugar, house finch...) NE idu na magentu: crvena je preblizu, pa je skidanje pozadine
+    jelo vrh krune i ostavljalo ljubičast obod. Za njih prvo zelena (najdalja od crvene), pa plava."""
+    info = bird_info(bird)
+    palette = info["palette"]
+    order = CHROMAS
+    if RED_MARKS_RE.search(info["marks"]):
+        order = [CHROMAS[2], CHROMAS[1], CHROMAS[0]]
+    for c in order:
         if _CHROMA_FAMILY[c[0]] not in palette:
             return c
     return CHROMAS[0]
@@ -988,6 +998,9 @@ FIELDS FOR EVERY CONCEPT
   phrase, pose, facial expression, props and their colors (state every color) and WHERE each prop is (around the neck, on the
   head, next to the bird, under its feet). Never the words holding, clutching, gripping, hands or arms. No background, no
   frame, no text in the scene, no grass, ground or water under the feet. Follow the color rule of the slot.
+  The text must make sense ON ITS OWN to a stranger who only sees the sticker (no hidden backstory: "Ask The Car" or
+  "Just A Reed" need an explanation, so they are bad). Keep idioms complete ("A Little Bird Told Me", never "A Bird Told Me").
+  If the joke is about an object (a reed, a nest, a list), that object MUST be drawn.
   EVERY prop must belong to THIS joke (an "empty nest" joke shows an empty nest, not coffee mugs; a "missed it" joke shows
   the bird just missing something). Max 2 props. No random props that have nothing to do with the text.
 - The joke must be TRUE for this species: never call a colorful bird (bullfinch, robin, goldfinch...) a "little brown job"
@@ -1537,7 +1550,8 @@ def check_design_text(img_bytes, expected, bird=None):
                   + ('"species_ok": true/false, ' if bird else '')
                   + '"major_defect": true/false (true if the bird has ARMS or HANDS or fingers in addition to or instead of '
                   'its wings - a bird may only have two wings and two legs -, or extra heads, legs, wings or eyes, merged '
-                  'bodies, a cropped subject, unreadable letters), '
+                  'bodies, a cropped subject, unreadable letters, or the same prop drawn twice such as two pairs of '
+                  'binoculars), '
                   '"extra_objects": true/false (true ONLY if there is a clearly visible flat oval shadow, puddle, grass or ground '
                   'patch or blob under the feet that is not a branch, banner or prop, a big circle or shape behind the bird, more than '
                   'one bird, or any person), '
@@ -1641,7 +1655,10 @@ def chroma_family(a, bg, margin=50):
     R, G, B = a[..., 0], a[..., 1], a[..., 2]
     br, bgr, bb = (float(v) for v in bg)
     if br > 150 and bb > 150 and bgr < 110:                      # magenta
-        return (np.minimum(R, B) - G > margin) & (G < 140) & (np.maximum(R, B) > 110)
+        # R i B moraju biti slični (prava magenta/ljubičasta senka). Crvena (217,15,67) nije senka, i ranije je to
+        # jelo vrh krune kardinala.
+        balanced = np.minimum(R, B) > (0.55 if margin >= 40 else 0.45) * np.maximum(R, B)
+        return (np.minimum(R, B) - G > margin) & (G < 140) & (np.maximum(R, B) > 110) & balanced
     if bb > 150 and br < 110 and bgr < 160:                      # plava
         return ((B - np.maximum(R, G) > margin + 20) & (B > 90) & (np.minimum(R, G) < 140)) | _hue_family(a, bg, margin)
     if bgr > 150 and br < 110 and bb < 160:                      # zelena (generator je često crta kao "mint" zelenu)
