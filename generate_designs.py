@@ -208,6 +208,12 @@ PRODUCT_RE = re.compile(r"(?i)\b(" + "|".join(sorted((re.escape(w) for w in PROD
 
 TITLE_BANNED_RE = re.compile(
     r"(?i)\b(stickers?|designs?|t-?shirts?|tshirts?|shirts?|hoodies?|posters?|redbubble)\b")
+# "Gift" ne ide u naslov: naslov opisuje dizajn, a poklon-pretrage pokrivaju tagovi i opis.
+# Briše se cela fraza ("Gift Idea", "Gift For Dad", "Gifts For Birders"), da ne ostane "Funny Birding For Dad".
+TITLE_GIFT_RE = re.compile(
+    r"(?i)\b(perfect |great |ideal |unique |cute |funny )?(gifts?|presents?)( ideas?)?"
+    r"( for (him|her|them|men|women|dad|mom|mum|grandpa|grandma|kids|friends?|birders?|bird lovers?|bird watchers?|"
+    r"birdwatchers?|nature lovers?|[a-z-]+ lovers?|[a-z-]+ fans?))?\b")
 
 # Druga značenja reči iz pravog izlaza (poodle skirt, turkey tail mushroom, reindeer moss, turkey trot, llama vs alpaca...)
 TITLE_OFFTOPIC_RE = re.compile(r"(?i)\b(skirts?|mushrooms?|shuttle|trot|vultures?|moss|meaning|state park|vs\.?|versus)\b")
@@ -1007,7 +1013,8 @@ FIELDS FOR EVERY CONCEPT
   or "LBB", never call a rare or exotic bird (shoebill, puffin...) common.
 - title: max 70 characters, format "<Phrase or character> - <3-6 words a buyer searches>", modeled on
   "My Ducks Are Not In A Row - Funny Chaos ADHD Mental Health Meme" (e.g. "Dipped Again - Funny Birding Humor Blue Tit Birder").
-  The species name must be in the title. Never the words sticker, design, shirt, t-shirt, hoodie, poster, Redbubble.
+  The species name must be in the title. Never the words gift, present, sticker, design, shirt, t-shirt, hoodie, poster,
+  Redbubble in the title (gift searches go into tags and the description).
 - primary_keyword: main search phrase, 2-4 words, lowercase (e.g. "funny blue tit", "birding humor", "night owl introvert").
 - tags: exactly 15 lowercase tags (1-3 words) that a buyer would type: the phrase and its short parts, the species, birding words
   (birding, birdwatching, bird watcher, birder gift, backyard birds / garden birds), the theme (introvert, coffee lover...), humor
@@ -1031,6 +1038,11 @@ different joke) with the keys: slot, type, animal, concept, text, visual_scene, 
 def clean_title(raw, animal):
     t = re.sub(r"[\"“”`]", "", str(raw))
     t = TITLE_BANNED_RE.sub(" ", t)
+    had_gift = bool(TITLE_GIFT_RE.search(t))
+    t = TITLE_GIFT_RE.sub(" ", t)
+    t = re.sub(r"(?i)\b(for|and|&)\s*$", "", t.strip())
+    if had_gift and re.search(r"(?i)\b(birding|birder|bird watching|birdwatching|funny)\s*$", t):
+        t += " Humor"                                    # "Funny Bullfinch Birding Gift" -> "... Birding Humor"
     t = re.sub(r"\s+[-–—|]\s+|:\s+", " - ", t, count=1)          # "Fraza: opis" / "Fraza | opis" -> "Fraza - opis"
     t = re.sub(r"\s+", " ", t).strip(" -–—:|,.;!")
     t = smart_title(t)
