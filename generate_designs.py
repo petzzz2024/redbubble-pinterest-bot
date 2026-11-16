@@ -1018,7 +1018,8 @@ FIELDS FOR EVERY CONCEPT
 - primary_keyword: main search phrase, 2-4 words, lowercase (e.g. "funny blue tit", "birding humor", "night owl introvert").
 - tags: exactly 15 lowercase tags (1-3 words) that a buyer would type: the phrase and its short parts, the species, birding words
   (birding, birdwatching, bird watcher, birder gift, backyard birds / garden birds), the theme (introvert, coffee lover...), humor
-  words (funny, sarcastic), who it is for. No filler words (art, design, cool, new, awesome, trending, best), no brands, and NO
+  words (funny, sarcastic), who it is for. At most 2 gift tags (e.g. "birding gifts" + "gift for birders"), never "gift" or
+  "gifts" alone. No filler words (art, design, cool, new, awesome, trending, best), no brands, and NO
   product names (sticker, shirt, t-shirt, tee, hoodie, mug, poster, case, bag, apparel...).
 - description: SEO description for Google, 2-3 natural sentences, 220-420 characters. The FIRST sentence (within the first 150
   characters) must contain the exact phrase from "text" (if there is one), the species name and the primary_keyword, written
@@ -1238,6 +1239,9 @@ def normalize_tag(tag, title_key=None):
     return t
 
 
+MAX_GIFT_TAGS = 2
+
+
 def clean_tags(raw, animal, title, keywords, extra_pools=(), allowed_extra=None):
     """Tačno 15 različitih tagova; životinja je uvek među njima.
     Tag sa imenom životinje mora da se oslanja SAMO na reči kupca/teme (INTENT_WORDS) ili na reči iz ovog dizajna
@@ -1249,11 +1253,12 @@ def clean_tags(raw, animal, title, keywords, extra_pools=(), allowed_extra=None)
     title_key = phrase_key(title)
     out, seen = [], set()
     animal_tags = 0
+    gift_tags = 0
     animal_tokens = set(tokens(animal))
     allowed = INTENT_WORDS | set(allowed_extra or ())
 
     def add(tag, force=False):
-        nonlocal animal_tags
+        nonlocal animal_tags, gift_tags
         if len(out) >= TAGS_COUNT:
             return False
         t = animal if force else normalize_tag(tag, title_key)
@@ -1262,6 +1267,13 @@ def clean_tags(raw, animal, title, keywords, extra_pools=(), allowed_extra=None)
         key = phrase_key(t)
         if key in seen:
             return False
+        # Najviše 2 poklon-taga po dizajnu ("birding gifts" i jedan za ciljnu grupu). Samo "gift"/"gifts" je preširoko
+        # (Redbubble ga navodi kao primer lošeg taga), a 5-7 varijanti istog poklona troši mesta koja mogu da donesu
+        # druge pretrage.
+        is_gift = bool(re.search(r"\b(gifts?|presents?)\b", t))
+        if is_gift and not force:
+            if re.fullmatch(r"(gifts?|presents?)( ideas?)?", t) or gift_tags >= MAX_GIFT_TAGS:
+                return False
         has_animal = mentions_animal(t, animal)
         if has_animal and not force:
             extra = set(tokens(t)) - animal_tokens
@@ -1272,6 +1284,7 @@ def clean_tags(raw, animal, title, keywords, extra_pools=(), allowed_extra=None)
         seen.add(key)
         out.append(t)
         animal_tags += 1 if has_animal else 0
+        gift_tags += 1 if is_gift else 0
         return True
 
     add(animal, force=True)
