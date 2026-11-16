@@ -20,7 +20,7 @@ Isti tok kao bot za životinje, prepravljen za birding nišu:
      + zajednički podaci_<datum>.txt; sve na Telegram.
 
 Opcije (environment promenljive, sve su opcione):
-  BIRDS_PER_RUN=5   DESIGNS_PER_BIRD=5   IDIOMS_PER_BIRD=2   BIRDER_PER_BIRD=2   IMAGE_ATTEMPTS=4   TARGET_SIZE=8000
+  BIRDS_PER_RUN=5   DESIGNS_PER_BIRD=5   IDIOMS_PER_BIRD=2   BIRDER_PER_BIRD=2   IMAGE_ATTEMPTS=3   TARGET_SIZE=8000
   KEEP_FLAGGED=1         -> pošalji i slike koje ni posle svih pokušaja ne prođu proveru (podrazumevano se ne šalju)
   (stara imena ANIMALS_PER_RUN / DESIGNS_PER_ANIMAL i dalje rade)
   STICKER_BORDER=1       -> doda beli obrub nalepnice oko dizajna (podrazumevano isključeno)
@@ -66,7 +66,7 @@ def env_int(name, default):
         return default
 
 
-IMAGE_ATTEMPTS = max(1, env_int("IMAGE_ATTEMPTS", 4))
+IMAGE_ATTEMPTS = max(1, env_int("IMAGE_ATTEMPTS", 3))
 # Slika koja ni posle svih pokušaja ne prođe proveru (greška u tekstu, ruke, pogrešna vrsta) se NE šalje.
 # KEEP_FLAGGED=1 -> ipak je pošalji, sa oznakom "!!! PROVERI SLIKU" u txt fajlu (kao ranije).
 KEEP_FLAGGED = os.getenv("KEEP_FLAGGED", "0") == "1"
@@ -513,8 +513,19 @@ def find_blocked(text):
     return sorted({m.group(1).lower() for m in BLOCKED_RE.finditer(str(text))})
 
 
+ACRONYMS = {"lbb": "LBB", "lbbs": "LBBs", "foy": "FOY", "adhd": "ADHD", "uk": "UK", "usa": "USA", "omg": "OMG",
+            "asap": "ASAP", "id": "ID", "diy": "DIY", "bto": "BTO", "ok": "OK"}
+_ACRO_RE = re.compile(r"\b(" + "|".join(ACRONYMS) + r")\b", re.I)
+
+
+def fix_acronyms(text):
+    """'Just Another Lbb' -> 'Just Another LBB' (ali "id" samo kad nije deo običnog teksta malim slovima)."""
+    return _ACRO_RE.sub(lambda m: ACRONYMS[m.group(1).lower()] if (m.group(1).lower() != "id" or m.group(1) != "id")
+                        else m.group(1), str(text))
+
+
 def smart_title(text):
-    return " ".join(w[:1].upper() + w[1:] if w.islower() else w for w in text.split())
+    return fix_acronyms(" ".join(w[:1].upper() + w[1:] if w.islower() else w for w in text.split()))
 
 
 def extract_json(text):
@@ -567,12 +578,40 @@ def get_client():
     if _client is None:
         if not GEMINI_API_KEY:
             raise RuntimeError("Nedostaje GEMINI_API_KEY u GitHub Secrets!")
-        _client = genai.Client(api_key=GEMINI_API_KEY)
+        try:   # rok od 90 s po pozivu: preopterećen model ne sme da drži bota minutima
+            _client = genai.Client(api_key=GEMINI_API_KEY, http_options=types.HttpOptions(timeout=90_000))
+        except Exception:
+            _client = genai.Client(api_key=GEMINI_API_KEY)
     return _client
 
 
+# Stanje modela tokom JEDNOG pokretanja: model sa potrošenom kvotom (429) se više ne pokušava,
+# a preopterećen model (503, prekinuta veza, istek roka) se pauzira 2 minuta. Ranije je SVAKI poziv prvo
+# udarao u isti potrošen model i tek onda išao dalje, i tu je odlazila većina vremena.
+_MODEL_DEAD = set()
+_MODEL_PAUSED = {}
+
+
+def _model_failed(model, err):
+    msg = str(err)
+    if "429" in msg or "RESOURCE_EXHAUSTED" in msg or "quota" in msg.lower():
+        if model not in _MODEL_DEAD:
+            print(f"    [!] {model}: kvota potrošena -> preskačem ga do kraja pokretanja")
+        _MODEL_DEAD.add(model)
+    elif any(s in msg for s in ("503", "UNAVAILABLE", "high demand", "disconnected", "timed out", "Timeout", "timeout",
+                                "500", "INTERNAL")):
+        _MODEL_PAUSED[model] = time.time() + 120
+
+
+def _models_now():
+    alive = [m for m in AVAILABLE_MODELS if m not in _MODEL_DEAD]
+    ready = [m for m in alive if _MODEL_PAUSED.get(m, 0) <= time.time()]
+    # ako su svi živi modeli pauzirani, probaj ih ipak (prvo onaj kome pauza najranije ističe)
+    return ready or sorted(alive, key=lambda m: _MODEL_PAUSED.get(m, 0))
+
+
 def gemini(prompt, json_mode=False, grounded=False, image=None, validator=None, label="gemini"):
-    """Prolazi kroz modele dok jedan ne vrati odgovor koji prođe validator."""
+    """Prolazi kroz modele dok jedan ne vrati odgovor koji prođe validator (preskače potrošene i preopterećene)."""
     client = get_client()
     contents = prompt
     if image is not None:
@@ -587,7 +626,10 @@ def gemini(prompt, json_mode=False, grounded=False, image=None, validator=None, 
     config = types.GenerateContentConfig(**cfg) if cfg else None
 
     last_err = None
-    for model in AVAILABLE_MODELS:
+    models = _models_now()
+    if not models:
+        raise RuntimeError(f"Svim Gemini modelima je potrošena kvota ({label}). Pokreni bota ponovo sutra ili uključi naplatu.")
+    for model in models:
         try:
             kwargs = {"model": model, "contents": contents}
             if config is not None:
@@ -601,8 +643,10 @@ def gemini(prompt, json_mode=False, grounded=False, image=None, validator=None, 
             return text
         except Exception as e:
             last_err = e
-            print(f"    [!] {label}: model {model} nije uspeo ({redact(e)[:150]}). Sledeći...")
-            time.sleep(2)
+            _model_failed(model, e)
+            if model not in _MODEL_DEAD:
+                print(f"    [!] {label}: model {model} nije uspeo ({redact(e)[:120]}). Sledeći...")
+            time.sleep(1)
     raise RuntimeError(f"Svi Gemini modeli su otkazali ({label}): {redact(last_err)[:200]}")
 
 
@@ -873,7 +917,7 @@ def research_theme_keywords():
     return found[:30]
 
 
-def build_concept_prompt(slots, theme_kw, animal_kw, avoid_titles, avoid_texts, feedback, today):
+def build_concept_prompt(slots, theme_kw, animal_kw, avoid_titles, avoid_texts, feedback, today, banned_words=()):
     slot_lines = []
     for s in slots:
         label = CONCEPT_TYPES[s["type"]][1].replace("{animal}", s.get("animal") or "")
@@ -903,18 +947,19 @@ People buy stickers that say something about THEM, not just a picture of a bird.
 REAL GOOGLE SEARCHES (use for tags and wording when they fit; ignore anything off-topic):
 {kw_lines}
 {season_line}
-CREATE ONE CONCEPT FOR EACH SLOT:
+CREATE TWO DIFFERENT CONCEPTS FOR EACH SLOT (same slot id twice; the second one is a backup with a completely different joke):
 {chr(10).join(slot_lines)}
 
 ALREADY USED, never repeat or paraphrase these titles:
 {titles_block}
 ALREADY USED phrases (never reuse or closely imitate): {texts_block}
+BANNED WORDS in the "text" field (these jokes were just used; pick completely different ideas): {", ".join(banned_words) or "(none)"}
 {fix_block}
 DESIGN RULES (brand style): ONE cute, chubby, round cartoon bird of the given species with the REAL colors and markings
 listed for it (birdwatchers notice every mistake), flat vector look, thick dark navy outline around everything, flat solid
 colors, no gradients, no texture. For idiom and birder concepts the text sits in a ribbon banner with a thick dark outline at
 the bottom. For character concepts the text (if any) is in a white speech bubble with a thick dark outline next to the bird's
-head. Few details, simple props, no thin lines. Text 2-6 words (2-4 is best: long phrases get misspelled), big and readable
+head. Few details, simple props, no thin lines. Text 2-5 short words (long words get misspelled), big and readable
 at thumbnail size (3-4 cm). The bird has a clear facial expression or action.
 ANATOMY (very important): a real bird has exactly TWO WINGS and TWO LEGS and NO ARMS, NO HANDS, NO FINGERS. The bird NEVER
 holds, clutches, grips or carries anything, never has crossed arms, hands on hips or a thumbs up. Props are placed like this:
@@ -936,12 +981,17 @@ FIELDS FOR EVERY CONCEPT
 - slot: copy the slot id exactly. type: copy the type.
 - animal: copy the given bird species exactly.
 - concept: one sentence: what is seen and why it is funny.
-- text: the exact phrase on the design, ENGLISH, 2-6 words, max 32 characters, only letters, numbers, spaces, apostrophes, ! and ?.
-  REQUIRED for idiom and birder. For character: "" (no text) or 1-6 words the bird says.
+- text: the exact phrase on the design, ENGLISH, 2-5 SHORT common words, max 26 characters, no word longer than 9 letters
+  (the image generator misspells long words: say "bins" not "binoculars"), only letters, numbers, spaces, apostrophes, ! and ?.
+  REQUIRED for idiom and birder. For character: "" (no text) or 1-5 words the bird says.
 - visual_scene: max 35 words, English: exactly what is drawn: the bird (with its real markings), the LITERAL depiction of the
   phrase, pose, facial expression, props and their colors (state every color) and WHERE each prop is (around the neck, on the
   head, next to the bird, under its feet). Never the words holding, clutching, gripping, hands or arms. No background, no
-  frame, no text in the scene. Follow the color rule of the slot.
+  frame, no text in the scene, no grass, ground or water under the feet. Follow the color rule of the slot.
+  EVERY prop must belong to THIS joke (an "empty nest" joke shows an empty nest, not coffee mugs; a "missed it" joke shows
+  the bird just missing something). Max 2 props. No random props that have nothing to do with the text.
+- The joke must be TRUE for this species: never call a colorful bird (bullfinch, robin, goldfinch...) a "little brown job"
+  or "LBB", never call a rare or exotic bird (shoebill, puffin...) common.
 - title: max 70 characters, format "<Phrase or character> - <3-6 words a buyer searches>", modeled on
   "My Ducks Are Not In A Row - Funny Chaos ADHD Mental Health Meme" (e.g. "Dipped Again - Funny Birding Humor Blue Tit Birder").
   The species name must be in the title. Never the words sticker, design, shirt, t-shirt, hoodie, poster, Redbubble.
@@ -961,7 +1011,8 @@ FIELDS FOR EVERY CONCEPT
 - Every text must be a DIFFERENT joke from all already used phrases, not the same idea with other filler words
   ("Winging It Daily" after "Totally Winging It" is a repeat).
 
-Return ONLY a JSON array with exactly {len(slots)} objects with the keys: slot, type, animal, concept, text, visual_scene, title, primary_keyword, tags, description."""
+Return ONLY a JSON array with exactly {2 * len(slots)} objects (TWO per slot, the second is a backup with a completely
+different joke) with the keys: slot, type, animal, concept, text, visual_scene, title, primary_keyword, tags, description."""
 
 
 def clean_title(raw, animal):
@@ -1022,7 +1073,7 @@ def clean_description(raw, animal, title, concept):
         d = fallback_description(animal, title, concept)
         if PRODUCT_RE.search(d):                                 # koncept sam pominje proizvod
             d = PRODUCT_RE.sub("design", d)
-    return d[:DESC_MAX]
+    return fix_acronyms(d[:DESC_MAX])
 
 
 def clean_banner_text(raw):
@@ -1073,6 +1124,8 @@ pecked beak beaks tweet tweets tweeting chirp chirpy cuckoo crow crows duck duck
 roosting coop perch perched perching fly flying flew flight fledge fledgling hatch hatched egg eggs plume preen preening
 ruffle ruffled molt molting moult squawk squawking caw cawing hoot hooting coo cooing gull gullible swan lark robin robins
 birdbrain songbird
+crown crest cap mask bib collar tail tails bill beak plume breast chest throat tuft tufts horn horns stripe song sing
+singing sings migrate migrating perch talon talons claw claws
 """.split()}
 
 
@@ -1226,13 +1279,17 @@ def clean_concept(raw, slot, ctx):
     text = clean_banner_text(raw.get("text", ""))
     words = text.split()
     if ctype in ("idiom", "birder"):
-        if not (2 <= len(words) <= 6) or not (5 <= len(text) <= 32):
-            issues.append(f"text '{text}' mora imati 2-6 reči i najviše 32 karaktera")
-    if ctype == "idiom" and text and not (set(tokens(text)) & (IDIOM_WORDS | (set(tokens(animal)) - ANIMAL_COLOR_WORDS))):
+        if not (2 <= len(words) <= 5) or not (5 <= len(text) <= 26):
+            issues.append(f"text '{text}' mora imati 2-5 reči i najviše 26 karaktera (duge fraze generator piše sa greškom)")
+    long_words = [w for w in re.findall(r"[A-Za-z']+", text) if len(w.replace("'", "")) > 9]
+    if long_words:
+        issues.append(f"text '{text}' ima predugu reč {long_words[0]} (najviše 9 slova; generator je piše pogrešno, npr. "
+                      f"BINOCLARS) - koristi kraće reči (bins umesto binoculars)")
+    if ctype == "idiom" and text and not (set(tokens(text)) & (IDIOM_WORDS | set(tokens(animal)))):
         issues.append(f"text '{text}' nije idiom o pticama: mora sadržati pravi idiom (night owl, early bird, winging it, "
                       f"ruffled feathers, empty nest, pecking order...) ili igru reči sa imenom vrste")
-    elif text and (not (1 <= len(words) <= 6) or len(text) > 32):
-        issues.append(f"text '{text}' za character mora biti prazan ili 1-6 reči (najviše 32 karaktera)")
+    elif ctype == "character" and text and (not (1 <= len(words) <= 5) or len(text) > 26):
+        issues.append(f"text '{text}' za character mora biti prazan ili 1-5 reči (najviše 26 karaktera)")
     if text and canon(text) in ctx["texts"]:
         issues.append(f"text '{text}' je već korišćen")
     elif text:
@@ -1295,8 +1352,8 @@ def clean_concept(raw, slot, ctx):
         if not ctx.get("last_attempt"):
             issues.append(f"description mora u PRVOJ rečenici (prvih 150 znakova) da sadrži {' i '.join(seo_missing)}")
         else:                                       # poslednji pokušaj: popravi u kodu umesto da se dizajn izgubi
-            kw = pk if mentions_animal(pk, animal) else f"{animal} {pk}"
-            lead = f"{text.title() if text else title.split(' - ')[0]}: a funny {kw} illustration"
+            phrase = fix_acronyms(text.title()) if text else title.split(' - ')[0]
+            lead = f"{phrase}: a funny {animal} cartoon" if canon(text) not in canon(head) or not text else f"A funny {animal} cartoon"
             description = shorten(f"{lead}. {description}", DESC_MAX)
     shown = set(tokens(scene)) | set(tokens(text)) | set(tokens(concept))
     tags = clean_tags(raw.get("tags", []), animal, title, ctx["keywords"].get(animal, []) + ctx["theme_keywords"],
@@ -1337,9 +1394,11 @@ def generate_concepts(slots, theme_kw, animal_kw, today, history):
             todo = [s for s in group if s["id"] not in accepted]
             if not todo:
                 break
+            banned = sorted({w for t in RUN_TEXTS for w in text_core(t) - SPECIES_WORDS}
+                            | {w for t in ctx["recent_texts"] for w in (text_core(t) - SPECIES_WORDS) & ANCHOR_WORDS})
             prompt = build_concept_prompt(todo, theme_kw, {a: k for a, k in animal_kw.items()
                                                             if any(s.get("animal") == a for s in todo)},
-                                          avoid_titles, avoid_texts, feedback, today)
+                                          avoid_titles, avoid_texts, feedback, today, banned)
             feedback = []
             try:
                 txt = gemini(prompt, json_mode=True, label="koncepti",
@@ -1354,8 +1413,9 @@ def generate_concepts(slots, theme_kw, animal_kw, today, history):
                 if not isinstance(raw, dict):
                     continue
                 slot = next((s for s in todo if s["id"] == str(raw.get("slot", "")).strip()), None)
-                if slot is None and i < len(todo):
-                    slot = todo[i]
+                if slot is None:                                   # bez id-a: po redu (dva koncepta po slotu)
+                    j = i // 2 if len(data) >= 2 * len(todo) else i
+                    slot = todo[j] if j < len(todo) else None
                 if slot is None or slot["id"] in accepted:
                     continue
                 design, issues = clean_concept(raw, slot, ctx)
@@ -1371,6 +1431,7 @@ def generate_concepts(slots, theme_kw, animal_kw, today, history):
                     RUN_TEXTS.append(design["text"])
                     avoid_texts.append(design["text"])
                 avoid_titles.append(design["title"])
+            feedback = [f for f in feedback if not any(f.startswith(f"[slot {k}]") for k in accepted)]
             print(f"  -> Pokušaj {attempt}: prihvaćeno {sum(s['id'] in accepted for s in group)}/{len(group)} koncepata.")
     return [accepted[s["id"]] for s in slots if s["id"] in accepted]
 
@@ -1464,20 +1525,22 @@ def check_design_text(img_bytes, expected, bird=None):
         species = ""
         if bird:
             species = (f'\nThe bird should be a {bird} with these real markings: {bird_info(bird)["marks"]}. '
-                       'It is a cartoon, so simplified shapes are fine, but "species_ok" is false if a KEY marking is clearly '
-                       'wrong or missing (wrong main colors, missing face pattern, wrong bill) so a birdwatcher would say it is '
-                       'the wrong bird.')
-        prompt = ('Look at this sticker illustration. Read ALL text visible in the image EXACTLY as it is drawn, letter by '
-                  'letter. Do NOT correct spelling and do NOT fill in missing or broken letters: if a letter is missing, '
-                  'merged or malformed, write it the way you actually see it.' + species + '\n'
-                  'Ignore the plain flat background color itself.\n'
+                       'It is a simplified cute cartoon: missing small details, a small or simple beak, cartoon proportions '
+                       'and slightly different shades are FINE. "species_ok" is false ONLY if a birdwatcher would name a '
+                       'DIFFERENT species (clearly wrong main body colors or the signature marking is missing).')
+        prompt = ('Look at this sticker illustration (a cut-out shown on a plain light grey background). Read ALL text '
+                  'visible in the image EXACTLY as it is drawn, letter by letter. Do NOT correct spelling and do NOT fill in '
+                  'missing or broken letters: if a letter is missing, merged or malformed, write it the way you actually '
+                  'see it.' + species + '\n'
+                  'Ignore the plain grey background itself.\n'
                   'Return ONLY JSON: {"text": "<all text you read, or empty>", '
                   + ('"species_ok": true/false, ' if bird else '')
                   + '"major_defect": true/false (true if the bird has ARMS or HANDS or fingers in addition to or instead of '
                   'its wings - a bird may only have two wings and two legs -, or extra heads, legs, wings or eyes, merged '
                   'bodies, a cropped subject, unreadable letters), '
-                  '"extra_objects": true/false (true if there is a shadow, oval, puddle or colored blob under the feet that is '
-                  'not a branch, banner or prop, a circle, halo or shape behind the bird, more than one bird, or any person), '
+                  '"extra_objects": true/false (true ONLY if there is a clearly visible flat oval shadow, puddle, grass or ground '
+                  'patch or blob under the feet that is not a branch, banner or prop, a big circle or shape behind the bird, more than '
+                  'one bird, or any person), '
                   '"defect": "<short description or empty>"}')
         txt = gemini(prompt, json_mode=True, image=(img_bytes, mime),
                      validator=lambda t: isinstance(extract_json(t), dict), label="provera slike")
@@ -1553,6 +1616,15 @@ def chroma_alpha(rgb_img):
         else:
             print(f"    (senka se ne briše: brisanje {extra:.1%} slike / nova rupa {new_holes:.1%}, čuvam pticu celu)")
 
+    # Zatvoreni džepovi pozadine (npr. između nogu, stomaka i grane) nisu povezani sa ivicom slike, pa ih flood ne
+    # vidi. Ako su jasno u boji pozadine i veći od tačkice, brišu se (dizajn po pravilu nema tu boju).
+    if family.sum() > 0:
+        pocket = (family | (d < t1)) & ~bgmask
+        pocket = np.asarray(Image.fromarray((pocket * 255).astype(np.uint8), "L")
+                            .filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))) > 0
+        if 0 < pocket.sum() <= 0.03 * h * w:
+            bgmask = bgmask | pocket
+
     alpha = np.where(bgmask, 0, 255).astype(np.float32)
     # glatka ivica samo u uskom pojasu oko pozadine (2-3 px), unutrašnjost dizajna ostaje puna
     near = np.asarray(Image.fromarray((bgmask * 255).astype(np.uint8), "L").filter(ImageFilter.MaxFilter(5))) > 0
@@ -1571,10 +1643,29 @@ def chroma_family(a, bg, margin=50):
     if br > 150 and bb > 150 and bgr < 110:                      # magenta
         return (np.minimum(R, B) - G > margin) & (G < 140) & (np.maximum(R, B) > 110)
     if bb > 150 and br < 110 and bgr < 160:                      # plava
-        return (B - np.maximum(R, G) > margin + 20) & (B > 90) & (np.minimum(R, G) < 140)
-    if bgr > 150 and br < 110 and bb < 110:                      # zelena
-        return (G - np.maximum(R, B) > margin + 20) & (G > 90) & (np.minimum(R, B) < 140)
+        return ((B - np.maximum(R, G) > margin + 20) & (B > 90) & (np.minimum(R, G) < 140)) | _hue_family(a, bg, margin)
+    if bgr > 150 and br < 110 and bb < 160:                      # zelena (generator je često crta kao "mint" zelenu)
+        return ((G - np.maximum(R, B) > margin + 20) & (G > 90) & (np.minimum(R, B) < 140)) | _hue_family(a, bg, margin)
     return np.zeros(R.shape, dtype=bool)
+
+
+def _hue_family(a, bg, margin):
+    """Ista NIJANSA kao pozadina (±28°, a za blede obode ±40°), jako zasićena i ne tamna. Hvata zelenu senku
+    (65,188,115) na zelenoj pozadini koju je strogo pravilo propuštalo. Tamnoplava kontura (28,35,51) je pretamna i ostaje."""
+    af = a.astype(np.float32)
+    mx, mn = af.max(2), af.min(2)
+    c = mx - mn + 1e-6
+    R, G, B = af[..., 0], af[..., 1], af[..., 2]
+    hue = np.where(mx == R, ((G - B) / c) % 6, np.where(mx == G, (B - R) / c + 2, (R - G) / c + 4)) * 60
+    bgf = np.asarray(bg, dtype=np.float32)
+    bmx, bmn = float(bgf.max()), float(bgf.min())
+    bc = bmx - bmn + 1e-6
+    br, bgr, bb = (float(v) for v in bgf)
+    bh = (((bgr - bb) / bc) % 6 if bmx == br else ((bb - br) / bc + 2 if bmx == bgr else (br - bgr) / bc + 4)) * 60
+    dh = np.abs(hue - bh)
+    dh = np.minimum(dh, 360 - dh)
+    loose = margin < 40
+    return (dh < (40 if loose else 28)) & (c / (mx + 1e-6) > (0.30 if loose else 0.42)) & (mx > 100)
 
 
 def interior_holes(bgmask, size=384):
@@ -1588,23 +1679,63 @@ def interior_holes(bgmask, size=384):
     return float((arr == 255).sum()) / (size * size)
 
 
+def despill(rgba, kind, band=4):
+    """Ivica dizajna je pomešana sa pozadinom (žuta + zelena = limeta oko naočara, roze obod na magenti).
+    U uskom pojasu uz providno uklanja višak boje pozadine; unutrašnjost dizajna se ne dira."""
+    a = np.asarray(rgba).astype(np.int32)
+    alpha = a[..., 3]
+    clear = Image.fromarray(((alpha < 10) * 255).astype(np.uint8), "L")
+    zone = (np.asarray(clear.filter(ImageFilter.MaxFilter(2 * band + 1))) > 0) & (alpha >= 10)
+    if not zone.any():
+        return rgba
+    R, G, B = a[..., 0], a[..., 1], a[..., 2]
+    out = a.copy()
+    if kind == "green":
+        spill = np.clip(G - np.maximum(R, B), 0, None)
+        out[..., 1] = np.where(zone, G - spill, G)
+    elif kind == "blue":
+        spill = np.clip(B - np.maximum(R, G), 0, None)
+        out[..., 2] = np.where(zone, B - spill, B)
+    elif kind == "magenta":
+        spill = np.clip(np.minimum(R, B) - G, 0, None)
+        out[..., 0] = np.where(zone, R - spill, R)
+        out[..., 2] = np.where(zone, B - spill, B)
+    else:
+        return rgba
+    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8), "RGBA")
+
+
+def chroma_kind(original):
+    a = np.asarray(original.convert("RGB")).astype(np.int32)
+    b = max(2, min(a.shape[:2]) // 100)
+    border = np.concatenate([a[:b].reshape(-1, 3), a[-b:].reshape(-1, 3), a[:, :b].reshape(-1, 3), a[:, -b:].reshape(-1, 3)])
+    r, g, bl = np.median(border, axis=0)
+    if r > 150 and bl > 150 and g < 110:
+        return "magenta"
+    if bl > 150 and r < 110 and g < 160:
+        return "blue"
+    if g > 150 and r < 110 and bl < 160:
+        return "green"
+    return None
+
+
 def remove_background(original_bytes, url):
     """1) skidanje po boji (glavno); 2) BiRefNet samo ako pozadina nije čista (onda se dva rezultata SPAJAJU,
-    pa nijedan ne može da obriše deo dizajna koji je drugi zadržao)."""
+    pa nijedan ne može da obriše deo dizajna koji je drugi zadržao). Na kraju se sa ivice skida odsjaj pozadine."""
     original = Image.open(BytesIO(original_bytes)).convert("RGB")
     if np is not None:
         alpha, clean = chroma_alpha(original)
         if clean:
             out = original.convert("RGBA")
             out.putalpha(alpha)
-            return out, "boja"
+            return despill(out, chroma_kind(original)), "boja"
     birefnet = Image.open(BytesIO(fal_remove_background(url))).convert("RGBA")
     if np is None:
         return birefnet, "birefnet"
     b_alpha = birefnet.getchannel("A").resize(original.size, Image.Resampling.LANCZOS)
     out = original.convert("RGBA")
     out.putalpha(ImageChops.lighter(alpha, b_alpha))
-    return out, "boja+birefnet"
+    return despill(out, chroma_kind(original)), "boja+birefnet"
 
 
 def split_pieces(img, size=384):
@@ -1691,34 +1822,27 @@ def to_canvas(img, size, edge_rgb=(0, 0, 0)):
 
 
 def make_design_image(design, out_path):
+    """Generiše -> skida pozadinu -> JEDNA Gemini provera GOTOVOG izreza (tekst, vrsta, ruke, senka koja je ostala).
+    Ranije su bile dve provere po pokušaju, a prva je odbijala i roze senke koje kod ionako sam briše."""
     note = ""
+    t_start = time.time()
     for attempt in range(1, IMAGE_ATTEMPTS + 1):
         try:
             url, original = fal_text_to_image(design)
-            ok, note = (True, "")
-            if VERIFY_IMAGE_TEXT:
-                ok, note = check_design_text(original, design["text"], design["animal"])
-                if not ok and attempt < IMAGE_ATTEMPTS:
-                    print(f"    ⟳ Tekst/anatomija nisu u redu ({note}). Pokušaj {attempt + 1}/{IMAGE_ATTEMPTS}...")
-                    continue
-                if not ok and not KEEP_FLAGGED:
-                    raise RuntimeError(f"ni posle {IMAGE_ATTEMPTS} pokušaja nije dobra, ne šaljem je: {note}")
             transparent, method = remove_background(original, url)
             transparent, pieces = split_pieces(transparent)
-            if VERIFY_IMAGE_TEXT and design["text"]:
-                # Druga provera, POSLE skidanja pozadine: tekst u lenti mora i dalje da bude ceo
-                preview = Image.new("RGB", transparent.size, (60, 60, 60))
+            ok, note = (True, "")
+            if VERIFY_IMAGE_TEXT:
+                preview = Image.new("RGB", transparent.size, (175, 175, 175))      # svetlosiva: vide se i tamne senke
                 preview.paste(transparent, (0, 0), transparent)
                 buf = BytesIO()
                 preview.save(buf, "PNG")
-                ok2, note2 = check_design_text(buf.getvalue(), design["text"])
-                if not ok2:
-                    if attempt < IMAGE_ATTEMPTS:
-                        print(f"    ⟳ Posle skidanja pozadine ({method}) tekst nije ceo ({note2}). Pokušaj {attempt + 1}/{IMAGE_ATTEMPTS}...")
-                        continue
-                    if not KEEP_FLAGGED:
-                        raise RuntimeError(f"posle skidanja pozadine tekst i dalje nije dobar, ne šaljem je: {note2}")
-                    ok, note = False, f"posle skidanja pozadine: {note2}"
+                ok, note = check_design_text(buf.getvalue(), design["text"], design["animal"])
+                if not ok and attempt < IMAGE_ATTEMPTS:
+                    print(f"    ⟳ Nije u redu ({note}). Pokušaj {attempt + 1}/{IMAGE_ATTEMPTS}...")
+                    continue
+                if not ok and not KEEP_FLAGGED:
+                    raise RuntimeError(f"ni posle {IMAGE_ATTEMPTS} pokušaja nije dobra, ne šaljem je: {note}")
             if STICKER_BORDER:
                 transparent = add_sticker_border(transparent)
             canvas = to_canvas(transparent, TARGET_SIZE, edge_rgb=(255, 255, 255) if STICKER_BORDER else (0, 0, 0))
@@ -1727,10 +1851,13 @@ def make_design_image(design, out_path):
             size_mb = os.path.getsize(out_path) / 1024 / 1024
             if size_mb > 45:
                 print(f"    ⚠ Fajl je {size_mb:.0f} MB; Telegram limit je 50 MB.")
+            print(f"    ✓ gotovo za {time.time() - t_start:.0f} s (pokušaj {attempt}, pozadina: {method})")
             return {"needs_review": not ok, "review_note": note}
         except Exception as e:
             print(f"    ✗ Slika, pokušaj {attempt}/{IMAGE_ATTEMPTS}: {redact(e)[:200]}")
-            time.sleep(4 * attempt)
+            if "ne šaljem je" in str(e):
+                break
+            time.sleep(3)
     raise RuntimeError("slika nije uspela ni posle svih pokušaja")
 
 
@@ -1882,6 +2009,7 @@ def main():
         if done >= ANIMALS_PER_RUN:
             break
         print(f"\n--- Ptica {done + 1}/{ANIMALS_PER_RUN}: {animal.upper()} ---")
+        t_bird = time.time()
         try:
             animal_kw = {animal: research_keywords(animal)}
             slots = ([{"type": "idiom", "animal": animal} for _ in range(IDIOMS_PER_ANIMAL)]
@@ -1920,6 +2048,7 @@ def main():
                 raise RuntimeError(f"uspelo samo {len(made)} slika")
             results.extend(made)
             done += 1
+            print(f"  ⏱ {animal}: {len(made)} dizajna za {(time.time() - t_bird) / 60:.1f} min")
             if len(made) < len(designs):
                 failures.append(f"{animal}: {len(designs) - len(made)} slika nije uspelo (Fal greška)")
             if not METADATA_ONLY:        # METADATA_ONLY je suvi test: životinje se ne troše
