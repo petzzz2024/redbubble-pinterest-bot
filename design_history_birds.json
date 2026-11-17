@@ -1,6 +1,8 @@
 {
  "animals": {},
- "failed": {},
+ "failed": {
+  "snowy owl": 1
+ },
  "designs": [
   {
    "date": "2026-11-16",
@@ -193,6 +195,166 @@
    "title": "Rent Is Due Now - Dark-eyed Junco Funny Character Bird",
    "text": "RENT IS DUE NOW",
    "primary_keyword": "funny birding"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "idiom",
+   "animal": "bullfinch",
+   "title": "Odd Bird - Funny Bullfinch Social Anxiety Meme",
+   "text": "ODD BIRD",
+   "primary_keyword": "odd bird"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "idiom",
+   "animal": "bullfinch",
+   "title": "Under My Wing - Funny Bullfinch Coffee Lover Birder",
+   "text": "UNDER MY WING",
+   "primary_keyword": "funny birding memes"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "birder",
+   "animal": "bullfinch",
+   "title": "Dipped Again - Funny Bullfinch Birder Bird Watching Humor",
+   "text": "DIPPED AGAIN",
+   "primary_keyword": "bird watching gifts"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "birder",
+   "animal": "bullfinch",
+   "title": "Lifer Alert - Funny Bullfinch Bird Watching Birder",
+   "text": "LIFER ALERT",
+   "primary_keyword": "birding gifts for men"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "character",
+   "animal": "bullfinch",
+   "title": "I Ate All The Buds - Funny Bullfinch Garden Bird Humor",
+   "text": "I ATE ALL THE BUDS",
+   "primary_keyword": "bullfinch bird"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "idiom",
+   "animal": "great blue heron",
+   "title": "For The Birds - Funny Great Blue Heron Birder Meme",
+   "text": "FOR THE BIRDS",
+   "primary_keyword": "great blue heron funny"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "idiom",
+   "animal": "great blue heron",
+   "title": "Fly The Coop - Funny Great Blue Heron Introvert Birder Humor",
+   "text": "FLY THE COOP",
+   "primary_keyword": "great blue heron gifts"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "birder",
+   "animal": "great blue heron",
+   "title": "Still Standing - Funny Great Blue Heron Birder Joke",
+   "text": "STILL STANDING",
+   "primary_keyword": "bird watching gifts"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "birder",
+   "animal": "great blue heron",
+   "title": "Just One More - Funny Great Blue Heron Birder Meme",
+   "text": "JUST ONE MORE",
+   "primary_keyword": "bird watching gifts"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "character",
+   "animal": "great blue heron",
+   "title": "I Am Judging You - Funny Great Blue Heron Bird Art",
+   "text": "I AM JUDGING YOU",
+   "primary_keyword": "great blue heron"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "birder",
+   "animal": "goldcrest",
+   "title": "Mystery Bird - Funny Goldcrest Birder Identification Joke",
+   "text": "MYSTERY BIRD",
+   "primary_keyword": "bird watching gifts"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "birder",
+   "animal": "goldcrest",
+   "title": "Dawn Call - Funny Goldcrest Bird Watching Birder Humor",
+   "text": "DAWN CALL",
+   "primary_keyword": "funny birding shirts"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "character",
+   "animal": "goldcrest",
+   "title": "Fearsome - Funny Goldcrest Character Bird Art",
+   "text": "FEARSOME",
+   "primary_keyword": "goldcrest bird uk"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "birder",
+   "animal": "black-capped chickadee",
+   "title": "Seed Dealer - Funny Black-Capped Chickadee Birder Joke",
+   "text": "SEED DEALER",
+   "primary_keyword": "bird watching gifts"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "birder",
+   "animal": "black-capped chickadee",
+   "title": "Hat Perch - Funny Black-Capped Chickadee Birdwatching Humor",
+   "text": "HAT PERCH",
+   "primary_keyword": "birdwatching gifts"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "character",
+   "animal": "black-capped chickadee",
+   "title": "Refill Now - Funny Black-Capped Chickadee Character Bird Art",
+   "text": "REFILL NOW",
+   "primary_keyword": "funny chickadee"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "idiom",
+   "animal": "shoebill",
+   "title": "Rare Bird - Funny Shoebill Birder Neurodivergent Meme",
+   "text": "RARE BIRD",
+   "primary_keyword": "cute shoebill bird"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "birder",
+   "animal": "shoebill",
+   "title": "Still Staring - Funny Shoebill Bird Watching Birder Joke",
+   "text": "STILL STARING",
+   "primary_keyword": "birding gifts"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "birder",
+   "animal": "shoebill",
+   "title": "What Was That - Funny Shoebill Bird Watching Humor",
+   "text": "WHAT WAS THAT",
+   "primary_keyword": "funny birding"
+  },
+  {
+   "date": "2026-11-17",
+   "type": "character",
+   "animal": "shoebill",
+   "title": "No Comments - Funny Shoebill Character Bird Meme",
+   "text": "NO COMMENTS",
+   "primary_keyword": "shoebill bird"
   }
  ]
 }
