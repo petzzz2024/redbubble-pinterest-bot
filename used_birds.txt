@@ -1,10 +1,15 @@
 black-capped chickadee
 bullfinch
+crow
 dark-eyed junco
 european robin
 goldcrest
 great blue heron
+grey heron
 jackdaw
 mallard
 northern cardinal
+pileated woodpecker
+ruby-throated hummingbird
 shoebill
+wren
