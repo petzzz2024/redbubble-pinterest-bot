@@ -1,5 +1,8 @@
+bald eagle
 black-capped chickadee
+blue jay
 bullfinch
+cedar waxwing
 crow
 dark-eyed junco
 european robin
@@ -12,4 +15,5 @@ northern cardinal
 pileated woodpecker
 ruby-throated hummingbird
 shoebill
+snowy owl
 wren

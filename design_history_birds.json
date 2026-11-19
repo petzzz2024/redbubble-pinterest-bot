@@ -1,7 +1,11 @@
 {
  "animals": {},
  "failed": {
-  "snowy owl": 1
+  "snowy owl": 1,
+  "magpie": 1,
+  "flamingo": 1,
+  "tawny owl": 1,
+  "long-tailed tit": 1
  },
  "designs": [
   {
@@ -531,6 +535,126 @@
    "title": "Move It - Sassy Ruby-Throated Hummingbird Character Art",
    "text": "MOVE IT!",
    "primary_keyword": "funny hummingbird"
+  },
+  {
+   "date": "2026-11-19",
+   "type": "birder",
+   "animal": "bald eagle",
+   "title": "Is That A Bag - Funny Birder Bald Eagle Joke",
+   "text": "IS THAT A BAG",
+   "primary_keyword": "bird watching gifts"
+  },
+  {
+   "date": "2026-11-19",
+   "type": "birder",
+   "animal": "bald eagle",
+   "title": "Photo Taken - Funny Bald Eagle Birding Humor",
+   "text": "PHOTO TAKEN",
+   "primary_keyword": "birding gift ideas"
+  },
+  {
+   "date": "2026-11-19",
+   "type": "character",
+   "animal": "bald eagle",
+   "title": "No Fish - Funny Bald Eagle Sassy Character",
+   "text": "NO FISH?",
+   "primary_keyword": "bald eagle character"
+  },
+  {
+   "date": "2026-11-19",
+   "type": "birder",
+   "animal": "blue jay",
+   "title": "Check It Off - Funny Blue Jay Birdwatcher Meme",
+   "text": "CHECK IT OFF",
+   "primary_keyword": "birding gifts"
+  },
+  {
+   "date": "2026-11-19",
+   "type": "birder",
+   "animal": "blue jay",
+   "title": "Just A Brown Bird - Funny Blue Jay Birder Joke",
+   "text": "JUST A BROWN BIRD",
+   "primary_keyword": "funny birding"
+  },
+  {
+   "date": "2026-11-19",
+   "type": "character",
+   "animal": "blue jay",
+   "title": "I Am The Law - Sassy Blue Jay Character Art",
+   "text": "I AM THE LAW",
+   "primary_keyword": "funny blue jay"
+  },
+  {
+   "date": "2026-11-19",
+   "type": "idiom",
+   "animal": "snowy owl",
+   "title": "Same Feathers - Cute Snowy Owl Bird Humor",
+   "text": "SAME FEATHERS",
+   "primary_keyword": "snowy owl humor"
+  },
+  {
+   "date": "2026-11-19",
+   "type": "idiom",
+   "animal": "snowy owl",
+   "title": "Frozen As A Bird - Funny Snowy Owl Winter Meme",
+   "text": "FROZEN AS A BIRD",
+   "primary_keyword": "funny snowy owl"
+  },
+  {
+   "date": "2026-11-19",
+   "type": "birder",
+   "animal": "snowy owl",
+   "title": "I Looked Away - Funny Snowy Owl Birder Joke",
+   "text": "I LOOKED AWAY",
+   "primary_keyword": "birding humor"
+  },
+  {
+   "date": "2026-11-19",
+   "type": "birder",
+   "animal": "snowy owl",
+   "title": "My First Lifer - Funny Snowy Owl Birder Humor",
+   "text": "MY FIRST LIFER",
+   "primary_keyword": "birding gifts"
+  },
+  {
+   "date": "2026-11-19",
+   "type": "character",
+   "animal": "snowy owl",
+   "title": "Too Loud - Funny Snowy Owl Sassy Character",
+   "text": "TOO LOUD!",
+   "primary_keyword": "funny snowy owl"
+  },
+  {
+   "date": "2026-11-19",
+   "type": "idiom",
+   "animal": "cedar waxwing",
+   "title": "King Of The Roost - Funny Cedar Waxwing Birdwatcher Meme",
+   "text": "KING OF THE ROOST",
+   "primary_keyword": "cedar waxwing bird"
+  },
+  {
+   "date": "2026-11-19",
+   "type": "birder",
+   "animal": "cedar waxwing",
+   "title": "Found Snacks - Funny Cedar Waxwing Birder Joke",
+   "text": "FOUND SNACKS",
+   "primary_keyword": "bird watching gifts"
+  },
+  {
+   "date": "2026-11-19",
+   "type": "birder",
+   "animal": "cedar waxwing",
+   "title": "My Favorites - Funny Cedar Waxwing Birdwatching Humor",
+   "text": "MY FAVORITES",
+   "primary_keyword": "bird watching gifts for dad"
+  },
+  {
+   "date": "2026-11-19",
+   "type": "character",
+   "animal": "cedar waxwing",
+   "title": "Nice Hairstyle - Funny Cedar Waxwing Sassy Bird Art",
+   "text": "NICE HAIRSTYLE",
+   "primary_keyword": "cedar waxwing shirt"
   }
  ]
 }
