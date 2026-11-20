@@ -1,3 +1,4 @@
+atlantic puffin
 bald eagle
 black-capped chickadee
 blue jay
@@ -5,15 +6,19 @@ bullfinch
 cedar waxwing
 crow
 dark-eyed junco
+eurasian jay
 european robin
 goldcrest
 great blue heron
+great horned owl
 grey heron
 jackdaw
 mallard
+mourning dove
 northern cardinal
 pileated woodpecker
 ruby-throated hummingbird
 shoebill
 snowy owl
+tawny owl
 wren
