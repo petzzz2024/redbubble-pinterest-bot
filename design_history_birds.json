@@ -3,9 +3,10 @@
  "failed": {
   "snowy owl": 1,
   "magpie": 1,
-  "flamingo": 1,
+  "flamingo": 2,
   "tawny owl": 1,
-  "long-tailed tit": 1
+  "long-tailed tit": 1,
+  "barn owl": 1
  },
  "designs": [
   {
@@ -799,6 +800,142 @@
    "title": "My Spot - Funny Mourning Dove Sassy Character Art",
    "text": "MY SPOT",
    "primary_keyword": "mourning dove character"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "idiom",
+   "animal": "long-tailed tit",
+   "title": "Feathered Friend - Cute Long-Tailed Tit Winter Holiday Art",
+   "text": "FEATHERED FRIEND",
+   "primary_keyword": "long-tailed tit bird"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "birder",
+   "animal": "long-tailed tit",
+   "title": "Shh Birdsong - Funny Long-Tailed Tit Birdwatcher Joke",
+   "text": "SHH BIRDSONG",
+   "primary_keyword": "birding humor"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "birder",
+   "animal": "long-tailed tit",
+   "title": "Always Ready - Funny Long-Tailed Tit Birdwatcher Gear Art",
+   "text": "ALWAYS READY",
+   "primary_keyword": "funny birding shirts"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "character",
+   "animal": "long-tailed tit",
+   "title": "Nope - Sassy Long-Tailed Tit Character Bird Art",
+   "text": "NOPE",
+   "primary_keyword": "sassy bird"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "idiom",
+   "animal": "eastern bluebird",
+   "title": "Early Bird Catches Worm - Funny Eastern Bluebird Birder Meme",
+   "text": "EARLY BIRD CATCHES WORM",
+   "primary_keyword": "early bird"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "birder",
+   "animal": "eastern bluebird",
+   "title": "Hold On Shush - Funny Eastern Bluebird Birdwatcher Joke",
+   "text": "HOLD ON SHUSH",
+   "primary_keyword": "bird watching"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "birder",
+   "animal": "eastern bluebird",
+   "title": "Dawn Till Dusk - Funny Eastern Bluebird Birder Humor",
+   "text": "DAWN TILL DUSK",
+   "primary_keyword": "birding humor"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "character",
+   "animal": "eastern bluebird",
+   "title": "MY BOX - Sassy Eastern Bluebird Character Bird Art",
+   "text": "MY BOX",
+   "primary_keyword": "sassy bird"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "birder",
+   "animal": "chaffinch",
+   "title": "Just Another LBB - Funny Chaffinch Birder Meme",
+   "text": "JUST ANOTHER LBB",
+   "primary_keyword": "birder humor"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "birder",
+   "animal": "chaffinch",
+   "title": "Checklist Chaos - Funny Chaffinch Birder Meme",
+   "text": "CHECKLIST CHAOS",
+   "primary_keyword": "birding humor"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "character",
+   "animal": "chaffinch",
+   "title": "My Seeds Only - Sassy Chaffinch Character Art",
+   "text": "MY SEEDS ONLY",
+   "primary_keyword": "funny chaffinch"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "birder",
+   "animal": "tufted titmouse",
+   "title": "Got It Down - Funny Tufted Titmouse Birdwatcher Joke",
+   "text": "GOT IT DOWN",
+   "primary_keyword": "tufted titmouse gifts"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "birder",
+   "animal": "tufted titmouse",
+   "title": "Sound Track - Funny Tufted Titmouse Birdwatcher Art",
+   "text": "SOUND TRACK",
+   "primary_keyword": "tufted titmouse shirt"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "character",
+   "animal": "tufted titmouse",
+   "title": "Empty Feeder - Judgy Tufted Titmouse Birdwatcher Art",
+   "text": "EMPTY FEEDER",
+   "primary_keyword": "tufted titmouse sticker"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "birder",
+   "animal": "great spotted woodpecker",
+   "title": "Frozen Eyes - Funny Great Spotted Woodpecker Winter Birding Humor",
+   "text": "FROZEN EYES",
+   "primary_keyword": "bird watching gifts"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "birder",
+   "animal": "great spotted woodpecker",
+   "title": "Shutter Snap - Funny Great Spotted Woodpecker Photography Joke",
+   "text": "SHUTTER SNAP",
+   "primary_keyword": "funny birding shirts"
+  },
+  {
+   "date": "2026-11-23",
+   "type": "character",
+   "animal": "great spotted woodpecker",
+   "title": "My Post - Sassy Great Spotted Woodpecker Character Art",
+   "text": "MY POST",
+   "primary_keyword": "funny woodpecker"
   }
  ]
 }

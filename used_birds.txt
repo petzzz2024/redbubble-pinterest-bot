@@ -4,15 +4,19 @@ black-capped chickadee
 blue jay
 bullfinch
 cedar waxwing
+chaffinch
 crow
 dark-eyed junco
+eastern bluebird
 eurasian jay
 european robin
 goldcrest
 great blue heron
 great horned owl
+great spotted woodpecker
 grey heron
 jackdaw
+long-tailed tit
 mallard
 mourning dove
 northern cardinal
@@ -21,4 +25,5 @@ ruby-throated hummingbird
 shoebill
 snowy owl
 tawny owl
+tufted titmouse
 wren
