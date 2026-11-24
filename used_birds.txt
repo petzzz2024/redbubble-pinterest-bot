@@ -1,10 +1,14 @@
+american robin
 atlantic puffin
 bald eagle
+barn owl
 black-capped chickadee
 blue jay
+blue tit
 bullfinch
 cedar waxwing
 chaffinch
+common kingfisher
 crow
 dark-eyed junco
 eastern bluebird
@@ -20,6 +24,7 @@ long-tailed tit
 mallard
 mourning dove
 northern cardinal
+northern mockingbird
 pileated woodpecker
 ruby-throated hummingbird
 shoebill
