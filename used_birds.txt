@@ -11,20 +11,25 @@ chaffinch
 common kingfisher
 crow
 dark-eyed junco
+downy woodpecker
 eastern bluebird
 eurasian jay
 european robin
+flamingo
 goldcrest
 great blue heron
 great horned owl
 great spotted woodpecker
 grey heron
+house sparrow
 jackdaw
 long-tailed tit
+magpie
 mallard
 mourning dove
 northern cardinal
 northern mockingbird
+pied wagtail
 pileated woodpecker
 ruby-throated hummingbird
 shoebill
