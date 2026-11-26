@@ -1,13 +1,17 @@
+american goldfinch
 american robin
 atlantic puffin
 bald eagle
 barn owl
+barn swallow
 black-capped chickadee
 blue jay
 blue tit
 bullfinch
 cedar waxwing
 chaffinch
+coal tit
+common blackbird
 common kingfisher
 crow
 dark-eyed junco
@@ -31,6 +35,7 @@ northern cardinal
 northern mockingbird
 pied wagtail
 pileated woodpecker
+red-winged blackbird
 ruby-throated hummingbird
 shoebill
 snowy owl
