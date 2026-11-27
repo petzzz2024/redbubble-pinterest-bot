@@ -357,6 +357,160 @@ BIRDS = {
                    "eyes; serious stare; long legs"),
     "flamingo": _b("world", ["pink"], "bright pink body; long thin neck and legs; bent pink bill with a black tip; black "
                    "flight feathers", ["summer"]),
+    # --- Britanija / Evropa (dodato) ---
+    "european greenfinch": _b("uk", ["green"], "olive-green body; bright yellow flashes on the wings and the sides of the "
+                              "tail; grey patch on the wings; stout pale pinkish bill; slightly forked tail"),
+    "eurasian siskin": _b("uk", ["green"], "small yellow-green finch; male with a black cap and a small black chin; bright "
+                          "yellow face and breast; streaked flanks; black wings with broad yellow wing bars; thin pointed bill"),
+    "yellowhammer": _b("uk", [], "male with a bright canary-yellow head and underparts; brown back streaked with chestnut and "
+                       "black; rusty-brown rump; faint dark lines on the face; long tail with white outer feathers; small "
+                       "grey bill"),
+    "song thrush": _b("uk", [], "warm brown back, wings and tail; creamy-white breast covered in neat dark arrow-shaped "
+                      "spots; buff wash on the breast; thin dark bill; pinkish legs"),
+    "dunnock": _b("uk", ["blue"], "blue-grey head and breast; warm brown back streaked with black; brown wings; thin fine dark "
+                  "bill; reddish-brown eye; pinkish legs"),
+    "wood pigeon": _b("uk", ["pink", "blue"], "plump blue-grey pigeon; white patch on the side of the neck with a "
+                      "green-and-purple sheen; pinkish-mauve breast; white band across each wing; orange bill with a "
+                      "yellow tip; pale yellow eye; pink legs"),
+    "collared dove": _b("uk", ["pink"], "pale sandy-grey dove with a soft pinkish-buff wash; thin black half-collar on the "
+                        "back of the neck edged with white; dark red eye; dark wingtips; long tail with white corners"),
+    "green woodpecker": _b("uk", ["green"], "bright green back and wings; yellow rump; bright red crown; black mask around a "
+                           "pale eye; red-centred black moustache stripe; pale greenish-grey underparts; long strong bill"),
+    "little owl": _b("uk", [], "small round owl with no ear tufts; brown back covered in white spots; pale belly streaked "
+                     "with brown; flat-topped head with pale eyebrows giving a frowning look; bright yellow eyes",
+                     ["halloween"]),
+    "eurasian eagle-owl": _b("uk", [], "huge owl with long ear tufts; tawny-brown body streaked with dark brown; bright "
+                             "orange eyes; pale throat; feathered feet", ["halloween"]),
+    "common kestrel": _b("uk", ["blue"], "small falcon; male with a blue-grey head and tail; chestnut-brown back with small "
+                         "black spots; buff breast with dark spots; black band at the tail tip; thin dark moustache stripe; "
+                         "yellow eye-ring and feet; small hooked bill"),
+    "red kite": _b("uk", [], "rusty-red body; long deeply forked rusty tail; pale grey-white streaked head; dark wingtips with "
+                   "white patches under the wings; hooked bill with a yellow base; yellow feet"),
+    "eurasian hoopoe": _b("uk", ["pink"], "warm pinkish-orange body; tall orange fan-shaped crest tipped with black; bold "
+                          "black-and-white striped wings and tail; long thin down-curved bill"),
+    "european bee-eater": _b("uk", ["blue", "green"], "chestnut crown and back; golden-yellow shoulders; yellow throat edged "
+                             "with a thin black necklace; black mask; turquoise-blue belly; green tail with two pointed "
+                             "central feathers; long thin curved black bill", ["summer"]),
+    "mute swan": _b("uk", [], "large all-white swan; long S-shaped neck; bright orange bill with a black knob at the base; "
+                    "black legs and feet"),
+    "white stork": _b("uk", [], "tall white bird with black flight feathers on the wings; long straight bright red bill; "
+                      "long red legs", ["spring-easter"]),
+    "oystercatcher": _b("uk", [], "bold black-and-white wader; black head, breast and back; white belly; long straight bright "
+                        "orange-red bill; red eye-ring; pink legs"),
+    "northern lapwing": _b("uk", ["green", "pink"], "black-and-white plover with a long thin wispy black crest; dark glossy "
+                           "green back with a purple sheen; black breast band; white face and belly; orange patch under "
+                           "the tail; pinkish legs"),
+    "bohemian waxwing": _b("uk", ["pink"], "plump soft pinkish-brown bird with a big swept-back crest; black mask and black "
+                           "chin; bright yellow tip to the tail; wings marked with yellow, white and small waxy red tips; "
+                           "rusty patch under the tail", ["christmas"]),
+    "firecrest": _b("uk", ["green"], "tiny round olive-green bird; bold white eyebrow stripe above a black eye-stripe; bright "
+                    "orange-and-yellow crown stripe bordered with black; bronze patch on the shoulders; white wing bars; "
+                    "thin dark bill"),
+    "treecreeper": _b("uk", [], "small mouse-like bird; mottled brown back streaked with buff; clean silvery-white belly; "
+                      "white eyebrow; long thin down-curved bill; stiff long tail"),
+    "crested tit": _b("uk", [], "small bird with a pointed black-and-white speckled crest; white face with a black curved "
+                      "line around the cheek; black bib; warm brown back; buff-white belly"),
+    "grey wagtail": _b("uk", ["blue"], "slim bird with a blue-grey back; bright lemon-yellow underparts and rump; male with a "
+                       "black throat; white eyebrow; very long black tail with white edges; pinkish legs"),
+    "golden oriole": _b("uk", [], "male bright golden-yellow body; black wings; black tail with yellow corners; pinkish-red "
+                        "bill; small black line between the eye and the bill", ["summer"]),
+    "herring gull": _b("both", [], "white head and body; pale silver-grey back; black wingtips with white spots; yellow bill "
+                       "with a red spot near the tip; pale yellow eye; pink legs", ["summer"]),
+    # --- Severna Amerika (dodato) ---
+    "northern flicker": _b("na", [], "warm brown back barred with black; pale buff belly covered with round black spots; "
+                           "black crescent bib; grey cap with a red patch on the back of the head; black moustache stripe; "
+                           "bright yellow under the wings and tail"),
+    "red-bellied woodpecker": _b("na", [], "black-and-white zebra-barred back; bright red cap from the bill to the back of "
+                                 "the neck; pale buff-grey face and belly; faint reddish wash on the belly; long chisel bill"),
+    "carolina wren": _b("na", [], "small round warm cinnamon-brown wren; bold white eyebrow stripe; buff-orange belly; white "
+                        "throat; barred wings and tail; tail cocked up; long slightly curved bill"),
+    "white-breasted nuthatch": _b("na", ["blue"], "blue-grey back; black cap; clean white face and breast; rusty patch under "
+                                  "the tail; long straight pointed bill; short tail"),
+    "red-breasted nuthatch": _b("na", ["blue"], "small nuthatch with a blue-grey back; black cap; bold white eyebrow above a "
+                                "black eye-stripe; rusty-orange breast; short tail; straight pointed bill"),
+    "baltimore oriole": _b("na", [], "male bright flame-orange body; black head, back and wings; white wing bar; orange-and-"
+                           "black tail; pointed silver-grey bill", ["spring-easter"]),
+    "scarlet tanager": _b("na", [], "male brilliant scarlet-red body; jet-black wings and tail; pale thick bill", ["summer"]),
+    "indigo bunting": _b("na", ["blue"], "male entirely deep electric indigo-blue; darker blue-black wings and tail; small "
+                         "conical silver-grey bill", ["summer"]),
+    "rose-breasted grosbeak": _b("na", [], "male black head, back and wings; bright rose-red triangle on a white breast; white "
+                                 "belly; white wing patches; big pale conical bill", ["spring-easter"]),
+    "evening grosbeak": _b("na", ["green"], "male dull golden-yellow body; dark brown head with a bright yellow eyebrow; black "
+                           "wings with big white patches; black tail; huge pale greenish-yellow conical bill", ["christmas"]),
+    "song sparrow": _b("na", [], "brown streaky sparrow; white breast heavily streaked with brown and a dark central spot; "
+                       "grey face with brown stripes; rusty-brown wings; long rounded tail"),
+    "white-throated sparrow": _b("na", [], "crown with bold black-and-white stripes; bright white throat; small yellow spot "
+                                 "between the eye and the bill; plain grey breast; rusty-brown streaked back"),
+    "steller's jay": _b("na", ["blue"], "dark charcoal-black head and tall shaggy crest; deep blue body, wings and tail; fine "
+                        "black bars on the wings and tail; small pale blue streaks on the forehead"),
+    "gray catbird": _b("na", [], "slim smooth slate-grey bird; neat black cap; long black tail; rusty-chestnut patch under "
+                       "the tail; dark eye; thin black bill"),
+    "belted kingfisher": _b("na", ["blue"], "big-headed blue-grey kingfisher with a shaggy crest; white collar and white "
+                            "belly; blue-grey breast band; large dagger-like black bill"),
+    "canada goose": _b("na", [], "black head and long black neck; white chinstrap patch across the cheeks; brown-grey body; "
+                       "pale breast; white patch under the tail; black bill and legs"),
+    "common loon": _b("na", [], "black head; red eye; black dagger bill; black-and-white striped necklace on the neck; black "
+                      "back checkered with white spots; white belly"),
+    "wild turkey": _b("na", ["blue"], "big dark bronze-brown body with a shiny sheen; bare blue-and-red head; red wattle "
+                      "hanging from the throat; fanned tail with rusty tips; bristly beard on the chest; long pink legs",
+                      ["thanksgiving"]),
+    "red-tailed hawk": _b("na", [], "brown back; pale chest with a band of dark streaks across the belly; rusty-red tail; dark "
+                          "brown head; hooked bill; yellow feet"),
+    "american kestrel": _b("na", ["blue"], "small colourful falcon; rusty-orange back barred with black; blue-grey wings; two "
+                           "black vertical stripes on a white face; rusty tail with a black band; spotted buff breast"),
+    "osprey": _b("na", [], "dark brown back and wings; clean white belly and head; broad dark brown stripe through the yellow "
+                 "eye; hooked black bill; pale grey feet"),
+    "barred owl": _b("na", [], "round head with no ear tufts; grey-brown body; dark brown bars across the upper chest and "
+                     "streaks down the belly; big dark brown eyes; pale yellow bill", ["halloween"]),
+    "eastern screech owl": _b("na", [], "tiny owl with small pointed ear tufts; grey bark-like plumage with dark streaks; "
+                              "bright yellow eyes; pale bill", ["halloween"]),
+    "burrowing owl": _b("na", [], "small long-legged owl with a round head and no ear tufts; brown body spotted with white; "
+                        "white eyebrows and chin; bright yellow eyes; long bare grey legs"),
+    "greater roadrunner": _b("na", ["blue"], "long-legged streaky brown-and-white ground bird; shaggy dark crest; very long "
+                             "tail; bare blue-and-orange skin behind the eye; long strong bill"),
+    "anna's hummingbird": _b("na", ["green", "pink"], "tiny bird with a green back; glowing magenta-pink crown and throat; "
+                             "grey belly; long thin black bill"),
+    "killdeer": _b("na", [], "brown back; white belly; two black bands across a white breast; white forehead and eyebrow; "
+                   "red eye-ring; bright orange rump; long tail", ["spring-easter"]),
+    "chipping sparrow": _b("na", [], "rusty-red cap; white eyebrow above a black eye-line; plain grey breast; streaked brown "
+                           "back; small dark bill"),
+    "sandhill crane": _b("na", [], "tall grey crane; bright red forehead cap; white cheeks; long dark legs; straight dark "
+                         "bill"),
+    # --- Svuda / omiljene (dodato) ---
+    "emperor penguin": _b("world", [], "upright penguin with a black head, back and flippers; white belly; bright "
+                          "yellow-orange ear patches fading to pale yellow on the upper breast; long slightly curved black "
+                          "bill with an orange stripe", ["christmas"]),
+    "gentoo penguin": _b("world", [], "black head with a white band across the top like a headband; bright orange-red bill; "
+                         "orange feet; black back and flippers; white belly", ["christmas"]),
+    "keel-billed toucan": _b("world", ["green", "blue"], "black body; bright yellow face and chest; huge bill in lime-green, "
+                             "orange and blue with a dark red tip; red patch under the tail; blue feet"),
+    "scarlet macaw": _b("world", ["blue"], "bright scarlet-red body; wings with yellow and blue feathers; long red-and-blue "
+                        "tail; bare white face; big hooked pale-and-black bill"),
+    "cockatiel": _b("world", [], "soft grey body; tall yellow crest; yellow face with round bright orange cheek patches; white "
+                    "wing patches; dark eye"),
+    "budgerigar": _b("world", ["green", "blue"], "bright lime-green body; yellow face and forehead; fine black wavy bars on "
+                     "the back of the head and wings; small black throat spots; dark blue cheek patch; long blue-green "
+                     "tail"),
+    "sulphur-crested cockatoo": _b("world", [], "big all-white parrot; tall bright yellow crest; pale yellow wash under the "
+                                   "wings; dark grey curved bill; dark eye; grey feet"),
+    "laughing kookaburra": _b("world", ["blue"], "big-headed kingfisher; off-white head and belly; dark brown stripe through "
+                              "the eye; brown back and wings with pale blue spots on the shoulder; rusty tail barred with "
+                              "black; huge dark bill"),
+    "brown kiwi": _b("world", [], "round brown bird with shaggy hair-like feathers; no visible wings or tail; very long thin "
+                     "slightly curved pale bill; short strong legs"),
+    "ostrich": _b("world", [], "huge flightless bird; black body feathers with white wing plumes and a white tail; long bare "
+                  "pinkish-grey neck and legs; small head with big eyes and long lashes; flat broad bill"),
+    "peacock": _b("world", ["blue", "green"], "male peafowl: glossy royal-blue neck and breast; fan-shaped crest; long green "
+                  "train covered in big eye spots; white stripes around the eye"),
+    "secretary bird": _b("world", [], "tall long-legged bird of prey; pale grey body; long black quill-like crest feathers at "
+                         "the back of the head; bare orange-red face; black thighs; long tail"),
+    "african grey parrot": _b("world", [], "soft grey body with a scaled pattern; bright red tail; pale white face around a "
+                              "pale yellow eye; black curved bill"),
+    "great egret": _b("world", [], "tall all-white heron; long S-shaped neck; long yellow bill; black legs and feet"),
+    "superb fairywren": _b("world", ["blue"], "male bright sky-blue crown, cheeks and back; black stripe through the eye and "
+                           "black collar; dark blue throat; grey-brown wings; long cocked blue tail"),
+    "galah": _b("world", ["pink"], "rosy-pink face, neck and breast; pale pink crest; soft grey back, wings and tail; pale "
+                "bill"),
 }
 
 REGION_TAGS = {
@@ -760,6 +914,18 @@ def demand_score(animal):
     return total
 
 
+REPEAT_AFTER_DAYS = env_int("REPEAT_AFTER_DAYS", 30)
+
+
+def bird_last_used(history):
+    last = {}
+    for d in history.get("designs", []):
+        a, dt = d.get("animal"), d.get("date")
+        if a and dt and (a not in last or dt > last[a]):
+            last[a] = dt
+    return last
+
+
 def pick_animals(used, history, today, count):
     """Bira PTICE iz spiska BIRDS (samo vrste sa proverenim šarama):
     - bez ponavljanja dok se spisak ne potroši (onda novi krug; istorija naslova i fraza ostaje, pa dizajni nisu isti)
@@ -767,13 +933,41 @@ def pick_animals(used, history, today, count):
     - sezonske ptice imaju prednost (npr. crvendać i kardinal pred Božić)
     - Google autosuggest rangira kandidate po stvarnoj potražnji."""
     failed = history.get("failed", {})
-    used_keys = {phrase_key(a) for a in used}
-    pool = [b for b in BIRDS if phrase_key(b) not in used_keys and failed.get(b, 0) < 3]
-    if len(pool) < count:
-        print("  -> Sve ptice sa spiska su iskorišćene: počinje novi krug.")
-        used.clear()
-        pool = [b for b in BIRDS if failed.get(b, 0) < 3]
+    last = bird_last_used(history)
+    used_keys = {phrase_key(a) for a in used} | {phrase_key(a) for a in last}
+    ok = [b for b in BIRDS if failed.get(b, 0) < 3]
+    fresh = [b for b in ok if phrase_key(b) not in used_keys]
+    print(f"  -> Novih ptica (nikad rađenih) na spisku: {len(fresh)} od {len(BIRDS)}")
     season_ids = {s["id"] for s in active_seasons(today)}
+
+    def age(b):
+        dt = last.get(b)
+        try:
+            return (today - datetime.date.fromisoformat(dt)).days if dt else 10 ** 6
+        except ValueError:
+            return 10 ** 6
+
+    if len(fresh) < count:
+        # STARA GREŠKA: kad je ostalo manje novih ptica od count, ceo spisak se resetovao, preostale nove su
+        # preskakane, a sezonske (crvendać, kardinal...) su odmah ponovo dolazile. Sad: sve nove prvo, a dopuna su
+        # ptice rađene pre najmanje REPEAT_AFTER_DAYS dana, najstarije prve.
+        old = sorted([b for b in ok if b not in fresh and age(b) >= REPEAT_AFTER_DAYS], key=lambda b: -age(b))
+        need = count - len(fresh)
+        if old:
+            print(f"  -> Dopuna: {min(need, len(old))} ptica rađenih pre {REPEAT_AFTER_DAYS}+ dana (najstarije prve)")
+        else:
+            print(f"  -> ⚠ Nema dovoljno ptica: sve ostale su rađene u poslednjih {REPEAT_AFTER_DAYS} dana. "
+                  f"Dodaj nove ptice u BIRDS ili smanji REPEAT_AFTER_DAYS.")
+        random.shuffle(fresh)
+        fresh.sort(key=lambda b: 0 if set(BIRDS[b]["seasons"]) & season_ids else 1)
+        chosen = fresh + old[:need]
+        if not chosen:                      # bolje najstarije ptice nego dan bez dizajna
+            chosen = sorted(ok, key=lambda b: -age(b))[:count]
+            print("  -> ⚠ Uzimam najstarije ptice uprkos pauzi, da dan ne prođe bez dizajna.")
+        for b in chosen:
+            print(f"     • {b} [{BIRDS[b]['region']}]{'' if b in fresh else f' [ponovo, posle {age(b)} dana]'}")
+        return chosen
+    pool = fresh
 
     def seasonal(b):
         return bool(set(BIRDS[b]["seasons"]) & season_ids)
@@ -952,7 +1146,7 @@ def build_concept_prompt(slots, theme_kw, animal_kw, avoid_titles, avoid_texts, 
     season_line = ("Upcoming season: " + "; ".join(s["brief"] for s in seasons) +
                    ". At most 1-2 idiom concepts may fit it, the rest must be evergreen.\n") if seasons else ""
     titles_block = "\n".join(f"- {t}" for t in avoid_titles[-60:]) or "- (none)"
-    texts_block = ", ".join(avoid_texts[-150:]) or "(none)"
+    texts_block = ", ".join(avoid_texts[-300:]) or "(none)"
     fix_block = ("\nFIX THESE PROBLEMS FROM YOUR PREVIOUS ANSWER:\n" + "\n".join(f"- {f}" for f in feedback[:15]) + "\n") if feedback else ""
     return f"""You are the creative director and SEO expert of "Feathered Gossip", a Redbubble sticker and t-shirt shop with funny birds. Today is {today.strftime('%B %d, %Y')}.
 
@@ -1413,14 +1607,17 @@ def clean_concept(raw, slot, ctx):
 def generate_concepts(slots, theme_kw, animal_kw, today, history):
     old = [d for rec in history["animals"].values() for d in rec.get("designs", [])] + history.get("designs", [])
     avoid_titles = OWN_BESTSELLER_TITLES + [d["title"] for d in old if d.get("title")]
-    # Fraze se tvrdo proveravaju protiv poslednjih 150: model ume sam da ponavlja iste.
-    avoid_texts = OWN_BESTSELLER_TEXTS + [d["text"] for d in old if d.get("text")][-150:]
+    # Ista fraza se NIKAD ne ponavlja (ni na drugoj ptici): tačno poklapanje se proverava protiv CELE istorije
+    # (ranije samo poslednjih 150, pa su se vraćali "Free As A Bird", "Night Owl", "Odd Bird"...).
+    # Slične fraze (isto jezgro reči) se proveravaju protiv poslednjih 150.
+    all_texts = OWN_BESTSELLER_TEXTS + [d["text"] for d in old if d.get("text")]
+    avoid_texts = all_texts[-300:]
     ctx = {
         "titles": {phrase_key(t) for t in avoid_titles},
-        "texts": {canon(t) for t in avoid_texts},
+        "texts": {canon(t) for t in all_texts},
         "keywords": animal_kw,
         "theme_keywords": theme_kw,
-        "cores": [(text_core(t), t) for t in avoid_texts],
+        "cores": [(text_core(t), t) for t in all_texts[-150:]],
         "recent_texts": [d["text"] for d in old if d.get("text")][-40:],
     }
     accepted = {}
@@ -2040,6 +2237,8 @@ def main():
     n_character = DESIGNS_PER_ANIMAL - IDIOMS_PER_ANIMAL - BIRDER_PER_ANIMAL
     print(f"🤖 [FAZA 1] Biram {ANIMALS_PER_RUN} ptica (Britanija + Severna Amerika + omiljene, sezona, stvarna potražnja)...")
     animals = pick_animals(used, history, today, ANIMALS_PER_RUN + 3)     # +3 rezerve: ako neka ptica padne, uskače sledeća
+    if not animals:
+        sys.exit(f"Nema ptica za danas: sve su rađene u poslednjih {REPEAT_AFTER_DAYS} dana. Dodaj nove ptice u BIRDS.")
     print(f"🎯 Lista za danas: {', '.join(a.upper() for a in animals[:ANIMALS_PER_RUN])}  "
           f"(rezerve: {', '.join(animals[ANIMALS_PER_RUN:]) or 'nema'})  "
           f"(po ptici: {IDIOMS_PER_ANIMAL} idiom + {BIRDER_PER_ANIMAL} birder + {n_character} karakter)")
